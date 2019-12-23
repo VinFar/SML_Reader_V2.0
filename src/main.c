@@ -1,13 +1,4 @@
-#include <stdint-gcc.h>
-
-#include "FreeRTOS.h"
-#include "task.h"
-#include "queue.h"
-#include "timers.h"
-#include "semphr.h"
-
-
-#include "stm32f0xx.h"
+#include "main.h"
 
 /* Priorities at which the tasks are created.  The event semaphore task is
  given the maximum priority of ( configMAX_PRIORITIES - 1 ) to ensure it runs as
@@ -67,7 +58,9 @@ void vApplicationTickHook() {
 static void prvSetupHardware(void) {
 
 	SystemClock_Config();
+	i2c1_init();
 
+	eeprom_erase_page(0);
 
 }
 
@@ -113,3 +106,7 @@ void SystemClock_Config(void) {
 	SystemCoreClock = 48000000;
 }
 
+void Error_Handler(void)
+{
+	while(1);
+}

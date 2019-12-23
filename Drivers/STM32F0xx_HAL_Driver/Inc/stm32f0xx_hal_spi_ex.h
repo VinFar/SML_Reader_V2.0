@@ -1,8 +1,8 @@
 /**
   ******************************************************************************
-  * @file    system_stm32f0xx.h
+  * @file    stm32f0xx_hal_spi_ex.h
   * @author  MCD Application Team
-  * @brief   CMSIS Cortex-M0 Device System Source File for STM32F0xx devices.  
+  * @brief   Header file of SPI HAL Extended module.
   ******************************************************************************
   * @attention
   *
@@ -33,74 +33,51 @@
   ******************************************************************************
   */
 
-/** @addtogroup CMSIS
-  * @{
-  */
-
-/** @addtogroup stm32f0xx_system
-  * @{
-  */  
-  
-/**
-  * @brief Define to prevent recursive inclusion
-  */
-#ifndef __SYSTEM_STM32F0XX_H
-#define __SYSTEM_STM32F0XX_H
+/* Define to prevent recursive inclusion -------------------------------------*/
+#ifndef __STM32F0xx_HAL_SPI_EX_H
+#define __STM32F0xx_HAL_SPI_EX_H
 
 #ifdef __cplusplus
- extern "C" {
-#endif 
+extern "C" {
+#endif
 
-/** @addtogroup STM32F0xx_System_Includes
+/* Includes ------------------------------------------------------------------*/
+#include "stm32f0xx_hal_def.h"
+
+/** @addtogroup STM32F0xx_HAL_Driver
   * @{
+  */
+
+/** @addtogroup SPIEx
+  * @{
+  */
+
+/* Exported types ------------------------------------------------------------*/
+/* Exported constants --------------------------------------------------------*/
+/* Exported macros -----------------------------------------------------------*/
+/* Exported functions --------------------------------------------------------*/
+/** @addtogroup SPIEx_Exported_Functions
+  * @{
+  */
+
+/* Initialization and de-initialization functions  ****************************/
+/* IO operation functions *****************************************************/
+/** @addtogroup SPIEx_Exported_Functions_Group1
+  * @{
+  */
+HAL_StatusTypeDef HAL_SPIEx_FlushRxFifo(SPI_HandleTypeDef *hspi);
+/**
+  * @}
   */
 
 /**
   * @}
   */
 
-
-/** @addtogroup STM32F0xx_System_Exported_types
-  * @{
-  */
-  /* This variable is updated in three ways:
-      1) by calling CMSIS function SystemCoreClockUpdate()
-      3) by calling HAL API function HAL_RCC_GetHCLKFreq()
-      3) by calling HAL API function HAL_RCC_ClockConfig()
-         Note: If you use this function to configure the system clock; then there
-               is no need to call the 2 first functions listed above, since SystemCoreClock
-               variable is updated automatically.
-  */
-extern uint32_t SystemCoreClock;          /*!< System Clock Frequency (Core Clock) */
-extern const uint8_t AHBPrescTable[16];   /*!< AHB prescalers table values */
-extern const uint8_t APBPrescTable[8];    /*!< APB prescalers table values */
-
 /**
   * @}
   */
 
-/** @addtogroup STM32F0xx_System_Exported_Constants
-  * @{
-  */
-
-/**
-  * @}
-  */
-
-/** @addtogroup STM32F0xx_System_Exported_Macros
-  * @{
-  */
-
-/**
-  * @}
-  */
-
-/** @addtogroup STM32F0xx_System_Exported_Functions
-  * @{
-  */
-  
-extern void SystemInit(void);
-extern void SystemCoreClockUpdate(void);
 /**
   * @}
   */
@@ -109,13 +86,6 @@ extern void SystemCoreClockUpdate(void);
 }
 #endif
 
-#endif /*__SYSTEM_STM32F0XX_H */
+#endif /* __STM32F0xx_HAL_SPI_EX_H */
 
-/**
-  * @}
-  */
-  
-/**
-  * @}
-  */  
 /************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/
