@@ -4,7 +4,6 @@
 *.pdf
 *.txt
 *.pydevproject
-.project
 .metadata
 bin/
 tmp/
@@ -24,7 +23,6 @@ local.properties
 *.launch
 
 # CDT-specific
-.cproject
 
 # PDT-specific
 .buildpath
