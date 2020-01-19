@@ -67,9 +67,9 @@ static void prvSetupTimerInterrupt( void );
 /*
  * Exception handlers.
  */
-void xPortPendSVHandler( void ) __attribute__ (( naked ));
-void xPortSysTickHandler( void );
-void vPortSVCHandler( void );
+void xPortPendSVHandler( void ) __attribute__((weak));
+void xPortSysTickHandler( void ) __attribute__((weak));
+void vPortSVCHandler( void ) __attribute__((weak));
 
 /*
  * Start first task is a separate function so it can be tested in isolation.

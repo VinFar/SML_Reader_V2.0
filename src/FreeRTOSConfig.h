@@ -87,10 +87,9 @@
 #define configCPU_CLOCK_HZ				( 48000000UL )
 #define configTICK_RATE_HZ				( ( portTickType ) 1000 )
 #define configMAX_PRIORITIES			( 5 )
-#define configMINIMAL_STACK_SIZE		( ( unsigned short ) 70 )
-#define configTOTAL_HEAP_SIZE			( ( size_t ) ( 16384) )
-#define configMAX_TASK_NAME_LEN			( 10 )
-#define configUSE_TRACE_FACILITY		0
+#define configMINIMAL_STACK_SIZE		( ( unsigned short ) 50 )
+#define configMAX_TASK_NAME_LEN			( 20 )
+#define configUSE_TRACE_FACILITY		1
 #define configUSE_16_BIT_TICKS			0
 #define configIDLE_SHOULD_YIELD			1
 #define configUSE_MUTEXES				1
@@ -101,10 +100,16 @@
 #define configUSE_MALLOC_FAILED_HOOK	1
 #define configUSE_APPLICATION_TASK_TAG	0
 #define configUSE_COUNTING_SEMAPHORES	0
+#define configUSE_TASK_NOTIFICATIONS 	1
 
 /* Co-routine definitions. */
 #define configUSE_CO_ROUTINES 		0
 #define configMAX_CO_ROUTINE_PRIORITIES ( 2 )
+
+#define configSUPPORT_STATIC_ALLOCATION         0
+#define configSUPPORT_DYNAMIC_ALLOCATION        1
+#define configTOTAL_HEAP_SIZE                   2048
+#define configAPPLICATION_ALLOCATED_HEAP        0
 
 /* Software timer definitions. */
 #define configUSE_TIMERS				1
@@ -130,7 +135,7 @@ to exclude the API function. */
 #endif
 
 #define configLIBRARY_LOWEST_INTERRUPT_PRIORITY			15
-#define configLIBRARY_MAX_SYSCALL_INTERRUPT_PRIORITY	5
+#define configLIBRARY_MAX_SYSCALL_INTERRUPT_PRIORITY	3
 
 /* The lowest priority. */
 #define configKERNEL_INTERRUPT_PRIORITY 	( configLIBRARY_LOWEST_INTERRUPT_PRIORITY << (8 - configPRIO_BITS) )

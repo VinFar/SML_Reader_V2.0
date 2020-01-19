@@ -15,5 +15,6 @@ uint16_t Log2n(uint16_t n);
 int16_t isPowerOfTwo(uint16_t n);
 int16_t findPosition(uint16_t n);
 
+void check_cmd_struct(void *param);
 
 #endif /* FUNCTIONS_H_ */

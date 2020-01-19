@@ -1,3 +1,16 @@
+#include <stdint-gcc.h>
+#include "stm32f091xc.h"
+#include "stm32f0xx_hal.h"
+
+#include "eeprom.h"
+#include "string.h"
+#include "functions.h"
+
+#include "FreeRTOS.h"
+#include "task.h"
+#include "queue.h"
+#include "timers.h"
+#include "semphr.h"
 #include "main.h"
 
 /* Priorities at which the tasks are created.  The event semaphore task is
@@ -20,7 +33,6 @@
  the queue empty. */
 #define mainQUEUE_LENGTH					( 1 )
 
-
 void SystemClock_Config(void);
 static void prvSetupHardware(void);
 void vApplicationMallocFailedHook(void);
@@ -28,11 +40,23 @@ void vApplicationStackOverflowHook( xTaskHandle *pxTask,
 		signed char *pcTaskName);
 void vApplicationTickHook();
 
+TaskHandle_t xcheck_cmd_struct;
+
+//uint8_t ucHeap[ configTOTAL_HEAP_SIZE ]={0};
+
 int main(void) {
 
 	prvSetupHardware();
 
+	xTaskCreate(check_cmd_struct, "cmd check", 10, (void *) 1,
+			tskIDLE_PRIORITY, &xcheck_cmd_struct);
 
+	vTaskStartScheduler();
+
+	NOP
+	NOP
+	NOP
+	NOP
 
 	while (1) {
 
@@ -58,9 +82,39 @@ void vApplicationTickHook() {
 static void prvSetupHardware(void) {
 
 	SystemClock_Config();
+
+	/*
+	 * communication for DAC and EEPROM
+	 */
 	i2c1_init();
 
-	eeprom_erase_page(0);
+	/*
+	 * communication for NRF24 Wireless Chip
+	 */
+	spi1_init();
+
+	/*
+	 * PWM 2 Output
+	 */
+	tim14_init();
+
+	/*
+	 * PWM 1 Output
+	 */
+	tim1_init();
+
+	/*
+	 * ADC Input for Mains voltage current sensor
+	 */
+	adc_init();
+
+	/*
+	 * Init DAC IC for Analog Output voltage
+	 */
+	init_dac47();
+
+	set_dac47_out1(0);
+	set_dac47_out2(0);
 
 }
 
@@ -79,7 +133,8 @@ void SystemClock_Config(void) {
 	/*
 	 * wait till the hse is ready
 	 */
-	while(!((RCC->CR & RCC_CR_HSERDY) == RCC_CR_HSERDY));
+	while (!((RCC->CR & RCC_CR_HSERDY) == RCC_CR_HSERDY))
+		;
 
 	/*
 	 * set the pll multiplicator to 6: 6 x 8Mhz HSE = 48Mhz PLLCLK
@@ -101,12 +156,13 @@ void SystemClock_Config(void) {
 	 */
 	RCC->CR |= RCC_CR_PLLON;
 
-	while(!((RCC->CR & RCC_CR_PLLRDY) == RCC_CR_PLLRDY));
+	while (!((RCC->CR & RCC_CR_PLLRDY) == RCC_CR_PLLRDY))
+		;
 
 	SystemCoreClock = 48000000;
 }
 
-void Error_Handler(void)
-{
-	while(1);
+void Error_Handler(void) {
+	while (1)
+		;
 }
