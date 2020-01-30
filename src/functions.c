@@ -18,8 +18,6 @@ int16_t findPosition(uint16_t n) {
 void check_cmd_struct(void *param) {
 
 	while (1) {
-		NOP
-		NOP
 //
 //		uint32_t usart6_state_machine_error = 0;
 //		uint8_t err = 0;
