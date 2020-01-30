@@ -16,22 +16,8 @@
 /* Priorities at which the tasks are created.  The event semaphore task is
  given the maximum priority of ( configMAX_PRIORITIES - 1 ) to ensure it runs as
  soon as the semaphore is given. */
-#define mainQUEUE_RECEIVE_TASK_PRIORITY		( tskIDLE_PRIORITY + 2 )
-#define	mainQUEUE_SEND_TASK_PRIORITY		( tskIDLE_PRIORITY + 1 )
 #define mainEVENT_SEMAPHORE_TASK_PRIORITY	( configMAX_PRIORITIES - 1 )
 
-/* The rate at which data is sent to the queue, specified in milliseconds, and
- converted to ticks using the portTICK_RATE_MS constant. */
-#define mainQUEUE_SEND_PERIOD_MS			( 200 / portTICK_RATE_MS )
-
-/* The period of the example software timer, specified in milliseconds, and
- converted to ticks using the portTICK_RATE_MS constant. */
-#define mainSOFTWARE_TIMER_PERIOD_MS		( 1000 / portTICK_RATE_MS )
-
-/* The number of items the queue can hold.  This is 1 as the receive task
- will remove items as they are added, meaning the send task should always find
- the queue empty. */
-#define mainQUEUE_LENGTH					( 1 )
 
 void SystemClock_Config(void);
 static void prvSetupHardware(void);
@@ -86,35 +72,35 @@ static void prvSetupHardware(void) {
 	/*
 	 * communication for DAC and EEPROM
 	 */
-	i2c1_init();
+//	i2c1_init();
 
 	/*
 	 * communication for NRF24 Wireless Chip
 	 */
-	spi1_init();
+//	spi1_init();
 
 	/*
 	 * PWM 2 Output
 	 */
-	tim14_init();
+//	tim14_init();
 
 	/*
 	 * PWM 1 Output
 	 */
-	tim1_init();
+//	tim1_init();
 
 	/*
 	 * ADC Input for Mains voltage current sensor
 	 */
-	adc_init();
+//	adc_init();
 
 	/*
 	 * Init DAC IC for Analog Output voltage
 	 */
-	init_dac47();
+//	init_dac47();
 
-	set_dac47_out1(0);
-	set_dac47_out2(0);
+//	set_dac47_out1(0);
+//	set_dac47_out2(0);
 
 }
 
