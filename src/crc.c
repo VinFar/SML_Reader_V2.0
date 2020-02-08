@@ -1,59 +1,119 @@
+#include "main.h"
+#include "crc.h"
+
+static void init_crc16_tab(void);
+uint16_t ccrc16(char *data_p, unsigned short length);
+
+static unsigned crc_tab16_init = 0;
+static uint16_t crc_tab16[256];
+
+uint16_t crc_16(const unsigned char *input_str, size_t num_bytes) {
+
+	uint16_t crc;
+	const unsigned char *ptr;
+	size_t a;
+
+	if (!crc_tab16_init)
+		init_crc16_tab();
+
+	crc = CRC_START_CCITT_FFFF;
+	ptr = input_str;
+
+	if (ptr != NULL)
+		for (a = 0; a < num_bytes; a++) {
+
+			crc = (crc >> 8) ^ crc_tab16[(crc ^ (uint16_t) (*ptr++)) & 0x00FF];
+		}
+
+	return crc;
+
+} /* crc_16 */
+
 /*
- * crc.c
+ * uint16_t update_crc_16( uint16_t crc, unsigned char c );
  *
- *  Created on: 04.06.2018
- *      Author: Nutzer
+ * The function update_crc_16() calculates a new CRC-16 value based on the
+ * previous value of the CRC and the next byte of data to be checked.
  */
 
-#include "crc.h"
-#include "main.h"
+uint16_t update_crc_16(uint16_t crc, unsigned char c) {
 
-void CRC_Init() {
+	if (!crc_tab16_init)
+		init_crc16_tab();
 
-	__HAL_RCC_CRC_CLK_ENABLE()
-	;
-	delayUS_ASM(1000);
+	return (crc >> 8) ^ crc_tab16[(crc ^ (uint16_t) c) & 0x00FF];
 
-	//CRC->CR &= ~CRC_CR_POLYSIZE;	//Data width is 32Bit
-	CRC->POL = 0x4C11DB7;		//Polynominal value
-	CRC->INIT = 0xffffffff;
+} /* update_crc_16 */
 
-	CRC->CR |= CRC_CR_REV_OUT;
-	CRC->CR |= CRC_CR_REV_IN_0;
+/*
+ * static void init_crc16_tab( void );
+ *
+ * For optimal performance uses the CRC16 routine a lookup table with values
+ * that can be used directly in the XOR arithmetic in the algorithm. This
+ * lookup table is calculated by the init_crc16_tab() routine, the first time
+ * the CRC function is called.
+ */
 
-	CRC->CR |= CRC_CR_RESET;	//Reset CRC calculator
+static void init_crc16_tab(void) {
 
-	return;
+	uint16_t i;
+	uint16_t j;
+	uint16_t crc;
+	uint16_t c;
+
+	for (i = 0; i < 256; i++) {
+
+		crc = 0;
+		c = i;
+
+		for (j = 0; j < 8; j++) {
+
+			if ((crc ^ c) & 0x0001)
+				crc = (crc >> 1) ^ CRC_POLY_CCITT;
+			else
+				crc = crc >> 1;
+
+			c = c >> 1;
+		}
+
+		crc_tab16[i] = crc;
+	}
+
+	crc_tab16_init = 1;
+
 }
 
-uint32_t crc32_calc(uint8_t *crc_ptr, uint32_t size) {
+#define POLY 0x8408
+/*
+ //                                      16   12   5
+ // this is the CCITT CRC 16 polynomial X  + X  + X  + 1.
+ // This works out to be 0x1021, but the way the algorithm works
+ // lets us use 0x8408 (the reverse of the bit pattern).  The high
+ // bit is always assumed to be set, thus we only use 16 bits to
+ // represent the 17 bit value.
+ */
+//CRC-16/X-25
+uint16_t ccrc16(char *data_p, unsigned short length) {
+	uint8_t i;
+	uint16_t data;
+	uint16_t crc = 0xffff;
 
-	uint32_t idx = 0;
-	uint32_t crc_data = 0;
-	while (idx < size) {
+	if (length == 0)
+		return (~crc);
 
-		crc_data += *crc_ptr++;
-
-		if ((idx % 4) == 3) {
-			CRC->DR = crc_data;
-			crc_data = 0;
+	do {
+		for (i = 0, data = (unsigned int) 0xff & *data_p++; i < 8; i++, data >>=
+				1) {
+			if ((crc & 0x0001) ^ (data & 0x0001))
+				crc = (crc >> 1) ^ POLY;
+			else
+				crc >>= 1;
 		}
-		crc_data <<= 8;
-		idx++;
-	}
-	if ((size) % 4) {
-		idx = size % 4;
-		idx++;
-		while (idx < 4) {	//fill it with zeros
-			idx++;
-			crc_data <<= 8;
-		}
-		CRC->DR = crc_data; //let the CRC Hardware compute the CRC Check
-	}
-	uint32_t ret = ~CRC->DR;
-	CRC->CR |= CRC_CR_RESET;
+	} while (--length);
 
+	crc = ~crc;
+	data = crc;
+	crc = (crc << 8) | (data >> 8 & 0xff);
 
-	return ret;
-
+	return (crc);
 }

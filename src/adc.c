@@ -1,6 +1,32 @@
+/**
+  ******************************************************************************
+  * File Name          : ADC.c
+  * Description        : This file provides code for the configuration
+  *                      of the ADC instances.
+  ******************************************************************************
+  * @attention
+  *
+  * <h2><center>&copy; Copyright (c) 2020 STMicroelectronics.
+  * All rights reserved.</center></h2>
+  *
+  * This software component is licensed by ST under BSD 3-Clause license,
+  * the "License"; You may not use this file except in compliance with the
+  * License. You may obtain a copy of the License at:
+  *                        opensource.org/licenses/BSD-3-Clause
+  *
+  ******************************************************************************
+  */
+
+/* Includes ------------------------------------------------------------------*/
 #include "adc.h"
+
+/* USER CODE BEGIN 0 */
+
+/* USER CODE END 0 */
+
 ADC_HandleTypeDef hadc;
 
+/* ADC init function */
 void adc_init(void)
 {
   ADC_ChannelConfTypeDef sConfig = {0};
@@ -27,7 +53,7 @@ void adc_init(void)
   }
   /** Configure for the selected ADC regular channel to be converted. 
   */
-  sConfig.Channel = ADC_CHANNEL_0;
+  sConfig.Channel = ADC_CHANNEL_6;
   sConfig.Rank = ADC_RANK_CHANNEL_NUMBER;
   sConfig.SamplingTime = ADC_SAMPLETIME_1CYCLE_5;
   if (HAL_ADC_ConfigChannel(&hadc, &sConfig) != HAL_OK)
@@ -36,7 +62,7 @@ void adc_init(void)
   }
   /** Configure for the selected ADC regular channel to be converted. 
   */
-  sConfig.Channel = ADC_CHANNEL_1;
+  sConfig.Channel = ADC_CHANNEL_8;
   if (HAL_ADC_ConfigChannel(&hadc, &sConfig) != HAL_OK)
   {
     Error_Handler();
@@ -57,14 +83,20 @@ void HAL_ADC_MspInit(ADC_HandleTypeDef* adcHandle)
     __HAL_RCC_ADC1_CLK_ENABLE();
   
     __HAL_RCC_GPIOA_CLK_ENABLE();
+    __HAL_RCC_GPIOB_CLK_ENABLE();
     /**ADC GPIO Configuration    
-    PA0     ------> ADC_IN0
-    PA1     ------> ADC_IN1 
+    PA6     ------> ADC_IN6
+    PB0     ------> ADC_IN8
     */
-    GPIO_InitStruct.Pin = ADC_IN_0_Pin|ADC_IN_1_Pin;
+    GPIO_InitStruct.Pin = ADC_RJ2_OUT_Pin;
     GPIO_InitStruct.Mode = GPIO_MODE_ANALOG;
     GPIO_InitStruct.Pull = GPIO_NOPULL;
-    HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+    HAL_GPIO_Init(ADC_RJ2_OUT_GPIO_Port, &GPIO_InitStruct);
+
+    GPIO_InitStruct.Pin = ADC_RJ1_OUT_Pin;
+    GPIO_InitStruct.Mode = GPIO_MODE_ANALOG;
+    GPIO_InitStruct.Pull = GPIO_NOPULL;
+    HAL_GPIO_Init(ADC_RJ1_OUT_GPIO_Port, &GPIO_InitStruct);
 
   /* USER CODE BEGIN ADC1_MspInit 1 */
 
@@ -84,10 +116,12 @@ void HAL_ADC_MspDeInit(ADC_HandleTypeDef* adcHandle)
     __HAL_RCC_ADC1_CLK_DISABLE();
   
     /**ADC GPIO Configuration    
-    PA0     ------> ADC_IN0
-    PA1     ------> ADC_IN1 
+    PA6     ------> ADC_IN6
+    PB0     ------> ADC_IN8
     */
-    HAL_GPIO_DeInit(GPIOA, ADC_IN_0_Pin|ADC_IN_1_Pin);
+    HAL_GPIO_DeInit(ADC_RJ2_OUT_GPIO_Port, ADC_RJ2_OUT_Pin);
+
+    HAL_GPIO_DeInit(ADC_RJ1_OUT_GPIO_Port, ADC_RJ1_OUT_Pin);
 
   /* USER CODE BEGIN ADC1_MspDeInit 1 */
 

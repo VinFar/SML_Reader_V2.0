@@ -1,6 +1,7 @@
 #include "main.h"
 #include "FreeRTOS.h"
 #include "usart.h"
+#include "defines.h"
 
 void usart1_init() {
 
@@ -9,7 +10,7 @@ void usart1_init() {
 	/* (1) Oversampling by 16, 9600 baud */
 	/* (2) 8 data bit, 1 start bit, 1 stop bit, no parity */
 
-//	USART1->BRR = SystemCoreClock / SMART_METER_BAUDRATE; /* (1) */
+	USART1->BRR = SystemCoreClock / SMART_METER_BAUDRATE; /* (1) */
 
 	USART1->CR1 |= USART_CR1_RE; /* (2) */
 	USART1->CR1 |= USART_CR1_RXNEIE; //Reciever Interrupt Enable

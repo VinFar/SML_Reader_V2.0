@@ -87,7 +87,7 @@
 #define configCPU_CLOCK_HZ				( 48000000UL )
 #define configTICK_RATE_HZ				( ( portTickType ) 1000 )
 #define configMAX_PRIORITIES			( 5 )
-#define configMINIMAL_STACK_SIZE		( ( unsigned short ) 50 )
+#define configMINIMAL_STACK_SIZE		( ( unsigned short ) 256 )
 #define configMAX_TASK_NAME_LEN			( 20 )
 #define configUSE_TRACE_FACILITY		1
 #define configUSE_16_BIT_TICKS			0
@@ -108,7 +108,7 @@
 
 #define configSUPPORT_STATIC_ALLOCATION         0
 #define configSUPPORT_DYNAMIC_ALLOCATION        1
-#define configTOTAL_HEAP_SIZE                   2048
+#define configTOTAL_HEAP_SIZE                   10000
 #define configAPPLICATION_ALLOCATED_HEAP        0
 
 /* Software timer definitions. */

@@ -7,6 +7,9 @@
 
 #include "main.h"
 
+extern uint32_t sml_raw_data_idx;
+extern uint8_t sml_raw_data[400];
+
 void NMI_Handler(void);
 void HardFault_Handler(void);
 void SVC_Handler(void);
