@@ -12,6 +12,10 @@
 #define LED_STATUS_ON (LED3_GPIO_Port->ODR|=LED3_Pin)
 #define LED_STATUS_OFF (LED3_GPIO_Port->ODR&=~LED3_Pin)
 
+#define SPI_CS_FLASH_LOW (FLASH_CS_GPIO_Port->ODR&=~FLASH_CS_Pin)
+#define SPI_CS_FLASH_HIGH (FLASH_CS_GPIO_Port->ODR|=FLASH_CS_Pin)
+
+
 void gpio_init(void);
 
 #endif /* GPIO_H_ */

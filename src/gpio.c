@@ -39,11 +39,12 @@ void gpio_init(void)
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
   /*Configure GPIO pins : PCPin PCPin */
-  GPIO_InitStruct.Pin = FLASH_CS_Pin|NRF_CE_Pin;
+	GPIO_InitStruct.Pin = FLASH_CS_Pin|NRF_CE_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
+  SPI_CS_FLASH_HIGH;
 
   /*Configure GPIO pin : PtPin */
   GPIO_InitStruct.Pin = NRF_IRQ_Pin;
