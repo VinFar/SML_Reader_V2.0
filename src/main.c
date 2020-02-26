@@ -60,9 +60,6 @@ int main(void) {
 	prvSetupHardware();
 	flags.new_sml_packet = 0;
 
-	uint8_t tx[10] = { 0 }, rx[10] = { 0 };
-	tx[0] = 0x9f;
-
 	flash_init();
 
 	while (1) {
