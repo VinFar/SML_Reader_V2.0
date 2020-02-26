@@ -15,6 +15,7 @@
 #include "main.h"
 #include "gpio.h"
 #include "spi.h"
+#include "flash.h"
 
 /* Priorities at which the tasks are created.  The event semaphore task is
  given the maximum priority of ( configMAX_PRIORITIES - 1 ) to ensure it runs as
@@ -59,14 +60,10 @@ int main(void) {
 	prvSetupHardware();
 	flags.new_sml_packet = 0;
 
-	uint8_t tx[10]={0},rx[10]={0};
+	uint8_t tx[10] = { 0 }, rx[10] = { 0 };
 	tx[0] = 0x9f;
 
-	SPI_CS_FLASH_LOW;
-
-	HAL_SPI_TransmitReceive(&hspi1,tx,rx,8,50);
-
-	SPI_CS_FLASH_HIGH;
+	flash_init();
 
 	while (1) {
 
