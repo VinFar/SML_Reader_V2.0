@@ -16,6 +16,7 @@
 #include "gpio.h"
 #include "spi.h"
 #include "flash.h"
+#include "defines.h"
 
 /* Priorities at which the tasks are created.  The event semaphore task is
  given the maximum priority of ( configMAX_PRIORITIES - 1 ) to ensure it runs as
@@ -48,12 +49,29 @@ TaskHandle_t xcheck_cmd_struct;
 
 //uint8_t ucHeap[ configTOTAL_HEAP_SIZE ]={0};
 
-uint32_t meter_purchase, meter_delivery, meter_power, meter_uptime;
-
+uint32_t meter_purchase, meter_delivery, meter_uptime;
+int32_t meter_power;
 uint32_t error_counter = 0;
 
 uint8_t *needle_ptr;
 uint8_t needle[20];
+
+/*
+ *	sm_current_data is the current valid data of the smart meter
+ */
+smartmeter_data_t sm_current_data;
+
+/*
+ * sm_flash_cache_data is a array of smartmter_data_t surrounded by two delimiters
+ * this struct is used to cache the smart meter data in order to just have one
+ * write acces to the flash per page.
+ * The entire struct is written to the flash when it is full.
+ */
+smartmeter_flash_data_t sm_flash_cache_data[W25N_MAX_CLOUMN
+		/ sizeof(smartmeter_flash_data_t)];
+
+uint8_t sm_idx_for_cache_data = 0;
+uint32_t flash_current_address = 0;
 
 int main(void) {
 
@@ -61,6 +79,38 @@ int main(void) {
 	flags.new_sml_packet = 0;
 
 	flash_init();
+	/*
+	 * in order to find the last page that was written before system reset,
+	 * we have to search the entire flah for a non 0xFF page:
+	 * 1. Read page n and search for delimiters (137,78) with and distance of 16 bytes
+	 * 2. this is the last page that was written
+	 */
+	uint32_t page_address = 0;
+	for (int i = 0; i < W25N_MAX_PAGE; i++, page_address += W25N_MAX_CLOUMN) {
+		uint8_t page[W25N_MAX_CLOUMN] = { 0 };
+		uint8_t first_byte = 0;
+		flash_read_data(page_address, &first_byte, 1);
+		if (first_byte != BEGIN_DELIMITER) {
+			/*
+			 * this may be the first page that is empty.
+			 * We have to check if the previous page was fully written
+			 */
+			page_address -= W25N_MAX_CLOUMN;
+			smartmeter_flash_data_t data = { 0 };
+			for (int i = 0;
+					i < (W25N_MAX_CLOUMN / sizeof(smartmeter_flash_data_t));
+					i += sizeof(smartmeter_flash_data_t)) {
+				flash_read_data(page_address + i, &data, sizeof(data));
+				if(data.begin != BEGIN_DELIMITER || data.delimiter != END_DELIMITER){
+					/*
+					 * this means that the page was not fully written and is corrupted,
+					 * so delete it and begin with this page
+					 */
+					flash_blockErase(page_address/W25N_MAX_CLOUMN)
+				}
+			}
+		}
+	}
 
 	while (1) {
 
@@ -106,7 +156,7 @@ int main(void) {
 						int32_t tmp_value = (needle_ptr[14] << 24)
 								+ (needle_ptr[15] << 16) + (needle_ptr[16] << 8)
 								+ (needle_ptr[18]);	//Extract and calculate Powervalue
-						meter_power = tmp_value / 10;
+						sm_current_data.power = tmp_value / 10;
 						/*
 						 * powervalue_buying_from_grid is only for testing and represent the
 						 * attached consumers, if they actually connected!
@@ -138,8 +188,8 @@ int main(void) {
 
 							error_counter = 0;
 
-							meter_purchase = ((needle_ptr[15] << 24)
-									+ (needle_ptr[16] << 16)
+							sm_current_data.meter_purchase = ((needle_ptr[15]
+									<< 24) + (needle_ptr[16] << 16)
 									+ (needle_ptr[17] << 8) + (needle_ptr[18]))
 									/ 10000;
 
@@ -161,8 +211,8 @@ int main(void) {
 
 							error_counter = 0;
 
-							meter_delivery = ((needle_ptr[15] << 24)
-									+ (needle_ptr[16] << 16)
+							sm_current_data.meter_delivery = ((needle_ptr[15]
+									<< 24) + (needle_ptr[16] << 16)
 									+ (needle_ptr[17] << 8) + (needle_ptr[18]))
 									/ 10000;
 
@@ -182,9 +232,36 @@ int main(void) {
 							continue;
 						} else {
 							error_counter = 0;
-							meter_uptime = ((needle_ptr[11] << 24)
+							sm_current_data.uptime = ((needle_ptr[11] << 24)
 									+ (needle_ptr[12] << 16)
 									+ (needle_ptr[13] << 8) + needle_ptr[14]);
+
+							/*
+							 * at this point all data from the smart meter was written
+							 * to the struct an we can copy it into the array
+							 * and increment the idx
+							 */
+							sm_flash_cache_data[sm_idx_for_cache_data].data =
+									sm_current_data;
+							uint32_t tmp_ctr =
+									sm_flash_cache_data[sm_idx_for_cache_data].ctr;
+							if (tmp_ctr == 0) {
+								sm_flash_cache_data[sm_idx_for_cache_data].ctr =
+										1;
+							} else {
+								sm_flash_cache_data[sm_idx_for_cache_data].ctr =
+										sm_flash_cache_data[sm_idx_for_cache_data
+												- 1].ctr + 1;
+							}
+							sm_idx_for_cache_data++;
+							if (sm_idx_for_cache_data
+									== (W25N_MAX_CLOUMN
+											/ sizeof(smartmeter_flash_data_t))) {
+								/*
+								 * cache is full, so write it to the flash
+								 */
+								flash_write_data()
+							}
 						}
 					}
 				}
