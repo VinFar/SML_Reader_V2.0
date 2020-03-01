@@ -131,7 +131,8 @@ enum commands{
 };
 
 volatile typedef struct {
-	unsigned new_sml_packet:1;
+	unsigned new_main_sml_packet:1;
+	unsigned new_plant_sml_packet:1;
 }flags_t;
 
 flags_t flags;

@@ -17,6 +17,8 @@
 #include "spi.h"
 #include "flash.h"
 #include "defines.h"
+#include "comp.h"
+#include "dac.h"
 
 /* Priorities at which the tasks are created.  The event semaphore task is
  given the maximum priority of ( configMAX_PRIORITIES - 1 ) to ensure it runs as
@@ -76,9 +78,39 @@ uint32_t flash_current_address = 0;
 int main(void) {
 
 	prvSetupHardware();
-	flags.new_sml_packet = 0;
+	flags.new_main_sml_packet = 0;
 
 	flash_init();
+//	flash_bulkErase();
+
+//	smartmeter_flash_data_t data[W25N_MAX_CLOUMN
+//			/ sizeof(smartmeter_flash_data_t)];
+//
+//	data[0].packet_ctr = 1;
+//	for (int k = 0; k < 23; k++) {
+//		data[0].begin = BEGIN_DELIMITER;
+//		data[0].delimiter = END_DELIMITER;
+//		data[0].data.meter_delivery = 300;
+//		data[0].data.meter_purchase = 400;
+//		data[0].data.power = 50;
+//		data[0].data.uptime = 0;
+//
+//		for (int i = 1; i < W25N_MAX_CLOUMN / sizeof(smartmeter_flash_data_t);
+//				i++) {
+//			data[i].begin = BEGIN_DELIMITER;
+//			data[i].delimiter = END_DELIMITER;
+//			data[i].packet_ctr = data[i - 1].packet_ctr + 1;
+//			data[i].data.meter_delivery = (i + (k * 2048)) * 300;
+//			data[i].data.meter_purchase = (i + (k * 2048)) * 400;
+//			data[i].data.power = (i + (k * 2048)) * 50;
+//			data[i].data.uptime = (i + (k * 2048));
+//
+//		}
+//		flash_write_data(k*2048,data,2048);
+//		data[0].packet_ctr = data[(W25N_MAX_CLOUMN / sizeof(smartmeter_flash_data_t))-1].packet_ctr;
+//
+//	}
+
 	/*
 	 * in order to find the last page that was written before system reset,
 	 * we have to search the entire flah for a non 0xFF page:
@@ -86,49 +118,58 @@ int main(void) {
 	 * 2. this is the last page that was written
 	 */
 	uint32_t page_address = 0;
-	for (int i = 0; i < W25N_MAX_PAGE; i++, page_address += W25N_MAX_CLOUMN) {
+	for (uint32_t i = 0; i < W25N_MAX_USER_PAGE;
+			i++, page_address += W25N_MAX_CLOUMN) {
 		uint8_t page[W25N_MAX_CLOUMN] = { 0 };
-		uint8_t first_byte = 0;
-		flash_read_data(page_address, &first_byte, 1);
-		if (first_byte != BEGIN_DELIMITER) {
+		uint8_t first_byte[1000] = {0};
+		flash_read_data(page_address, first_byte, 1000);
+		if (first_byte[0] != BEGIN_DELIMITER) {
 			/*
 			 * this may be the first page that is empty.
 			 * We have to check if the previous page was fully written
 			 */
 			page_address -= W25N_MAX_CLOUMN;
-			smartmeter_flash_data_t data = { 0 };
-			for (int i = 0;
-					i < (W25N_MAX_CLOUMN / sizeof(smartmeter_flash_data_t));
-					i += sizeof(smartmeter_flash_data_t)) {
-				flash_read_data(page_address + i, &data, sizeof(data));
-				if(data.begin != BEGIN_DELIMITER || data.delimiter != END_DELIMITER){
+			smartmeter_flash_data_t flash_data = { 0 };
+			for (uint32_t j = 0;
+					j < (W25N_MAX_CLOUMN / sizeof(smartmeter_flash_data_t));j++) {
+				flash_read_data(page_address + j*sizeof(smartmeter_flash_data_t), &flash_data, sizeof(flash_data));
+
+				if (flash_data.begin != BEGIN_DELIMITER
+						|| flash_data.delimiter != END_DELIMITER) {
 					/*
 					 * this means that the page was not fully written and is corrupted,
 					 * so delete it and begin with this page
 					 */
-					flash_blockErase(page_address/W25N_MAX_CLOUMN)
+					flash_blockErase(page_address / W25N_MAX_CLOUMN);
+					flash_current_address = page_address;
+					break;
 				}
 			}
+			/*
+			 * the page was checked and is valid, so the following page is the correct page for writing
+			 */
+			flash_current_address = page_address + W25N_MAX_CLOUMN;
+			break;
 		}
 	}
 
 	while (1) {
 
-		if (flags.new_sml_packet) {
-			flags.new_sml_packet = 0;
-			if (sml_raw_data_idx > sizeof(sml_raw_data)
-					|| sml_raw_data_idx < 200) {
+		if (flags.new_main_sml_packet) {
+			flags.new_main_sml_packet = 0;
+			if (sml_main_raw_data_idx > sizeof(sml_main_raw_data)
+					|| sml_main_raw_data_idx < 200) {
 				LED_ERROR_ON;
 				error_counter++;
 				if (error_counter > 10) {
 					error_counter = 0;
 				}
 			} else {
-				uint16_t crc_calc = ccrc16((char*) sml_raw_data,
-						sml_raw_data_idx - 2);
-				uint16_t crc_check = ((uint16_t) sml_raw_data[sml_raw_data_idx
+				uint16_t crc_calc = ccrc16((char*) sml_main_raw_data,
+						sml_main_raw_data_idx - 2);
+				uint16_t crc_check = ((uint16_t) sml_main_raw_data[sml_main_raw_data_idx
 						- 2] << 8)
-						+ (uint16_t) sml_raw_data[sml_raw_data_idx - 1];
+						+ (uint16_t) sml_main_raw_data[sml_main_raw_data_idx - 1];
 
 				if (crc_check != crc_calc) {
 					LED_ERROR_ON;
@@ -145,8 +186,8 @@ int main(void) {
 					needle[5] = 0x00;
 					needle[6] = 0xff;	//Set String for Powervalue key
 
-					if ((needle_ptr = (uint8_t*) memmem(sml_raw_data,
-							sizeof(sml_raw_data), needle, sizeof(needle)))
+					if ((needle_ptr = (uint8_t*) memmem(sml_main_raw_data,
+							sizeof(sml_main_raw_data), needle, sizeof(needle)))
 							== NULL) {
 						//No Active Power String detected, ERror
 
@@ -180,8 +221,8 @@ int main(void) {
 						needle[5] = 0x01;
 						needle[6] = 0xff;	//Set String for consumption fare 1
 
-						if ((needle_ptr = (unsigned char*) memmem(sml_raw_data,
-								sizeof(sml_raw_data), needle, sizeof(needle)))
+						if ((needle_ptr = (unsigned char*) memmem(sml_main_raw_data,
+								sizeof(sml_main_raw_data), needle, sizeof(needle)))
 								== NULL) {
 							continue;
 						} else {
@@ -203,8 +244,8 @@ int main(void) {
 						needle[5] = 0x01;
 						needle[6] = 0xff;	//Set String for consumption fare 1
 
-						if ((needle_ptr = (unsigned char*) memmem(sml_raw_data,
-								sizeof(sml_raw_data), needle, sizeof(needle)))
+						if ((needle_ptr = (unsigned char*) memmem(sml_main_raw_data,
+								sizeof(sml_main_raw_data), needle, sizeof(needle)))
 								== NULL) {
 							continue;
 						} else {
@@ -226,8 +267,8 @@ int main(void) {
 						needle[5] = 0xff;
 						needle[6] = 0xff;
 
-						if ((needle_ptr = (unsigned char*) memmem(sml_raw_data,
-								sizeof(sml_raw_data), needle, sizeof(needle)))
+						if ((needle_ptr = (unsigned char*) memmem(sml_main_raw_data,
+								sizeof(sml_main_raw_data), needle, sizeof(needle)))
 								== NULL) {
 							continue;
 						} else {
@@ -243,24 +284,37 @@ int main(void) {
 							 */
 							sm_flash_cache_data[sm_idx_for_cache_data].data =
 									sm_current_data;
-							uint32_t tmp_ctr =
-									sm_flash_cache_data[sm_idx_for_cache_data].ctr;
-							if (tmp_ctr == 0) {
-								sm_flash_cache_data[sm_idx_for_cache_data].ctr =
-										1;
+
+							if (sm_idx_for_cache_data == 0) {
+								sm_flash_cache_data[sm_idx_for_cache_data].packet_ctr =
+										0;
 							} else {
-								sm_flash_cache_data[sm_idx_for_cache_data].ctr =
+								sm_flash_cache_data[sm_idx_for_cache_data].packet_ctr =
 										sm_flash_cache_data[sm_idx_for_cache_data
-												- 1].ctr + 1;
+												- 1].packet_ctr + 1;
 							}
 							sm_idx_for_cache_data++;
+
+							/*
+							 * if the cache is full, write it to the flash
+							 */
 							if (sm_idx_for_cache_data
-									== (W25N_MAX_CLOUMN
+									> (W25N_MAX_CLOUMN
 											/ sizeof(smartmeter_flash_data_t))) {
+								sm_idx_for_cache_data--;
 								/*
 								 * cache is full, so write it to the flash
+								 * init the cache with 0 and set the correct packet ctr
 								 */
-								flash_write_data()
+								flash_write_data(flash_current_address,
+										sm_flash_cache_data,
+										sizeof(sm_flash_cache_data));
+								flash_current_address += W25N_MAX_CLOUMN;
+								sm_flash_cache_data[0].packet_ctr =
+										sm_flash_cache_data[sm_idx_for_cache_data].packet_ctr
+												+ 1;
+								sm_idx_for_cache_data = 0;
+
 							}
 						}
 					}
@@ -303,6 +357,11 @@ static void prvSetupHardware(void) {
 	spi1_init();
 
 	usart1_init();
+	usart6_init();
+	usart3_init();
+
+	dac_init();
+	comp_init();
 
 }
 

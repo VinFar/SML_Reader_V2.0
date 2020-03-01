@@ -10,8 +10,8 @@
 
 #define DAC_I2C_ADDRESS (0b1100000)
 
-int8_t init_dac47();
-int8_t set_dac47_out1(uint16_t value);
-int8_t set_dac47_out2(uint16_t value);
+void dac_init();
+void dac1_set(uint16_t value);
+void dac2_set(uint16_t value);
 
 #endif /* DAC_H_ */

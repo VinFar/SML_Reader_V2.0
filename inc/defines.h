@@ -15,16 +15,16 @@ typedef struct smart_meter_struct {
 	uint32_t meter_delivery;
 	int32_t power;
 	uint32_t uptime;
-} smartmeter_data_t;
+}__attribute__((packed)) smartmeter_data_t;
 
 #define BEGIN_DELIMITER 137
 #define END_DELIMITER 78
 
 typedef struct {
-	static uint8_t begin = BEGIN_DELIMITER;
+	uint8_t begin;
 	smartmeter_data_t data;
 	uint32_t packet_ctr;
-	static uint8_t delimiter = END_DELIMITER;
-} __attribute__((aligned)) smartmeter_flash_data_t;
+	uint8_t delimiter;
+} __attribute__((packed)) smartmeter_flash_data_t;
 
 #endif /* DEFINES_H_ */

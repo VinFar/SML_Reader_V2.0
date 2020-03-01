@@ -42,6 +42,13 @@
 #define W25N_MAX_COLUMN_ECC           2112
 #define W25N_MAX_CLOUMN				2048
 
+#define W25N_START_OF_USER_DATA 0x0C
+
+#define W25N_MAX_USER_PAGE         (W25N_MAX_PAGE-W25N_START_OF_USER_DATA)
+#define W25N_MAX_COLUMN_ECC           2112
+#define W25N_MAX_CLOUMN				2048
+
+
 enum protection_reg_bits {
 	flash_prot_reg_status_reg_protect1 = 1,
 	flash_prot_reg_wp_pin_enable = 2,
