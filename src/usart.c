@@ -17,8 +17,8 @@ void usart1_init() {
 	USART1->CR1 |= USART_CR1_RE; /* (2) */
 	USART1->CR1 |= USART_CR1_RXNEIE; //Reciever Interrupt Enable
 	USART1->CR1 |= USART_CR1_IDLEIE; //idle line detection interrupt
-	USART1->RQR |= USART_RQR_RXFRQ;
-//	USART1->CR1 &= ~USART_CR1_OVER8; //disable 16 oversampling, due to low accuracy of sml usart layer
+	USART1->CR1 |= USART_CR1_UE;
+	//	USART1->CR1 &= ~USART_CR1_OVER8; //disable 16 oversampling, due to low accuracy of sml usart layer
 
 	//Usart1 is not enabled here. it is enabled over menu by the user
 
@@ -40,7 +40,7 @@ void usart3_init() {
 	USART3->CR1 |= USART_CR1_RXNEIE; //Reciever Interrupt Enable
 	USART3->CR1 |= USART_CR1_IDLEIE; //idle line detection interrupt
 	USART3->RQR |= USART_RQR_RXFRQ;
-//	USART1->CR1 &= ~USART_CR1_OVER8; //disable 16 oversampling, due to low accuracy of sml usart layer
+	USART3->CR1 |= USART_CR1_UE;
 
 	//Usart1 is not enabled here. it is enabled over menu by the user
 
@@ -57,9 +57,9 @@ void usart6_init() {
 
 	__HAL_RCC_USART6_CLK_ENABLE();
 
-	USART6->BRR = SystemCoreClock / 1000000;
+	USART6->BRR = SystemCoreClock / 9600;
 
-	USART6->CR1 |= USART_CR1_RE;
+	USART6->CR1 |= USART_CR1_RE | USART_CR1_TE;
 	USART6->CR1 |= USART_CR1_RXNEIE; //Reciever Interrupt Enable
 	USART6->CR1 |= USART_CR1_IDLEIE; //idle line detection interrupt
 	USART6->CR1 |= USART_CR1_UE;

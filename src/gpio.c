@@ -45,7 +45,7 @@ void gpio_init(void) {
 	GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
 	GPIO_InitStruct.Pull = GPIO_NOPULL;
 	GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
-	GPIO_InitStruct.Alternate = GPIO_AF1_USART6;
+	GPIO_InitStruct.Alternate = GPIO_AF2_USART6;
 	HAL_GPIO_Init(USART6_RX_GPIO_Port, &GPIO_InitStruct);
 
 	GPIO_InitStruct.Pin = COMP1_INP_Pin;
@@ -63,18 +63,19 @@ void gpio_init(void) {
 	HAL_GPIO_Init(COMP2_INP_GPIO_Port, &GPIO_InitStruct);
 
 	GPIO_InitStruct.Pin = COMP1_OUT_Pin;
-	GPIO_InitStruct.Mode = GPIO_MODE_ANALOG;
+	GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
 	GPIO_InitStruct.Pull = GPIO_NOPULL;
 	GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
 	GPIO_InitStruct.Alternate = GPIO_AF7_COMP1;
 	HAL_GPIO_Init(COMP1_OUT_GPIO_Port, &GPIO_InitStruct);
 
 	GPIO_InitStruct.Pin = COMP2_OUT_Pin;
-	GPIO_InitStruct.Mode = GPIO_MODE_ANALOG;
+	GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
 	GPIO_InitStruct.Pull = GPIO_NOPULL;
 	GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
 	GPIO_InitStruct.Alternate = GPIO_AF7_COMP2;
 	HAL_GPIO_Init(COMP2_OUT_GPIO_Port, &GPIO_InitStruct);
+
 
 	/*Configure GPIO pins : PBPin PBPin PBPin */
 	GPIO_InitStruct.Pin = LED1_Pin | LED2_Pin | LED3_Pin;

@@ -79,7 +79,7 @@ void Error_Handler(void);
 #define I2C1_SDA_Pin GPIO_PIN_7
 #define I2C1_SDA_GPIO_Port GPIOB
 
-#define MAX_PAYLOAD_SIZE 34
+#define MAX_PAYLOAD_SIZE 200
 
 typedef union data_union {
 	float float_data;
@@ -120,10 +120,15 @@ typedef struct {
 
 ack_frame_t ack_frame;
 
-
 #define FRAME_DELIMITER 234
 #define CMD_ACK 70
 #define CMD_NACK 67
+
+#define CMD_FRAME_MIN_SIZE 11
+#define ACK_FRAME_MIN_SIZE 11
+#define CMD_FRAME_MAX_SIZE (CMD_FRAME_MIN_SIZE+MAX_PAYLOAD_SIZE-4)
+#define ACK_FRAME_MAX_SIZE (ACK_FRAME_MIN_SIZE+MAX_PAYLOAD_SIZE-4)
+
 
 enum commands{
 	cmd_ping=1,
@@ -133,6 +138,8 @@ enum commands{
 volatile typedef struct {
 	unsigned new_main_sml_packet:1;
 	unsigned new_plant_sml_packet:1;
+	unsigned usart6_new_cmd:1;
+	unsigned usart6_rx_busy:1;
 }flags_t;
 
 flags_t flags;
