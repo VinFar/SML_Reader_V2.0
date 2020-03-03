@@ -147,15 +147,15 @@ int main(void) {
 			flags.new_main_sml_packet = 0;
 			tx_done = 0;
 
-			uint16_t crc_calc = ccrc16((char*) sml_main_raw_data,
-					sml_main_raw_data_idx - 2);
-			uint16_t crc_check =
-					((uint16_t) sml_main_raw_data[sml_main_raw_data_idx - 2]
-							<< 8)
-							+ (uint16_t) sml_main_raw_data[sml_main_raw_data_idx
-									- 1];
+//			uint16_t crc_calc = ccrc16((char*) sml_main_raw_data,
+//					sml_main_raw_data_idx - 2);
+//			uint16_t crc_check =
+//					((uint16_t) sml_main_raw_data[sml_main_raw_data_idx - 2]
+//							<< 8)
+//							+ (uint16_t) sml_main_raw_data[sml_main_raw_data_idx
+//									- 1];
 
-			if (crc_check != crc_check) {
+			if (0) {
 				LED_ERROR_ON;
 				error_counter++;
 			} else {
@@ -358,10 +358,12 @@ static void prvSetupHardware(void) {
 
 	usart1_init();
 	usart6_init();
-	usart3_init();
+//	usart3_init();
 
 	dac_init();
 	comp_init();
+
+	crc_init();
 
 	sml_tx_data[0] = 0x1B;
 	sml_tx_data[1] = 0x1B;

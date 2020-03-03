@@ -8,18 +8,9 @@
 #ifndef USART_H_
 #define USART_H_
 
-void usart1_init();
-void usart6_init();
-void usart3_init();
+#define MAX_PAYLOAD_SIZE 200
 
-union uint16_8 {
-	uint16_t uint16_data;
-	int16_t int16_data;
-	uint8_t uint8_data[2];
-	int8_t int8_data[2];
-};
-
-typedef union usart_data_union {
+typedef union data_union {
 	float float_data;
 	uint32_t uint32_data;
 	int32_t int32_data;
@@ -27,23 +18,58 @@ typedef union usart_data_union {
 	int16_t int16_data[2];
 	uint8_t uint8_data[4];
 	int8_t int8_data[4];
-} usart_data_union_t;
+}data_union_t;
 
-
-typedef struct {
-	uint8_t size;
-	uint8_t ack;
-	union usart_data_union data[(10 / 4) + 1];
-}__attribute__((packed)) usart_ack_frame_host_pc_t;
+typedef union {
+	uint16_t uint16_data;
+	int16_t int16_data;
+	uint8_t uint8_data[2];
+	int8_t int8_data[2];
+}uint16_8_t;
 
 typedef struct {
 	uint8_t size;
 	uint8_t cmd;
-	union uint16_8 major_cmd; //position
-	union uint16_8 minor_cmd; //length
-	union usart_data_union data[(10 / 4) + 2];
-}__attribute__((packed)) usart_cmd_frame_t;
+	uint16_8_t major_cmd; //position
+	uint16_8_t minor_cmd; //length
+	data_union_t data[(MAX_PAYLOAD_SIZE/4)-2];
+}__attribute__((packed)) cmd_frame_t;
 
+cmd_frame_t cmd_frame;
+
+#define CMD_FRAME_SIZE (sizeof(cmd_frame_t))
+#define CMD_FRAME_MIN_SIZE (CMD_FRAME_SIZE - (sizeof(data_union_t)*MAX_PAYLOAD_SIZE) + 5)
+#define CMD_FRAME_MAX_SIZE CMD_FRAME_SIZE
+
+typedef struct {
+	uint8_t size;
+	uint8_t ack;
+	uint8_t cmd;
+	data_union_t data[(MAX_PAYLOAD_SIZE/4)-2];
+}__attribute__((packed)) ack_frame_t;
+
+ack_frame_t ack_frame;
+
+#define FRAME_DELIMITER 234
+#define CMD_ACK 70
+#define CMD_NACK 67
+
+#define CMD_FRAME_MIN_SIZE 11
+#define ACK_FRAME_MIN_SIZE 11
+#define CMD_FRAME_MAX_SIZE (CMD_FRAME_MIN_SIZE+MAX_PAYLOAD_SIZE-4)
+#define ACK_FRAME_MAX_SIZE (ACK_FRAME_MIN_SIZE+MAX_PAYLOAD_SIZE-4)
+
+
+enum commands{
+	cmd_ping=1,
+	MAX_ENUM_CMDS
+};
+
+void usart1_init();
+void usart6_init();
+void usart3_init();
+void usart6_send_data(uint8_t *ptr, uint32_t nbr);
+void usart6_send_ack_frame(ack_frame_t *ack);
 
 
 #endif /* USART_H_ */

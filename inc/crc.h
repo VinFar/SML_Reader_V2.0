@@ -26,6 +26,9 @@
 uint16_t crc_16(const unsigned char *input_str, size_t num_bytes);
 uint16_t update_crc_16(uint16_t crc, unsigned char c);
 uint16_t ccrc16(char *data_p, unsigned short length);
+void crc_init();
+uint32_t crc32_calc(uint8_t *crc_ptr, uint32_t size);
+
 
 
 #endif /* CRC_H_ */
