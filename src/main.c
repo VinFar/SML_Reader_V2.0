@@ -61,7 +61,8 @@ uint8_t needle[20];
 /*
  *	sm_current_data is the current valid data of the smart meter
  */
-smartmeter_data_t sm_current_data;
+smartmeter_data_t sm_main_current_data;
+smartmeter_data_t sm_plant_current_data;
 
 /*
  * sm_flash_cache_data is a array of smartmter_data_t surrounded by two delimiters
@@ -69,11 +70,15 @@ smartmeter_data_t sm_current_data;
  * write acces to the flash per page.
  * The entire struct is written to the flash when it is full.
  */
-smartmeter_flash_data_t sm_flash_cache_data[W25N_MAX_CLOUMN
+smartmeter_flash_data_t sm_flash_main_cache_data[W25N_MAX_CLOUMN
+		/ sizeof(smartmeter_flash_data_t)];
+smartmeter_flash_data_t sm_flash_plant_cache_data[W25N_MAX_CLOUMN
 		/ sizeof(smartmeter_flash_data_t)];
 
-uint8_t sm_idx_for_cache_data = 0;
-uint32_t flash_current_address = 0;
+uint8_t sm_idx_for_main_cache_data = 0;
+uint8_t sm_idx_for_plant_cache_data = 0;
+uint32_t flash_current_address_main_sml = 0;
+uint32_t flash_current_address_plant_sml = W25N_START_ADDRESS_PLANT;
 
 uint8_t sml_tx_data[400] = { 0 };
 
@@ -91,24 +96,28 @@ int main(void) {
 	 * 1. Read page n and search for delimiters (137,78) with and distance of 16 bytes
 	 * 2. this is the last page that was written
 	 */
-	uint32_t page_address = 0;
-	for (uint32_t i = 0; i < W25N_MAX_USER_PAGE; i++, page_address +=
+	uint32_t flash_address = 0;
+	for (uint32_t i = 0; i < W25N_MAX_PAGE_MAIN; i++, flash_address +=
 	W25N_MAX_CLOUMN) {
 		uint8_t page[W25N_MAX_CLOUMN] = { 0 };
-		uint8_t first_byte[1000] = { 0 };
-		flash_read_data(page_address, first_byte, 1000);
+		uint8_t first_byte[1] = { 0 };
+		flash_read_data(flash_address, first_byte, 1);
 		if (first_byte[0] != BEGIN_DELIMITER) {
 			/*
 			 * this may be the first page that is empty.
 			 * We have to check if the previous page was fully written
 			 */
-			page_address -= W25N_MAX_CLOUMN;
+			if (flash_address == 0) {
+				flash_current_address_main_sml = 0;
+				break;
+			}
+			flash_address -= W25N_MAX_CLOUMN;
 			smartmeter_flash_data_t flash_data = { 0 };
 			for (uint32_t j = 0;
 					j < (W25N_MAX_CLOUMN / sizeof(smartmeter_flash_data_t));
 					j++) {
 				flash_read_data(
-						page_address + j * sizeof(smartmeter_flash_data_t),
+						flash_address + j * sizeof(smartmeter_flash_data_t),
 						&flash_data, sizeof(flash_data));
 
 				if (flash_data.begin != BEGIN_DELIMITER
@@ -117,15 +126,55 @@ int main(void) {
 					 * this means that the page was not fully written and is corrupted,
 					 * so delete it and begin with this page
 					 */
-					flash_blockErase(page_address / W25N_MAX_CLOUMN);
-					flash_current_address = page_address;
+//					flash_blockErase(flash_address / W25N_MAX_CLOUMN);
+					flash_current_address_main_sml = flash_address;
 					break;
 				}
 			}
 			/*
 			 * the page was checked and is valid, so the following page is the correct page for writing
 			 */
-			flash_current_address = page_address + W25N_MAX_CLOUMN;
+			flash_current_address_main_sml = flash_address + W25N_MAX_CLOUMN;
+			break;
+		}
+	}
+
+	flash_address = W25N_START_ADDRESS_PLANT;
+	for (uint32_t i = W25N_START_PAGE_PLANT; i < W25N_MAX_PAGE_PLANT;
+			i++, flash_address +=
+			W25N_MAX_CLOUMN) {
+		uint8_t page[W25N_MAX_CLOUMN] = { 0 };
+		uint8_t first_byte[2] = { 0 };
+		flash_read_data(flash_address, first_byte, 1);
+		if (first_byte[0] != BEGIN_DELIMITER) {
+			/*
+			 * this may be the first page that is empty.
+			 * We have to check if the previous page was fully written
+			 */
+			flash_address -= W25N_MAX_CLOUMN;
+			smartmeter_flash_data_t flash_data = { 0 };
+			for (uint32_t j = 0;
+					j < (W25N_MAX_CLOUMN / sizeof(smartmeter_flash_data_t));
+					j++) {
+				flash_read_data(
+						flash_address + j * sizeof(smartmeter_flash_data_t),
+						&flash_data, sizeof(flash_data));
+
+				if (flash_data.begin != BEGIN_DELIMITER
+						|| flash_data.delimiter != END_DELIMITER) {
+					/*
+					 * this means that the page was not fully written and is corrupted,
+					 * so delete it and begin with this page
+					 */
+//					flash_blockErase(flash_address / W25N_MAX_CLOUMN);
+					flash_current_address_plant_sml = flash_address;
+					break;
+				}
+			}
+			/*
+			 * the page was checked and is valid, so the following page is the correct page for writing
+			 */
+			flash_current_address_plant_sml = flash_address + W25N_MAX_CLOUMN;
 			break;
 		}
 	}
@@ -133,16 +182,197 @@ int main(void) {
 	uint32_t idx = 0;
 	uint8_t tx_done = 0;
 	while (1) {
-//		while (idx < 400 && tx_done == 0) {
-//			if (USART6->ISR & USART_ISR_TXE) {
-//				USART6->TDR = sml_tx_data[idx];
-//				idx++;
-//			} else {
-//				NOP
-//			}
-//		}
-//		idx = 0;
-//		tx_done = 1;
+		while (idx < 400 && tx_done == 0) {
+			if (USART6->ISR & USART_ISR_TXE) {
+				USART6->TDR = sml_tx_data[idx];
+				idx++;
+			} else {
+				NOP
+			}
+		}
+		idx = 0;
+		tx_done = 1;
+		if (flags.new_plant_sml_packet) {
+			flags.new_plant_sml_packet = 0;
+ 			tx_done = 0;
+
+//			uint16_t crc_calc = ccrc16((char*) sml_plant_raw_data,
+//					sml_plant_raw_data_idx - 2);
+//			uint16_t crc_check =
+//					((uint16_t) sml_plant_raw_data[sml_plant_raw_data_idx - 2]
+//							<< 8)
+//							+ (uint16_t) sml_plant_raw_data[sml_plant_raw_data_idx
+//									- 1];
+
+			if (0) {
+				LED_ERROR_ON;
+				error_counter++;
+			} else {
+
+//				LED_OK_OFF;
+
+				uint8_t res = memcmp(sml_tx_data, sml_plant_raw_data,
+						sml_plant_raw_data_idx);
+
+				sml_plant_raw_data_idx = 0;
+
+				needle[0] = 0x07;
+				needle[1] = 0x01;
+				needle[2] = 0x00;
+				needle[3] = 0x10;
+				needle[4] = 0x07;
+				needle[5] = 0x00;
+				needle[6] = 0xff;	//Set String for Powervalue key
+
+				if ((needle_ptr = (uint8_t*) memmem(sml_plant_raw_data,
+						sizeof(sml_plant_raw_data), needle, 7)) == NULL) {
+					//No Active Power String detected, ERror
+
+					continue;
+				} else {
+					float consumption_tmp = 0;
+					int32_t tmp_value = (needle_ptr[14] << 24)
+							+ (needle_ptr[15] << 16) + (needle_ptr[16] << 8)
+							+ (needle_ptr[18]);	//Extract and calculate Powervalue
+					sm_plant_current_data.power = tmp_value / 10;
+					/*
+					 * powervalue_buying_from_grid is only for testing and represent the
+					 * attached consumers, if they actually connected!
+					 * This value means, that this power is used by the connected consumers so we have to add it
+					 * to the current power value
+					 */
+					//						powervalue_current += powervalue_used_by_consumers;
+					/*
+					 * calculate a millisecond timer without the need of a 1khz interrupt by using
+					 * the cnt regiser of Timer 6
+					 */
+
+					/*
+					 * end of mean value calculation
+					 */
+					needle[0] = 0x07;
+					needle[1] = 0x01;
+					needle[2] = 0x00;
+					needle[3] = 0x01;
+					needle[4] = 0x08;
+					needle[5] = 0x01;
+					needle[6] = 0xff;	//Set String for consumption fare 1
+
+					if ((needle_ptr = (unsigned char*) memmem(
+							sml_plant_raw_data, sizeof(sml_plant_raw_data),
+							needle, 7)) == NULL) {
+						continue;
+					} else {
+
+						error_counter = 0;
+
+						sm_plant_current_data.meter_purchase = ((needle_ptr[15]
+								<< 24) + (needle_ptr[16] << 16)
+								+ (needle_ptr[17] << 8) + (needle_ptr[18]))
+								/ 10000;
+
+					}
+
+					needle[0] = 0x07;
+					needle[1] = 0x01;
+					needle[2] = 0x00;
+					needle[3] = 0x02;
+					needle[4] = 0x08;
+					needle[5] = 0x01;
+					needle[6] = 0xff;	//Set String for consumption fare 1
+
+					if ((needle_ptr = (unsigned char*) memmem(
+							sml_plant_raw_data, sizeof(sml_plant_raw_data),
+							needle, 7)) == NULL) {
+						continue;
+					} else {
+
+						error_counter = 0;
+
+						sm_plant_current_data.meter_delivery = ((needle_ptr[15]
+								<< 24) + (needle_ptr[16] << 16)
+								+ (needle_ptr[17] << 8) + (needle_ptr[18]))
+								/ 10000;
+
+					}
+
+					needle[0] = 0x07;
+					needle[1] = 0x01;
+					needle[2] = 0x00;
+					needle[3] = 0x62;
+					needle[4] = 0x0A;
+					needle[5] = 0xff;
+					needle[6] = 0xff;
+
+					if ((needle_ptr = (unsigned char*) memmem(
+							sml_plant_raw_data, sizeof(sml_plant_raw_data),
+							needle, 7)) == NULL) {
+						continue;
+					} else {
+						error_counter = 0;
+						sm_plant_current_data.uptime = ((needle_ptr[11] << 24)
+								+ (needle_ptr[12] << 16) + (needle_ptr[13] << 8)
+								+ needle_ptr[14]);
+						memset(sml_plant_raw_data, 0,
+								sizeof(sml_plant_raw_data));
+						/*
+						 * at this point all data from the smart meter was written
+						 * to the struct an we can copy it into the array
+						 * and increment the idx
+						 */
+						LED_ERROR_TOGGLE;
+						sm_flash_plant_cache_data[sm_idx_for_plant_cache_data].data =
+								sm_plant_current_data;
+						sm_flash_plant_cache_data[sm_idx_for_plant_cache_data].begin =
+						BEGIN_DELIMITER;
+						sm_flash_plant_cache_data[sm_idx_for_plant_cache_data].delimiter =
+						END_DELIMITER;
+
+						if (sm_idx_for_plant_cache_data == 0) {
+							sm_flash_plant_cache_data[sm_idx_for_plant_cache_data].packet_ctr =
+									0;
+						} else {
+							sm_flash_plant_cache_data[sm_idx_for_plant_cache_data].packet_ctr =
+									sm_flash_main_cache_data[sm_idx_for_plant_cache_data
+											- 1].packet_ctr + 1;
+						}
+						sm_idx_for_plant_cache_data++;
+
+						/*
+						 * if the cache is full, write it to the flash
+						 */
+						if (sm_idx_for_plant_cache_data
+								> ((W25N_MAX_CLOUMN
+										/ sizeof(smartmeter_flash_data_t)) - 1)) {
+							sm_idx_for_plant_cache_data--;
+							/*
+							 * cache is full, so write it to the flash
+							 * init the cache with 0 and set the correct packet ctr
+							 */
+							LED_OK_TOGGLE;
+							flash_write_data(flash_current_address_plant_sml,
+									sm_flash_plant_cache_data,
+									sizeof(sm_flash_plant_cache_data));
+							flash_current_address_plant_sml += W25N_MAX_CLOUMN;
+							sm_flash_plant_cache_data[0].packet_ctr =
+									sm_flash_plant_cache_data[sm_idx_for_plant_cache_data].packet_ctr
+											+ 1;
+							sm_idx_for_plant_cache_data = 0;
+							if (flash_current_address_plant_sml
+									> W25N_MAX_ADDRESS_PLANT) {
+								/*
+								 * if we reached the end of the flash memory,
+								 * start at the beginning again.
+								 */
+								flash_current_address_plant_sml = 0;
+							}
+
+						}
+					}
+				}
+			}
+
+		}
 		if (flags.new_main_sml_packet) {
 			flags.new_main_sml_packet = 0;
 			tx_done = 0;
@@ -159,8 +389,8 @@ int main(void) {
 				LED_ERROR_ON;
 				error_counter++;
 			} else {
-				LED_ERROR_OFF;
-				LED_OK_OFF;
+//				LED_ERROR_OFF;
+
 
 				uint8_t res = memcmp(sml_tx_data, sml_main_raw_data,
 						sml_main_raw_data_idx);
@@ -185,7 +415,7 @@ int main(void) {
 					int32_t tmp_value = (needle_ptr[14] << 24)
 							+ (needle_ptr[15] << 16) + (needle_ptr[16] << 8)
 							+ (needle_ptr[18]);	//Extract and calculate Powervalue
-					sm_current_data.power = tmp_value / 10;
+					sm_main_current_data.power = tmp_value / 10;
 					/*
 					 * powervalue_buying_from_grid is only for testing and represent the
 					 * attached consumers, if they actually connected!
@@ -216,9 +446,10 @@ int main(void) {
 
 						error_counter = 0;
 
-						sm_current_data.meter_purchase = ((needle_ptr[15] << 24)
-								+ (needle_ptr[16] << 16) + (needle_ptr[17] << 8)
-								+ (needle_ptr[18])) / 10000;
+						sm_main_current_data.meter_purchase = ((needle_ptr[15]
+								<< 24) + (needle_ptr[16] << 16)
+								+ (needle_ptr[17] << 8) + (needle_ptr[18]))
+								/ 10000;
 
 					}
 
@@ -237,9 +468,10 @@ int main(void) {
 
 						error_counter = 0;
 
-						sm_current_data.meter_delivery = ((needle_ptr[15] << 24)
-								+ (needle_ptr[16] << 16) + (needle_ptr[17] << 8)
-								+ (needle_ptr[18])) / 10000;
+						sm_main_current_data.meter_delivery = ((needle_ptr[15]
+								<< 24) + (needle_ptr[16] << 16)
+								+ (needle_ptr[17] << 8) + (needle_ptr[18]))
+								/ 10000;
 
 					}
 
@@ -256,7 +488,7 @@ int main(void) {
 						continue;
 					} else {
 						error_counter = 0;
-						sm_current_data.uptime = ((needle_ptr[11] << 24)
+						sm_main_current_data.uptime = ((needle_ptr[11] << 24)
 								+ (needle_ptr[12] << 16) + (needle_ptr[13] << 8)
 								+ needle_ptr[14]);
 						memset(sml_main_raw_data, 0, sizeof(sml_main_raw_data));
@@ -265,49 +497,51 @@ int main(void) {
 						 * to the struct an we can copy it into the array
 						 * and increment the idx
 						 */
-						sm_flash_cache_data[sm_idx_for_cache_data].data =
-								sm_current_data;
-						sm_flash_cache_data[sm_idx_for_cache_data].begin =
+						LED_ERROR_TOGGLE;
+						sm_flash_main_cache_data[sm_idx_for_main_cache_data].data =
+								sm_main_current_data;
+						sm_flash_main_cache_data[sm_idx_for_main_cache_data].begin =
 						BEGIN_DELIMITER;
-						sm_flash_cache_data[sm_idx_for_cache_data].delimiter =
+						sm_flash_main_cache_data[sm_idx_for_main_cache_data].delimiter =
 						END_DELIMITER;
 
-						if (sm_idx_for_cache_data == 0) {
-							sm_flash_cache_data[sm_idx_for_cache_data].packet_ctr =
+						if (sm_idx_for_main_cache_data == 0) {
+							sm_flash_main_cache_data[sm_idx_for_main_cache_data].packet_ctr =
 									0;
 						} else {
-							sm_flash_cache_data[sm_idx_for_cache_data].packet_ctr =
-									sm_flash_cache_data[sm_idx_for_cache_data
+							sm_flash_main_cache_data[sm_idx_for_main_cache_data].packet_ctr =
+									sm_flash_main_cache_data[sm_idx_for_main_cache_data
 											- 1].packet_ctr + 1;
 						}
-						sm_idx_for_cache_data++;
+						sm_idx_for_main_cache_data++;
 
 						/*
 						 * if the cache is full, write it to the flash
 						 */
-						if (sm_idx_for_cache_data
+						if (sm_idx_for_main_cache_data
 								> ((W25N_MAX_CLOUMN
 										/ sizeof(smartmeter_flash_data_t)) - 1)) {
-							sm_idx_for_cache_data--;
+							sm_idx_for_main_cache_data--;
 							/*
 							 * cache is full, so write it to the flash
 							 * init the cache with 0 and set the correct packet ctr
 							 */
-							flash_write_data(flash_current_address,
-									sm_flash_cache_data,
-									sizeof(sm_flash_cache_data));
-							flash_current_address += W25N_MAX_CLOUMN;
-							sm_flash_cache_data[0].packet_ctr =
-									sm_flash_cache_data[sm_idx_for_cache_data].packet_ctr
+							LED_OK_TOGGLE;
+							flash_write_data(flash_current_address_main_sml,
+									sm_flash_main_cache_data,
+									sizeof(sm_flash_main_cache_data));
+							flash_current_address_main_sml += W25N_MAX_CLOUMN;
+							sm_flash_main_cache_data[0].packet_ctr =
+									sm_flash_main_cache_data[sm_idx_for_main_cache_data].packet_ctr
 											+ 1;
-							sm_idx_for_cache_data = 0;
-							if (flash_current_address
-									> (W25N_MAX_CLOUMN * W25N_MAX_PAGE)) {
+							sm_idx_for_main_cache_data = 0;
+							if (flash_current_address_main_sml
+									> W25N_MAX_ADDRESS_MAIN) {
 								/*
 								 * if we reached the end of the flash memory,
 								 * start at the beginning again.
 								 */
-								flash_current_address = 0;
+								flash_current_address_main_sml = 0;
 							}
 
 						}
@@ -317,7 +551,7 @@ int main(void) {
 
 		}
 
-		if(flags.usart6_new_cmd){
+		if (flags.usart6_new_cmd) {
 			check_cmd_frame();
 		}
 
@@ -358,9 +592,9 @@ static void prvSetupHardware(void) {
 
 	usart1_init();
 	usart6_init();
-//	usart3_init();
+	usart3_init();
 
-	dac_init();
+//	dac_init();
 	comp_init();
 
 	crc_init();

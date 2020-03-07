@@ -11,6 +11,9 @@
 extern uint32_t sml_main_raw_data_idx;
 extern uint8_t sml_main_raw_data[400];
 
+extern uint32_t sml_plant_raw_data_idx;
+extern uint8_t sml_plant_raw_data[400];
+
 extern uint32_t usart6_crc_data;
 extern uint8_t *usart6_cmd_frame_ptr;
 extern uint8_t *usart_ack_frame_ptr;

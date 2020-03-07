@@ -80,16 +80,15 @@ void USART3_8_IRQHandler() {
 		if (sml_plant_raw_data_idx > sizeof(sml_plant_raw_data)) {
 			sml_plant_raw_data_idx = 0;
 		}
-	} else if ((USART3->ISR & USART_ISR_IDLE)) {
+	}else if(USART3->ISR & USART_ISR_ORE){
+		USART3->ICR = USART_ICR_ORECF;
+	}else if ((USART3->ISR & USART_ISR_IDLE)) {
 		USART3->ICR = USART_ICR_IDLECF;
 		sml_plant_raw_data_idx = 0;
 		flags.new_plant_sml_packet = 1;
 	}
 	return;
 }
-
-
-
 
 void NMI_Handler(void) {
 }

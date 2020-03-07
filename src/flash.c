@@ -108,7 +108,7 @@ int8_t flash_ProgramExecute(uint32_t pageAdd) {
 }
 
 int8_t flash_write_data(uint32_t address, uint8_t *buf, uint32_t datalen) {
-	address+=W25N_START_OF_USER_DATA*W25N_MAX_CLOUMN;
+	address+=W25N_START_OF_USER_PAGE*W25N_MAX_CLOUMN;
 	/*
 	 * the first 11 pages are factory programmed and can't be written,
 	 * so step this this
@@ -165,7 +165,7 @@ int8_t flash_write_data(uint32_t address, uint8_t *buf, uint32_t datalen) {
 }
 
 int8_t flash_read_data(uint32_t address, uint8_t *buf, uint32_t datalen) {
-	address+=W25N_START_OF_USER_DATA*W25N_MAX_CLOUMN;
+	address+=W25N_START_OF_USER_PAGE*W25N_MAX_CLOUMN;
 	/*
 	 * To read data from the flash, we first have to issue the flash
 	 * to load the page of the data into the internal buffer and
