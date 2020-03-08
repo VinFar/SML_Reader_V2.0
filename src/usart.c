@@ -14,7 +14,7 @@ void usart1_init() {
 	__HAL_RCC_USART1_CLK_ENABLE()
 	;
 
-	USART1->BRR = SystemCoreClock / 57600; /* (1) */
+	USART1->BRR = SystemCoreClock / SMART_METER_BAUDRATE; /* (1) */
 
 	USART1->CR1 |= USART_CR1_RE; /* (2) */
 	USART1->CR1 |= USART_CR1_RXNEIE; //Reciever Interrupt Enable
@@ -37,7 +37,7 @@ void usart3_init() {
 	/* (2) 8 data bit, 1 start bit, 1 stop bit, no parity */
 	__HAL_RCC_USART3_CLK_ENABLE()
 	;
-	USART3->BRR = SystemCoreClock / 57600; /* (1) */
+	USART3->BRR = SystemCoreClock / SMART_METER_BAUDRATE; /* (1) */
 
 	USART3->CR1 |= USART_CR1_RE; /* (2) */
 	USART3->CR1 |= USART_CR1_RXNEIE; //Reciever Interrupt Enable
@@ -61,7 +61,7 @@ void usart6_init() {
 	__HAL_RCC_USART6_CLK_ENABLE()
 	;
 
-	USART6->BRR = SystemCoreClock / 57600;
+	USART6->BRR = SystemCoreClock / 1000000;
 
 	USART6->CR1 |= USART_CR1_RE | USART_CR1_TE;
 	USART6->CR1 |= USART_CR1_RXNEIE; //Reciever Interrupt Enable

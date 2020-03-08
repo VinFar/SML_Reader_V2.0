@@ -2,6 +2,7 @@
 #include "FreeRTOS.h"
 #include "stm32f0xx_it.h"
 #include "usart.h"
+#include "flash.h"
 
 uint16_t Log2n(uint16_t n) {
 	return (n > 1) ? 1 + Log2n(n / 2) : 0;
@@ -19,7 +20,7 @@ int16_t findPosition(uint16_t n) {
 
 void check_cmd_frame() {
 	if (flags.usart6_new_cmd == 1) {
-	flags.usart6_new_cmd=0;
+		flags.usart6_new_cmd = 0;
 
 		/*
 		 * A new command frame was received from the Host PC and has to be evaluated.
@@ -30,7 +31,8 @@ void check_cmd_frame() {
 		 */
 		uint8_t err = 0;
 		uint8_t *del_ptr;
-		del_ptr = (uint8_t*) &usart6_cmd_frame.size + (usart6_cmd_frame.size - 5);
+		del_ptr = (uint8_t*) &usart6_cmd_frame.size
+				+ (usart6_cmd_frame.size - 5);
 		uint8_t size = usart6_cmd_frame.size;
 		uint8_t cmd = usart6_cmd_frame.cmd;
 		if (size < CMD_FRAME_MIN_SIZE) {
@@ -69,7 +71,7 @@ void check_cmd_frame() {
 //								usart6_cmd_frame.size - 4);
 						NOP
 						NOP
-						if (1) {
+						if (0) {
 							/*
 							 * CRC32 Check is not valid
 							 */
@@ -82,12 +84,51 @@ void check_cmd_frame() {
 
 			}
 		}
-		usart6_ack_frame.ack = CMD_NACK;
 		usart6_ack_frame.size = ACK_FRAME_MIN_SIZE;
-		uint8_t data_size = 0;
+		usart6_ack_frame.cmd = usart6_cmd_frame.cmd;
+		uint16_t data_size = 0;
 		if (!err) {
+			usart6_ack_frame.ack = CMD_ACK;
 			switch (usart6_cmd_frame.cmd) {
+			case CMD_PING:
+				flags.gateway=0;
+				NOP
+				break;
+			case CMD_READ_FLASH_ADDRESS_MAIN:
+				usart6_ack_frame.data[0].uint32_data =
+						flash_current_address_main_sml;
+				usart6_ack_frame.data[1].uint32_data = W25N_MAX_ADDRESS_MAIN;
+				usart6_ack_frame.data[2].uint32_data = W25N_START_ADDRESS_MAIN;
+				data_size = 12;
+				break;
+			case CMD_READ_FLASH_ADDRESS_PLANT:
+				usart6_ack_frame.data[0].uint32_data =
+						flash_current_address_plant_sml;
+				usart6_ack_frame.data[1].uint32_data = W25N_MAX_ADDRESS_PLANT;
+				usart6_ack_frame.data[2].uint32_data = W25N_START_ADDRESS_PLANT;
+				data_size = 12;
+				break;
+			case CMD_READ_FLASH:
+				flash_read_data(usart6_cmd_frame.data[0].uint32_data,
+						usart6_ack_frame.data,
+						usart6_cmd_frame.major_cmd.uint16_data);
+				data_size += usart6_cmd_frame.major_cmd.uint16_data;
+				break;
+			case CMD_READ_MAIN_POWER:
+				usart6_ack_frame.data[0].uint32_data =
+						sm_main_current_data.power;
+				data_size = 4;
+				break;
+			case CMD_READ_PLANT_POWER:
+				usart6_ack_frame.data[0].uint32_data =
+						sm_plant_current_data.power;
+				data_size = 4;
+				break;
+			case CMD_CHANGE_BAUDRATE:
+				flags.gateway=1;
+				break;
 			default:
+				usart6_ack_frame.ack = CMD_NACK;
 				NOP
 				NOP
 				break;
@@ -96,6 +137,8 @@ void check_cmd_frame() {
 			/*
 			 * fill CRC with dummy
 			 */
+		} else {
+			usart6_ack_frame.ack = CMD_NACK;
 		}
 
 		usart6_ack_frame.size = ACK_FRAME_MIN_SIZE + data_size;
@@ -107,9 +150,9 @@ void check_cmd_frame() {
 		USART6->CR1 |= USART_CR1_RE;
 		USART6->CR1 |= USART_CR1_RXNEIE;
 		usart6_ack_frame.cmd = usart6_cmd_frame.cmd;
+		memset(&usart6_cmd_frame, 0, sizeof(usart6_cmd_frame));
 		usart6_send_ack_frame(&usart6_ack_frame);
 
 	}
 }
-
 

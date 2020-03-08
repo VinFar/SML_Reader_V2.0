@@ -8,7 +8,7 @@
 #ifndef USART_H_
 #define USART_H_
 
-#define MAX_PAYLOAD_SIZE 200
+#define MAX_PAYLOAD_SIZE 2048
 
 typedef union data_union {
 	float float_data;
@@ -32,7 +32,7 @@ typedef struct {
 	uint8_t cmd;
 	uint16_8_t major_cmd; //position
 	uint16_8_t minor_cmd; //length
-	data_union_t data[(MAX_PAYLOAD_SIZE/4)-2];
+	data_union_t data[(MAX_PAYLOAD_SIZE/4)+2];
 }__attribute__((packed)) cmd_frame_t;
 
 cmd_frame_t cmd_frame;
@@ -42,10 +42,10 @@ cmd_frame_t cmd_frame;
 #define CMD_FRAME_MAX_SIZE CMD_FRAME_SIZE
 
 typedef struct {
-	uint8_t size;
+	uint16_t size;
 	uint8_t ack;
 	uint8_t cmd;
-	data_union_t data[(MAX_PAYLOAD_SIZE/4)-2];
+	data_union_t data[(MAX_PAYLOAD_SIZE/4)+4];
 }__attribute__((packed)) ack_frame_t;
 
 ack_frame_t ack_frame;
@@ -61,7 +61,13 @@ ack_frame_t ack_frame;
 
 
 enum commands{
-	cmd_ping=1,
+	CMD_PING=1,
+	CMD_READ_FLASH_ADDRESS_MAIN,
+	CMD_READ_FLASH_ADDRESS_PLANT,
+	CMD_READ_FLASH,
+	CMD_READ_PLANT_POWER,
+	CMD_READ_MAIN_POWER,
+	CMD_CHANGE_BAUDRATE,
 	MAX_ENUM_CMDS
 };
 

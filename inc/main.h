@@ -11,6 +11,7 @@
 #include <stdint-gcc.h>
 #include "stm32f091xc.h"
 #include "stm32f0xx_hal.h"
+#include "defines.h"
 
 #define delay_us(us)
 #define NOP asm("nop");
@@ -85,9 +86,19 @@ volatile typedef struct {
 	unsigned new_plant_sml_packet:1;
 	unsigned usart6_new_cmd:1;
 	unsigned usart6_rx_busy:1;
+	unsigned gateway:1;
 }flags_t;
 
 flags_t flags;
+
+extern uint8_t sm_idx_for_main_cache_data;
+extern uint8_t sm_idx_for_plant_cache_data;
+extern uint32_t flash_current_address_main_sml;
+extern uint32_t flash_current_address_plant_sml;
+extern smartmeter_data_t sm_main_current_data;
+extern smartmeter_data_t sm_plant_current_data;
+
+
 
 #include "stm32f0xx.h"
 

@@ -23,7 +23,8 @@ void dac_init(){
 	 * Output buffer for the DACs are switched on
 	 */
 	DAC->CR |= DAC_CR_EN1;
-	DAC->CR |= DAC_CR_EN2;
+	DAC1->DHR12R1 = 100;
+//	DAC->CR |= DAC_CR_EN2;
 
 }
 

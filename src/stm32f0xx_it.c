@@ -27,14 +27,18 @@ void USART1_IRQHandler() {
 		 * from the smart meter, which is evaluated by the main loop later
 		 */
 
-		sml_main_raw_data[sml_main_raw_data_idx++] = USART1->RDR;
+		sml_main_raw_data[sml_main_raw_data_idx] = USART1->RDR;
+		if (flags.gateway) {
+//			USART6->TDR = sml_main_raw_data[sml_main_raw_data_idx];
+		}
+		sml_main_raw_data_idx++;
 		if (sml_main_raw_data_idx > sizeof(sml_main_raw_data)) {
 			sml_main_raw_data_idx = 0;
 		}
 	} else if ((USART1->ISR & USART_ISR_IDLE)) {
 		USART1->ICR = USART_ICR_IDLECF;
 		flags.new_main_sml_packet = 1;
-	}else if(USART1->ISR & USART_ISR_ORE){
+	} else if (USART1->ISR & USART_ISR_ORE) {
 		USART1->ICR = USART_ICR_ORECF;
 	}
 	return;
@@ -57,13 +61,13 @@ void USART3_8_IRQHandler() {
 		//Overrun detection
 		USART6->ICR = USART_ICR_ORECF;	//Clear overrun interrupt bit
 		USART6->RQR = USART_RQR_RXFRQ;
-		usart6_cmd_frame_ptr = &usart6_cmd_frame;
+		usart6_cmd_frame_ptr = (uint8_t*) &usart6_cmd_frame;
 		return;
 	} else if (USART6->ISR & USART_ISR_IDLE) {
 		/*
 		 * detected idle line
 		 */
-		usart6_cmd_frame_ptr = &usart6_cmd_frame;
+		usart6_cmd_frame_ptr = (uint8_t*) &usart6_cmd_frame;
 		USART6->ICR = USART_ICR_IDLECF;
 		flags.usart6_new_cmd = 1;
 		flags.usart6_rx_busy = 0;
@@ -80,11 +84,10 @@ void USART3_8_IRQHandler() {
 		if (sml_plant_raw_data_idx > sizeof(sml_plant_raw_data)) {
 			sml_plant_raw_data_idx = 0;
 		}
-	}else if(USART3->ISR & USART_ISR_ORE){
+	} else if (USART3->ISR & USART_ISR_ORE) {
 		USART3->ICR = USART_ICR_ORECF;
-	}else if ((USART3->ISR & USART_ISR_IDLE)) {
+	} else if ((USART3->ISR & USART_ISR_IDLE)) {
 		USART3->ICR = USART_ICR_IDLECF;
-		sml_plant_raw_data_idx = 0;
 		flags.new_plant_sml_packet = 1;
 	}
 	return;

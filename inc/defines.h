@@ -23,7 +23,6 @@ typedef struct smart_meter_struct {
 typedef struct {
 	uint8_t begin;
 	smartmeter_data_t data;
-	uint32_t packet_ctr;
 	uint8_t delimiter;
 } __attribute__((packed)) smartmeter_flash_data_t;
 

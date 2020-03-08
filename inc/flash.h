@@ -181,8 +181,7 @@ int8_t flash_pageDataRead(uint32_t pageAdd);
 //columnAdd is a buffer index (0-2047) or (0 - 2111) including ECC bits
 //uint8_t* buf is a pointer to the buffer to be read into
 //datalen is the length of data that should be read from the buffer (up to 2111)
-int8_t flash_read(uint16_t columnAdd, uint8_t* buf, uint32_t dataLen);
-
+int8_t flash_read_data(uint32_t address, uint8_t *buf, uint32_t datalen);
 //check_WIP() -- checks if the flash is busy with an operation
 //Output: true if busy, false if free
 int8_t flash_check_WIP();
