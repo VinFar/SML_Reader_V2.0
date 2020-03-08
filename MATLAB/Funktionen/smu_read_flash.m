@@ -5,7 +5,7 @@ send_cmd_struct(serial,struct);
 pause(0.1);
 struct = receive_ack_struct(serial);
 if(struct(2)~=70)
-    smu_read_flash(serial,address,size);
+    ret = smu_read_flash(serial,address,size);
     return
 end
 ret = struct(4:end-7);
