@@ -85,6 +85,10 @@ int32_t old_plant_power = 0;
 
 uint8_t sml_tx_data[400] = { 0 };
 
+uuid_t uuid = { { ((uint32_t*) UUID_BASE_ADDRESS),
+		(((uint32_t*) UUID_BASE_ADDRESS + 1)), ((uint32_t*) (UUID_BASE_ADDRESS
+				+ 2)) } };
+
 int main(void) {
 
 	prvSetupHardware();
@@ -92,7 +96,7 @@ int main(void) {
 
 	flash_init();
 //	flash_bulkErase();
-	flags.gateway=1;
+	flags.gateway = 1;
 
 	/*
 	 * in order to find the last page that was written before system reset,
@@ -301,8 +305,7 @@ int main(void) {
 							 * and increment the idx
 							 */
 							LED_ERROR_TOGGLE;
-							if (old_plant_power
-									== old_plant_power) {
+							if (old_plant_power == old_plant_power) {
 								old_plant_power = sm_plant_current_data.power;
 								sm_flash_plant_cache_data[sm_idx_for_plant_cache_data].data =
 										sm_plant_current_data;

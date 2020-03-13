@@ -15,6 +15,9 @@
 
 #define delay_us(us)
 #define NOP asm("nop");
+#define STRUCT_PACKED __attribute__((packed))
+#define UUID_BASE_ADDRESS 0x1FFF7A10
+
 
 void Error_Handler(void);
 #define RCC_OSC32_IN_Pin GPIO_PIN_14
@@ -90,6 +93,12 @@ volatile typedef struct {
 }flags_t;
 
 flags_t flags;
+
+typedef struct uuid_struct {
+	const uint32_t *id[3];
+}STRUCT_PACKED uuid_t;
+
+extern uuid_t uuid;
 
 extern uint8_t sm_idx_for_main_cache_data;
 extern uint8_t sm_idx_for_plant_cache_data;

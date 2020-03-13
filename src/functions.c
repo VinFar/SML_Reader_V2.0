@@ -91,7 +91,7 @@ void check_cmd_frame() {
 			usart6_ack_frame.ack = CMD_ACK;
 			switch (usart6_cmd_frame.cmd) {
 			case CMD_PING:
-				flags.gateway=0;
+				flags.gateway = 0;
 				NOP
 				break;
 			case CMD_READ_FLASH_ADDRESS_MAIN:
@@ -124,8 +124,9 @@ void check_cmd_frame() {
 						sm_plant_current_data.power;
 				data_size = 4;
 				break;
-			case CMD_CHANGE_BAUDRATE:
-				flags.gateway=1;
+			case CMD_READ_UUID:
+				memcpy(usart6_ack_frame.data, &uuid, sizeof(uuid));
+				data_size = sizeof(uuid);
 				break;
 			default:
 				usart6_ack_frame.ack = CMD_NACK;
