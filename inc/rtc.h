@@ -24,7 +24,7 @@ extern RTC_DateTypeDef sm_date;
 						while ((RTC->ISR & RTC_ISR_INITF) == 0)
 
 
-uint32_t RTC_ToEpoch(RTC_TimeTypeDef *time, RTC_DateTypeDef *date);
+uint32_t rtc_get_unix_time(RTC_TimeTypeDef *time, RTC_DateTypeDef *date);
 void RTC_GetDate(uint32_t RTC_Format, RTC_DateTypeDef* RTC_DateStruct);
 void RTC_GetTime(uint32_t RTC_Format, RTC_TimeTypeDef* RTC_TimeStruct);
 

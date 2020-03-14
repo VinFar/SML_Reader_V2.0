@@ -28,7 +28,7 @@ void USART1_IRQHandler() {
 		 */
 
 		sml_main_raw_data[sml_main_raw_data_idx] = USART1->RDR;
-		USART5->TDR = sml_main_raw_data[sml_main_raw_data_idx];
+		USART5->TDR =sml_main_raw_data[sml_main_raw_data_idx];
 		if (flags.gateway) {
 //			USART6->TDR = sml_main_raw_data[sml_main_raw_data_idx];
 		}

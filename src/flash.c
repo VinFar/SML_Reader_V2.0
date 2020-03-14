@@ -5,7 +5,7 @@
 
 void flash_send_data(uint8_t * buf, uint32_t len) {
 	SPI_CS_FLASH_LOW;
-	spi_transmit_receive(buf,buf,len);
+	HAL_SPI_TransmitReceive(&hspi1, buf, buf, len, 50);
 	SPI_CS_FLASH_HIGH;
 }
 
@@ -127,7 +127,7 @@ int8_t flash_write_data(uint32_t address, uint8_t *buf, uint32_t datalen) {
 	address -= page * 2048;
 	uint16_t byte = (address & 0xfff);
 //	flash_blockErase(page);
-//	flash_block_WIP();
+	flash_block_WIP();
 	flash_writeEnable();
 
 	uint8_t cmdbuf_load_data[4];
@@ -142,14 +142,21 @@ int8_t flash_write_data(uint32_t address, uint8_t *buf, uint32_t datalen) {
 	cmdbuf_prog_exec[3] = (uint8_t) (page & 0xff);
 
 	SPI_CS_FLASH_LOW;
-	spi_transmit(cmdbuf_load_data,3);
-	spi_transmit(buf,datalen);
 
+	if (HAL_SPI_Transmit(&hspi1, cmdbuf_load_data, 3, 50) != HAL_OK) {
+		return -1;
+	}
+	if (HAL_SPI_Transmit(&hspi1, buf, datalen, 50) != HAL_OK) {
+		return -1;
+	}
 	SPI_CS_FLASH_HIGH;
 	for (int i = 0; i < 1000; i++)
 		;
 	SPI_CS_FLASH_LOW;
-	spi_transmit(cmdbuf_prog_exec,4);
+
+	if (HAL_SPI_Transmit(&hspi1, cmdbuf_prog_exec, 4, 50) != HAL_OK) {
+		return -1;
+	}
 
 	SPI_CS_FLASH_HIGH;
 
@@ -208,7 +215,9 @@ int8_t flash_read_data(uint32_t address, uint8_t *buf, uint32_t datalen) {
 	/*
 	 * transmit page address
 	 */
-	spi_transmit(cmdbuf_page_data_read,4);
+	if (HAL_SPI_Transmit(&hspi1, cmdbuf_page_data_read, 4, 50) != HAL_OK) {
+		return -1;
+	}
 	SPI_CS_FLASH_HIGH;
 	flash_block_WIP();
 	SPI_CS_FLASH_LOW;
@@ -216,8 +225,12 @@ int8_t flash_read_data(uint32_t address, uint8_t *buf, uint32_t datalen) {
 	/*
 	 * transmit byte address of the selected page
 	 */
-	spi_transmit(cmdbuf_read_data,4);
-	spi_receive(buf,datalen);
+	if (HAL_SPI_Transmit(&hspi1, cmdbuf_read_data, 4, 50) != HAL_OK) {
+		return -1;
+	}
+	if (HAL_SPI_Receive(&hspi1, buf, datalen, 50) != HAL_OK) {
+		return -1;
+	}
 
 	SPI_CS_FLASH_HIGH;
 

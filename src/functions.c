@@ -156,6 +156,18 @@ void check_cmd_frame() {
 				memcpy(usart6_ack_frame.data, &uuid, sizeof(uuid));
 				data_size = sizeof(uuid);
 				break;
+			case CMD_DO_BULK_ERASE:
+				if (usart6_cmd_frame.major_cmd.uint16_data == 0xaffe) {
+					if (usart6_cmd_frame.minor_cmd.uint16_data == 0xdead) {
+						if (usart6_cmd_frame.data[0].uint32_data
+								== 0xbadeaffe) {
+							flash_bulkErase();
+							flash_current_address_main_sml = 0;
+							flash_current_address_plant_sml = W25N_START_ADDRESS_PLANT;
+						}
+					}
+				}
+				break;
 			case CMD_SET_RTC:
 				NOP
 				uint32_t TR = 0, DR = 0;
@@ -172,7 +184,7 @@ void check_cmd_frame() {
 				case CMD_GET_UNIX_TIME:
 				RTC_GetTime(RTC_FORMAT_BIN, &sm_time);
 				RTC_GetDate(RTC_FORMAT_BIN, &sm_date);
-				usart6_ack_frame.data[0].uint32_data = RTC_ToEpoch(&sm_time,
+				usart6_ack_frame.data[0].uint32_data = rtc_get_unix_time(&sm_time,
 						&sm_date);
 				data_size = 4;
 				break;
@@ -286,56 +298,9 @@ void sm_plant_extract_data() {
 
 				/*
 				 * at this point all data from the smart meter was written
-				 * to the struct an we can copy it into the array
-				 * and increment the idx
+				 * to the struct.
 				 */
 				LED_ERROR2_TOGGLE;
-				if (old_plant_power != sm_plant_current_data.power) {
-					old_plant_power = sm_plant_current_data.power;
-
-					RTC_GetTime(RTC_FORMAT_BIN, &sm_time);
-					RTC_GetDate(RTC_FORMAT_BIN, &sm_date);
-					sm_plant_current_data.uptime = RTC_ToEpoch(&sm_time,
-							&sm_date);
-
-					sm_flash_plant_cache_data[sm_idx_for_plant_cache_data].data =
-							sm_plant_current_data;
-					sm_flash_plant_cache_data[sm_idx_for_plant_cache_data].begin =
-					BEGIN_DELIMITER;
-					sm_flash_plant_cache_data[sm_idx_for_plant_cache_data].delimiter =
-					END_DELIMITER;
-
-					sm_idx_for_plant_cache_data++;
-
-					/*
-					 * if the cache is full, write it to the flash
-					 */
-					if (sm_idx_for_plant_cache_data
-							> ((W25N_MAX_CLOUMN
-									/ sizeof(smartmeter_flash_data_t)) - 1)) {
-						/*
-						 * cache is full, so write it to the flash
-						 * init the cache with 0 and set the correct packet ctr
-						 */
-						LED_STATUS_TOGGLE;
-
-						flash_write_data(flash_current_address_plant_sml,
-								sm_flash_plant_cache_data,
-								sizeof(sm_flash_plant_cache_data));
-						flash_current_address_plant_sml +=
-						W25N_MAX_CLOUMN;
-						sm_idx_for_plant_cache_data = 0;
-						if (flash_current_address_plant_sml
-								> W25N_MAX_ADDRESS_PLANT) {
-							/*
-							 * if we reached the end of the flash memory,
-							 * start at the beginning again.
-							 */
-							flash_current_address_plant_sml = 0;
-						}
-
-					}
-				}
 
 			}
 		}
@@ -439,64 +404,102 @@ void sm_main_extract_data() {
 
 				/*
 				 * at this point all data from the smart meter was written
-				 * to the struct an we can copy it into the array
-				 * and increment the idx
+				 * to the struct
 				 */
 				LED_ERROR_TOGGLE;
 
-				if (old_main_power != sm_main_current_data.power) {
-					old_main_power = sm_main_current_data.power;
-					/*
-					 * we only need to store new data if the power
-					 * has changed, otherwise we would need more space
-					 * than needed
-					 */
-					RTC_GetTime(RTC_FORMAT_BIN, &sm_time);
-					RTC_GetDate(RTC_FORMAT_BIN, &sm_date);
-					sm_main_current_data.uptime = RTC_ToEpoch(&sm_time,
-							&sm_date);
-
-					sm_flash_main_cache_data[sm_idx_for_main_cache_data].data =
-							sm_main_current_data;
-					sm_flash_main_cache_data[sm_idx_for_main_cache_data].begin =
-					BEGIN_DELIMITER;
-					sm_flash_main_cache_data[sm_idx_for_main_cache_data].delimiter =
-					END_DELIMITER;
-
-					sm_idx_for_main_cache_data++;
-
-					/*
-					 * if the cache is full, write it to the flash
-					 */
-					if (sm_idx_for_main_cache_data
-							> ((W25N_MAX_CLOUMN
-									/ sizeof(smartmeter_flash_data_t)) - 1)) {
-						/*
-						 * cache is full, so write it to the flash
-						 * init the cache with 0 and set the correct packet ctr
-						 */
-						LED_STATUS_TOGGLE;
-						flash_write_data(flash_current_address_main_sml,
-								sm_flash_main_cache_data,
-								sizeof(sm_flash_main_cache_data));
-						flash_current_address_main_sml +=
-						W25N_MAX_CLOUMN;
-						sm_idx_for_main_cache_data = 0;
-
-						if (flash_current_address_main_sml
-								> W25N_MAX_ADDRESS_MAIN) {
-							/*
-							 * if we reached the end of the flash memory,
-							 * start at the beginning again.
-							 */
-							flash_current_address_main_sml = 0;
-						}
-
-					}
-				}
-
 			}
 		}
+	}
+
+}
+
+void flash_main_store_data_in_cache(uint32_t timestamp) {
+	/*
+	 * this function gets called every 2 second
+	 * from the main loop to store the data to the
+	 * cache/flash
+	 */
+
+	sm_flash_main_cache_data[sm_idx_for_main_cache_data].data =
+			sm_main_current_data;
+	sm_flash_main_cache_data[sm_idx_for_main_cache_data].begin =
+	BEGIN_DELIMITER;
+	sm_flash_main_cache_data[sm_idx_for_main_cache_data].delimiter =
+	END_DELIMITER;
+	sm_flash_main_cache_data[sm_idx_for_main_cache_data].data.uptime =
+			timestamp;
+
+	sm_idx_for_main_cache_data++;
+
+	/*
+	 * if the cache is full, write it to the flash
+	 */
+	if (sm_idx_for_main_cache_data
+			> ((W25N_MAX_CLOUMN / sizeof(smartmeter_flash_data_t)) - 1)) {
+		/*
+		 * cache is full, so write it to the flash
+		 * init the cache with 0 and set the correct packet ctr
+		 */
+
+		flash_write_data(flash_current_address_main_sml,
+				sm_flash_main_cache_data, sizeof(sm_flash_main_cache_data));
+		flash_current_address_main_sml +=
+		W25N_MAX_CLOUMN;
+		sm_idx_for_main_cache_data = 0;
+
+		if (flash_current_address_main_sml > W25N_MAX_ADDRESS_MAIN) {
+			/*
+			 * if we reached the end of the flash memory,
+			 * start at the beginning again.
+			 */
+			flash_current_address_main_sml = 0;
+		}
+
+	}
+
+}
+
+void flash_plant_store_data_in_cache(uint32_t timestamp) {
+	/*
+	 * this function gets called every 2 second from
+	 * the main loop to the data to the cache/flash
+	 */
+
+	sm_flash_plant_cache_data[sm_idx_for_plant_cache_data].data =
+			sm_plant_current_data;
+	sm_flash_plant_cache_data[sm_idx_for_plant_cache_data].begin =
+	BEGIN_DELIMITER;
+	sm_flash_plant_cache_data[sm_idx_for_plant_cache_data].delimiter =
+	END_DELIMITER;
+	sm_flash_plant_cache_data[sm_idx_for_plant_cache_data].data.uptime =
+			timestamp;
+
+	sm_idx_for_plant_cache_data++;
+
+	/*
+	 * if the cache is full, write it to the flash
+	 */
+	if (sm_idx_for_plant_cache_data
+			> ((W25N_MAX_CLOUMN / sizeof(smartmeter_flash_data_t)) - 1)) {
+		/*
+		 * cache is full, so write it to the flash
+		 * init the cache with 0 and set the correct packet ctr
+		 */
+
+		flash_write_data(flash_current_address_plant_sml,
+				sm_flash_plant_cache_data, sizeof(sm_flash_plant_cache_data));
+		flash_current_address_plant_sml +=
+		W25N_MAX_CLOUMN;
+		sm_idx_for_plant_cache_data = 0;
+		if (flash_current_address_plant_sml > W25N_MAX_ADDRESS_PLANT) {
+			/*
+			 * if we reached the end of the flash memory,
+			 * start at the beginning again.
+			 */
+			flash_current_address_plant_sml = 0;
+		}
+
 	}
 
 }

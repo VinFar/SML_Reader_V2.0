@@ -46,7 +46,7 @@ void rtc_init() {
 }
 
 // Convert Date/Time structures to epoch time
-uint32_t RTC_ToEpoch(RTC_TimeTypeDef *time, RTC_DateTypeDef *date) {
+uint32_t rtc_get_unix_time(RTC_TimeTypeDef *time, RTC_DateTypeDef *date) {
 	uint8_t a;
 	uint16_t y;
 	uint8_t m;

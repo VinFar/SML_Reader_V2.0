@@ -17,6 +17,8 @@ int16_t findPosition(uint16_t n);
 void check_cmd_frame();
 void sm_main_extract_data();
 void sm_plant_extract_data();
+void flash_main_store_data_in_cache(uint32_t timestamp);
+void flash_plant_store_data_in_cache(uint32_t timestamp);
 
 void check_cmd_struct(void *param);
 

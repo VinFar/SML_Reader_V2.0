@@ -56,16 +56,14 @@ uint32_t meter_purchase, meter_delivery, meter_uptime;
 int32_t meter_power;
 uint32_t error_counter = 0;
 
-
-
 uint8_t sml_tx_data[400] = { 0 };
 
 uuid_t uuid = { { ((uint32_t*) UUID_BASE_ADDRESS),
 		(((uint32_t*) UUID_BASE_ADDRESS + 1)), ((uint32_t*) (UUID_BASE_ADDRESS
 				+ 2)) } };
 
-time_t rtc_time;
-struct tm t;
+uint32_t rtc_current_time_unix;
+uint32_t rtc_old_time_unix;
 
 int main(void) {
 
@@ -82,7 +80,14 @@ int main(void) {
 	flash_address_get_main();
 	flash_address_get_plant();
 
+	rtc_current_time_unix = rtc_old_time_unix = rtc_get_unix_time(&sm_time,
+			&sm_date);
+
 	while (1) {
+
+		RTC_GetTime(RTC_FORMAT_BIN, &sm_time);
+		RTC_GetDate(RTC_FORMAT_BIN, &sm_date);
+		rtc_current_time_unix = rtc_get_unix_time(&sm_time, &sm_date);
 
 		if (flags.new_plant_sml_packet) {
 			flags.new_plant_sml_packet = 0;
@@ -92,6 +97,17 @@ int main(void) {
 		if (flags.new_main_sml_packet) {
 			flags.new_main_sml_packet = 0;
 			sm_main_extract_data();
+		}
+
+		if ((rtc_current_time_unix - rtc_old_time_unix) >= FLASH_SAVE_INTERVALL) {
+			rtc_old_time_unix = rtc_current_time_unix;
+			/*
+			 * save data every 2 seconds
+			 */
+			LED_STATUS_TOGGLE;
+			flash_main_store_data_in_cache(rtc_current_time_unix);
+			flash_plant_store_data_in_cache(rtc_current_time_unix);
+
 		}
 
 		if (flags.usart6_new_cmd) {

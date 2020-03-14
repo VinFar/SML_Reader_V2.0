@@ -58,6 +58,8 @@
 #define W25N_START_ADDRESS_MAIN 0
 #define W25N_START_ADDRESS_PLANT (W25N_START_PAGE_PLANT*W25N_MAX_CLOUMN)
 
+#define FLASH_SAVE_INTERVALL (2)
+
 
 
 enum protection_reg_bits {
