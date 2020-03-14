@@ -36,7 +36,7 @@ time_plant = datetime(time_plant, 'convertfrom','posixtime');
 % time_plant = time_plant - time_plant(1,1);
 
 subplot(3,1,1)
-plot(time_plant(1,1:end),power_plant(1,1:end))
+stairs(time_plant(1,1:end),power_plant(1,1:end))
 xlim([time_plant(1,1), time_plant(1,end)])
 grid on
 grid minor
@@ -73,7 +73,7 @@ time_main = datetime(time_main, 'convertfrom','posixtime');
 % time_main = time_main - time_main(1,1)-692;
 toc
 subplot(3,1,2)
-plot(time_main(1,1:end),power_main(1,1:end))
+stairs(time_main(1,1:end),power_main(1,1:end))
 xlim([time_main(1,1), time_main(1,end)])
 
 grid on
@@ -85,7 +85,7 @@ xtickformat('dd.MM.yyyy HH:mm:ss')
 power_diff = power_main - power_plant;
 
 subplot(3,1,3)
-plot(time_main(1,1:end),power_diff(1,1:end))
+stairs(time_main(1,1:end),power_diff(1,1:end))
 xlim([time_main(1,1), time_main(1,end)])
 
 grid on
