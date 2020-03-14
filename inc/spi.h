@@ -37,10 +37,9 @@ extern SPI_HandleTypeDef hspi1;
 /* USER CODE END Private defines */
 
 void spi1_init(void);
-
-/* USER CODE BEGIN Prototypes */
-
-/* USER CODE END Prototypes */
+void spi_transmit(uint8_t *pData, uint32_t size);
+void spi_transmit_receive(uint8_t *outp, uint8_t *inp, int count);
+void spi_receive( uint8_t *inp, int count);
 
 #ifdef __cplusplus
 }
