@@ -3,6 +3,7 @@
 #include "stm32f0xx_it.h"
 #include "usart.h"
 #include "flash.h"
+#include "rtc.h"
 
 uint16_t Log2n(uint16_t n) {
 	return (n > 1) ? 1 + Log2n(n / 2) : 0;
@@ -128,7 +129,27 @@ void check_cmd_frame() {
 				memcpy(usart6_ack_frame.data, &uuid, sizeof(uuid));
 				data_size = sizeof(uuid);
 				break;
-			default:
+			case CMD_SET_RTC:
+				NOP
+				uint32_t TR = 0, DR = 0;
+				RTC_DISABLE_WP
+				;
+				RTC_INIT_WAIT
+;				TR = usart6_cmd_frame.data[0].uint32_data;
+				DR = usart6_cmd_frame.data[1].uint32_data;
+				RTC->TR = (uint32_t)(TR & RTC_TR_RESERVED_MASK);
+				RTC->DR = (uint32_t)(DR & RTC_DR_RESERVED_MASK);
+				RTC->ISR &= (uint32_t)~RTC_ISR_INIT;
+				RTC_ENABLE_WP;
+				break;
+				case CMD_GET_UNIX_TIME:
+				RTC_GetTime(RTC_FORMAT_BIN, &sm_time);
+				RTC_GetDate(RTC_FORMAT_BIN, &sm_date);
+				usart6_ack_frame.data[0].uint32_data = RTC_ToEpoch(&sm_time,
+						&sm_date);
+				data_size = 4;
+				break;
+				default:
 				usart6_ack_frame.ack = CMD_NACK;
 				NOP
 				NOP

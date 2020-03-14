@@ -103,36 +103,116 @@ void HAL_SPI_MspDeInit(SPI_HandleTypeDef* spiHandle) {
 	}
 }
 
-void spi_transmit(uint8_t *pData, uint32_t size) {
+void spi_transmit(uint8_t *outpp, uint32_t count) {
 
-	while (size--) {
-		*(volatile uint8_t *) &SPI1->DR = *pData++;
-		while ((SPI1->SR & (SPI_SR_TXE)) != SPI_SR_TXE)
-			;
-	}
+	uint8_t *outp = outpp;
 
-}
-
-void spi_transmit_receive(uint8_t *outp, uint8_t *inp, int count) {
-	while (count--) {
+	while (count) {
 		while (!(SPI1->SR & SPI_SR_TXE))
 			;
-		*(volatile uint8_t *) &SPI1->DR = *outp++;
-		while (!(SPI1->SR & SPI_SR_RXNE))
-			;
-		*inp++ = *(volatile uint8_t *) &SPI1->DR;
+		if (count > 1U) {
+			SPI1->DR = *((uint16_t *) outp);
+			outp += sizeof(uint16_t);
+			count -= 2U;
+		} else {
+			*((__IO uint8_t *) &SPI1->DR) = (*outp++);
+			count--;
+		}
+
+
 	}
+
+	/* Check the end of the transaction */
+	if (SPI_EndRxTxTransaction(&hspi1, 50, 0) != HAL_OK) {
+		NOP
+	}
+
+	/* Clear overrun flag in 2 Lines communication mode because received is not read */
+	if (&hspi1.Init.Direction == SPI_DIRECTION_2LINES) {
+		__HAL_SPI_CLEAR_OVRFLAG(&hspi1);
+	}
+
+
 }
 
-void spi_receive(uint8_t *inp, int count) {
-	while (count--) {
+void spi_transmit_receive(uint8_t *outpp, uint8_t *inpp, uint32_t count) {
+
+	uint8_t *outp = outpp;
+	uint8_t *inp = inpp;
+
+	if ((count > 1U)) {
+		/* set fiforxthreshold according the reception data length: 16bit */
+		SPI1->CR2 &= ~SPI_RXFIFO_THRESHOLD;
+	} else {
+		/* set fiforxthreshold according the reception data length: 8bit */
+		SPI1->CR2 |= SPI_RXFIFO_THRESHOLD;
+	}
+
+	while (count) {
 		while (!(SPI1->SR & SPI_SR_TXE))
 			;
-		*(volatile uint8_t *) &SPI1->DR = 0;
+		if (count > 1U) {
+			SPI1->DR = *((uint16_t *) outp);
+			outp += sizeof(uint16_t);
+
+		} else {
+			*(__IO uint8_t *) &SPI1->DR = (*outp++);
+
+		}
 		while (!(SPI1->SR & SPI_SR_RXNE))
 			;
-		*inp++ = *(volatile uint8_t *) &SPI1->DR;
+		if (count > 1U) {
+			*((uint16_t *) inp) = SPI1->DR;
+			inp += sizeof(uint16_t);
+			count -= 2U;
+			if (count <= 1U) {
+				/* set fiforxthresold before to switch on 8 bit data size */
+				SPI1->CR2 |= SPI_RXFIFO_THRESHOLD;
+
+			}
+		} else {
+			(*(uint8_t *) inp++) = *(__IO uint8_t *) &SPI1->DR;
+			count--;
+		}
 	}
+
 }
 
+void spi_receive(uint8_t *inpp, uint32_t count) {
 
+	uint8_t *inp = inpp;
+
+	if ((count > 1U)) {
+		/* set fiforxthreshold according the reception data length: 16bit */
+		SPI1->CR2 &= ~SPI_RXFIFO_THRESHOLD;
+	} else {
+		/* set fiforxthreshold according the reception data length: 8bit */
+		SPI1->CR2 |= SPI_RXFIFO_THRESHOLD;
+	}
+
+	while (count) {
+		while (!(SPI1->SR & SPI_SR_TXE))
+			;
+		if (count > 1U) {
+			SPI1->DR = *((uint16_t *) 0);
+		} else {
+			*(__IO uint8_t *) &SPI1->DR = 0;
+
+		}
+		while (!(SPI1->SR & SPI_SR_RXNE))
+			;
+		if (count > 1U) {
+			*((uint16_t *) inp) = SPI1->DR;
+			inp += sizeof(uint16_t);
+			count -= 2U;
+			if (count <= 1U) {
+				/* set fiforxthresold before to switch on 8 bit data size */
+				SPI1->CR2 |= SPI_RXFIFO_THRESHOLD;
+
+			}
+		} else {
+			(*(uint8_t *) inp++) = *(__IO uint8_t *) &SPI1->DR;
+			count--;
+		}
+	}
+}

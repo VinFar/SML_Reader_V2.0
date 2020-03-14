@@ -6,6 +6,7 @@
 #include "eeprom.h"
 #include "string.h"
 #include "functions.h"
+#include <time.h>
 
 #include "FreeRTOS.h"
 #include "task.h"
@@ -19,7 +20,7 @@
 #include "defines.h"
 #include "comp.h"
 #include "dac.h"
-
+#include "rtc.h"
 /* Priorities at which the tasks are created.  The event semaphore task is
  given the maximum priority of ( configMAX_PRIORITIES - 1 ) to ensure it runs as
  soon as the semaphore is given. */
@@ -89,6 +90,9 @@ uuid_t uuid = { { ((uint32_t*) UUID_BASE_ADDRESS),
 		(((uint32_t*) UUID_BASE_ADDRESS + 1)), ((uint32_t*) (UUID_BASE_ADDRESS
 				+ 2)) } };
 
+time_t rtc_time;
+struct tm t;
+
 int main(void) {
 
 	prvSetupHardware();
@@ -98,105 +102,20 @@ int main(void) {
 //	flash_bulkErase();
 	flags.gateway = 1;
 
-	/*
-	 * in order to find the last page that was written before system reset,
-	 * we have to search the entire flah for a non 0xFF page:
-	 * 1. Read page n and search for delimiters (137,78) with and distance of 16 bytes
-	 * 2. this is the last page that was written
-	 */
-	uint32_t flash_address = 0;
-	for (uint32_t i = 0; i < W25N_MAX_PAGE_MAIN; i++, flash_address +=
-	W25N_MAX_CLOUMN) {
-		uint8_t first_byte[1] = { 0 };
-		flash_read_data(flash_address, first_byte, 1);
-		if (first_byte[0] != BEGIN_DELIMITER) {
-			/*
-			 * this may be the first page that is empty.
-			 * We have to check if the previous page was fully written
-			 */
-			if (flash_address == 0) {
-				flash_current_address_main_sml = 0;
-				break;
-			}
-			flash_address -= W25N_MAX_CLOUMN;
-			smartmeter_flash_data_t flash_data = { 0 };
-			for (uint32_t j = 0;
-					j < (W25N_MAX_CLOUMN / sizeof(smartmeter_flash_data_t));
-					j++) {
-				flash_read_data(
-						flash_address + j * sizeof(smartmeter_flash_data_t),
-						&flash_data, sizeof(flash_data));
+	RTC_GetTime(RTC_Format_BIN, &sm_time);
+	RTC_GetDate(RTC_Format_BIN, &sm_date);
 
-				if (flash_data.begin != BEGIN_DELIMITER
-						|| flash_data.delimiter != END_DELIMITER) {
-					/*
-					 * this means that the page was not fully written and is corrupted,
-					 * so delete it and begin with this page
-					 */
-//					flash_blockErase(flash_address / W25N_MAX_CLOUMN);
-					flash_current_address_main_sml = flash_address;
-					break;
-				}
-			}
-			/*
-			 * the page was checked and is valid, so the following page is the correct page for writing
-			 */
-			flash_current_address_main_sml = flash_address + W25N_MAX_CLOUMN;
-			break;
-		}
-	}
+	flash_address_get_main();
+	flash_address_get_plant();
 
-	flash_address = W25N_START_ADDRESS_PLANT;
-	for (uint32_t i = W25N_START_PAGE_PLANT; i < W25N_MAX_PAGE_PLANT;
-			i++, flash_address +=
-			W25N_MAX_CLOUMN) {
-		uint8_t first_byte[2] = { 0 };
-		flash_read_data(flash_address, first_byte, 1);
-		if (first_byte[0] != BEGIN_DELIMITER) {
-			/*
-			 * this may be the first page that is empty.
-			 * We have to check if the previous page was fully written
-			 */
-			flash_address -= W25N_MAX_CLOUMN;
-			smartmeter_flash_data_t flash_data = { 0 };
-			for (uint32_t j = 0;
-					j < (W25N_MAX_CLOUMN / sizeof(smartmeter_flash_data_t));
-					j++) {
-				flash_read_data(
-						flash_address + j * sizeof(smartmeter_flash_data_t),
-						&flash_data, sizeof(flash_data));
-
-				if (flash_data.begin != BEGIN_DELIMITER
-						|| flash_data.delimiter != END_DELIMITER) {
-					/*
-					 * this means that the page was not fully written and is corrupted,
-					 * so delete it and begin with this page
-					 */
-//					flash_blockErase(flash_address / W25N_MAX_CLOUMN);
-					flash_current_address_plant_sml = flash_address;
-					break;
-				}
-			}
-			/*
-			 * the page was checked and is valid, so the following page is the correct page for writing
-			 */
-			flash_current_address_plant_sml = flash_address + W25N_MAX_CLOUMN;
-			break;
-		}
-	}
-
-	uint32_t idx = 0;
-	uint8_t tx_done = 0;
 	while (1) {
 
-		idx = 0;
-		tx_done = 1;
 		if (flags.new_plant_sml_packet) {
 			flags.new_plant_sml_packet = 0;
 
 			if (sml_plant_raw_data_idx > sizeof(sml_plant_raw_data)
 					|| sml_plant_raw_data_idx < 200) {
-				LED_ERROR_ON;
+
 				error_counter++;
 				sml_plant_raw_data_idx = 0;
 				if (error_counter > 10) {
@@ -213,7 +132,7 @@ int main(void) {
 										- 1];
 
 				if (crc_check != crc_calc) {
-					LED_ERROR_ON;
+
 					error_counter++;
 					sml_plant_raw_data_idx = 0;
 
@@ -280,73 +199,61 @@ int main(void) {
 
 						}
 
-						needle[0] = 0x07;
-						needle[1] = 0x01;
-						needle[2] = 0x00;
-						needle[3] = 0x62;
-						needle[4] = 0x0A;
-						needle[5] = 0xff;
-						needle[6] = 0xff;
+						/*
+						 * at this point all data from the smart meter was written
+						 * to the struct an we can copy it into the array
+						 * and increment the idx
+						 */
+						LED_ERROR2_TOGGLE;
+						if (old_plant_power != sm_plant_current_data.power) {
+							old_plant_power = sm_plant_current_data.power;
 
-						if ((needle_ptr = (unsigned char*) memmem(
-								sml_plant_raw_data, sizeof(sml_plant_raw_data),
-								needle, 7)) == NULL) {
-							continue;
-						} else {
-							error_counter = 0;
-							sm_plant_current_data.uptime = ((needle_ptr[11]
-									<< 24) + (needle_ptr[12] << 16)
-									+ (needle_ptr[13] << 8) + needle_ptr[14]);
-							memset(sml_plant_raw_data, 0,
-									sizeof(sml_plant_raw_data));
+							RTC_GetTime(RTC_FORMAT_BIN, &sm_time);
+							RTC_GetDate(RTC_FORMAT_BIN, &sm_date);
+							sm_plant_current_data.uptime = RTC_ToEpoch(&sm_time,
+									&sm_date);
+
+							sm_flash_plant_cache_data[sm_idx_for_plant_cache_data].data =
+									sm_plant_current_data;
+							sm_flash_plant_cache_data[sm_idx_for_plant_cache_data].begin =
+							BEGIN_DELIMITER;
+							sm_flash_plant_cache_data[sm_idx_for_plant_cache_data].delimiter =
+							END_DELIMITER;
+
+							sm_idx_for_plant_cache_data++;
+
 							/*
-							 * at this point all data from the smart meter was written
-							 * to the struct an we can copy it into the array
-							 * and increment the idx
+							 * if the cache is full, write it to the flash
 							 */
-							LED_ERROR_TOGGLE;
-							if (old_plant_power == old_plant_power) {
-								old_plant_power = sm_plant_current_data.power;
-								sm_flash_plant_cache_data[sm_idx_for_plant_cache_data].data =
-										sm_plant_current_data;
-								sm_flash_plant_cache_data[sm_idx_for_plant_cache_data].begin =
-								BEGIN_DELIMITER;
-								sm_flash_plant_cache_data[sm_idx_for_plant_cache_data].delimiter =
-								END_DELIMITER;
-
-								sm_idx_for_plant_cache_data++;
-
+							if (sm_idx_for_plant_cache_data
+									> ((W25N_MAX_CLOUMN
+											/ sizeof(smartmeter_flash_data_t))
+											- 1)) {
 								/*
-								 * if the cache is full, write it to the flash
+								 * cache is full, so write it to the flash
+								 * init the cache with 0 and set the correct packet ctr
 								 */
-								if (sm_idx_for_plant_cache_data
-										> ((W25N_MAX_CLOUMN
-												/ sizeof(smartmeter_flash_data_t))
-												- 1)) {
-									/*
-									 * cache is full, so write it to the flash
-									 * init the cache with 0 and set the correct packet ctr
-									 */
-									LED_OK_TOGGLE;
-									flash_write_data(
-											flash_current_address_plant_sml,
-											sm_flash_plant_cache_data,
-											sizeof(sm_flash_plant_cache_data));
-									flash_current_address_plant_sml +=
-									W25N_MAX_CLOUMN;
-									sm_idx_for_plant_cache_data = 0;
-									if (flash_current_address_plant_sml
-											> W25N_MAX_ADDRESS_PLANT) {
-										/*
-										 * if we reached the end of the flash memory,
-										 * start at the beginning again.
-										 */
-										flash_current_address_plant_sml = 0;
-									}
+								LED_STATUS_TOGGLE;
 
+								flash_write_data(
+										flash_current_address_plant_sml,
+										sm_flash_plant_cache_data,
+										sizeof(sm_flash_plant_cache_data));
+								flash_current_address_plant_sml +=
+								W25N_MAX_CLOUMN;
+								sm_idx_for_plant_cache_data = 0;
+								if (flash_current_address_plant_sml
+										> W25N_MAX_ADDRESS_PLANT) {
+									/*
+									 * if we reached the end of the flash memory,
+									 * start at the beginning again.
+									 */
+									flash_current_address_plant_sml = 0;
 								}
+
 							}
 						}
+
 					}
 				}
 			}
@@ -355,11 +262,11 @@ int main(void) {
 
 		if (flags.new_main_sml_packet) {
 			flags.new_main_sml_packet = 0;
-			tx_done = 0;
+
 
 			if (sml_main_raw_data_idx > sizeof(sml_main_raw_data)
 					|| sml_main_raw_data_idx < 200) {
-				LED_ERROR_ON;
+
 				error_counter++;
 				sml_main_raw_data_idx = 0;
 				if (error_counter > 10) {
@@ -375,7 +282,7 @@ int main(void) {
 								+ (uint16_t) sml_main_raw_data[sml_main_raw_data_idx
 										- 1];
 
-				if (crc_check != crc_calc) {
+				if (crc_check == crc_calc) {
 					error_counter++;
 
 					sml_main_raw_data_idx = 0;
@@ -462,82 +369,65 @@ int main(void) {
 
 						}
 
-						needle[0] = 0x07;
-						needle[1] = 0x01;
-						needle[2] = 0x00;
-						needle[3] = 0x62;
-						needle[4] = 0x0A;
-						needle[5] = 0xff;
-						needle[6] = 0xff;
+						/*
+						 * at this point all data from the smart meter was written
+						 * to the struct an we can copy it into the array
+						 * and increment the idx
+						 */
+						LED_ERROR_TOGGLE;
 
-						if ((needle_ptr = (unsigned char*) memmem(
-								sml_main_raw_data, sizeof(sml_main_raw_data),
-								needle, 7)) == NULL) {
-							continue;
-						} else {
-							error_counter = 0;
-							sm_main_current_data.uptime =
-									((needle_ptr[11] << 24)
-											+ (needle_ptr[12] << 16)
-											+ (needle_ptr[13] << 8)
-											+ needle_ptr[14]);
-							memset(sml_main_raw_data, 0,
-									sizeof(sml_main_raw_data));
+						if (old_main_power != sm_main_current_data.power) {
+							old_main_power = sm_main_current_data.power;
 							/*
-							 * at this point all data from the smart meter was written
-							 * to the struct an we can copy it into the array
-							 * and increment the idx
+							 * we only need to store new data if the power
+							 * has changed, otherwise we would need more space
+							 * than needed
 							 */
-							LED_ERROR_TOGGLE;
+							RTC_GetTime(RTC_FORMAT_BIN, &sm_time);
+							RTC_GetDate(RTC_FORMAT_BIN, &sm_date);
+							sm_main_current_data.uptime = RTC_ToEpoch(&sm_time,
+									&sm_date);
 
-							if (old_main_power == old_main_power) {
-								old_main_power = sm_main_current_data.power;
+							sm_flash_main_cache_data[sm_idx_for_main_cache_data].data =
+									sm_main_current_data;
+							sm_flash_main_cache_data[sm_idx_for_main_cache_data].begin =
+							BEGIN_DELIMITER;
+							sm_flash_main_cache_data[sm_idx_for_main_cache_data].delimiter =
+							END_DELIMITER;
+
+							sm_idx_for_main_cache_data++;
+
+							/*
+							 * if the cache is full, write it to the flash
+							 */
+							if (sm_idx_for_main_cache_data
+									> ((W25N_MAX_CLOUMN
+											/ sizeof(smartmeter_flash_data_t))
+											- 1)) {
 								/*
-								 * we only need to store new data if the power
-								 * has changed, otherwise we would need more space
-								 * than needed
+								 * cache is full, so write it to the flash
+								 * init the cache with 0 and set the correct packet ctr
 								 */
-								sm_flash_main_cache_data[sm_idx_for_main_cache_data].data =
-										sm_main_current_data;
-								sm_flash_main_cache_data[sm_idx_for_main_cache_data].begin =
-								BEGIN_DELIMITER;
-								sm_flash_main_cache_data[sm_idx_for_main_cache_data].delimiter =
-								END_DELIMITER;
+								LED_STATUS_TOGGLE;
+								flash_write_data(flash_current_address_main_sml,
+										sm_flash_main_cache_data,
+										sizeof(sm_flash_main_cache_data));
+								flash_current_address_main_sml +=
+								W25N_MAX_CLOUMN;
+								sm_idx_for_main_cache_data = 0;
 
-								sm_idx_for_main_cache_data++;
-
-								/*
-								 * if the cache is full, write it to the flash
-								 */
-								if (sm_idx_for_main_cache_data
-										> ((W25N_MAX_CLOUMN
-												/ sizeof(smartmeter_flash_data_t))
-												- 1)) {
+								if (flash_current_address_main_sml
+										> W25N_MAX_ADDRESS_MAIN) {
 									/*
-									 * cache is full, so write it to the flash
-									 * init the cache with 0 and set the correct packet ctr
+									 * if we reached the end of the flash memory,
+									 * start at the beginning again.
 									 */
-									LED_OK_TOGGLE;
-									flash_write_data(
-											flash_current_address_main_sml,
-											sm_flash_main_cache_data,
-											sizeof(sm_flash_main_cache_data));
-									flash_current_address_main_sml +=
-									W25N_MAX_CLOUMN;
-									sm_idx_for_main_cache_data = 0;
-
-									if (flash_current_address_main_sml
-											> W25N_MAX_ADDRESS_MAIN) {
-										/*
-										 * if we reached the end of the flash memory,
-										 * start at the beginning again.
-										 */
-										flash_current_address_main_sml = 0;
-									}
-
+									flash_current_address_main_sml = 0;
 								}
+
 							}
 						}
+
 					}
 				}
 			}
@@ -591,6 +481,8 @@ static void prvSetupHardware(void) {
 	comp_init();
 
 	crc_init();
+
+	rtc_init();
 
 	sml_tx_data[0] = 0x1B;
 	sml_tx_data[1] = 0x1B;
@@ -1003,8 +895,9 @@ void SystemClock_Config(void) {
 	/** Initializes the CPU, AHB and APB busses clocks
 	 */
 	RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI
-			| RCC_OSCILLATORTYPE_HSI14;
+			| RCC_OSCILLATORTYPE_HSI14 | RCC_OSCILLATORTYPE_LSE;
 	RCC_OscInitStruct.HSIState = RCC_HSI_ON;
+	RCC_OscInitStruct.LSEState = RCC_LSE_ON;
 	RCC_OscInitStruct.HSI14State = RCC_HSI14_ON;
 	RCC_OscInitStruct.HSICalibrationValue = RCC_HSICALIBRATION_DEFAULT;
 	RCC_OscInitStruct.HSI14CalibrationValue = 16;
@@ -1027,9 +920,10 @@ void SystemClock_Config(void) {
 		Error_Handler();
 	}
 	PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_USART1
-			| RCC_PERIPHCLK_I2C1;
+			| RCC_PERIPHCLK_I2C1 | RCC_PERIPHCLK_RTC;
 	PeriphClkInit.Usart1ClockSelection = RCC_USART1CLKSOURCE_PCLK1;
 	PeriphClkInit.I2c1ClockSelection = RCC_I2C1CLKSOURCE_HSI;
+	PeriphClkInit.RTCClockSelection = RCC_RTCCLKSOURCE_LSE;
 	if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInit) != HAL_OK) {
 		Error_Handler();
 	}
