@@ -4,6 +4,33 @@
 #include "usart.h"
 #include "flash.h"
 #include "rtc.h"
+#include "crc.h"
+#include "gpio.h"
+
+int32_t old_main_power = 0;
+int32_t old_plant_power = 0;
+
+/*
+ *	sm_current_data is the current valid data of the smart meter
+ */
+smartmeter_data_t sm_main_current_data;
+smartmeter_data_t sm_plant_current_data;
+
+/*
+ * sm_flash_cache_data is a array of smartmter_data_t surrounded by two delimiters
+ * this struct is used to cache the smart meter data in order to just have one
+ * write acces to the flash per page.
+ * The entire struct is written to the flash when it is full.
+ */
+smartmeter_flash_data_t sm_flash_main_cache_data[W25N_MAX_CLOUMN
+		/ sizeof(smartmeter_flash_data_t)];
+smartmeter_flash_data_t sm_flash_plant_cache_data[W25N_MAX_CLOUMN
+		/ sizeof(smartmeter_flash_data_t)];
+
+uint8_t sm_idx_for_main_cache_data = 0;
+uint8_t sm_idx_for_plant_cache_data = 0;
+uint32_t flash_current_address_main_sml = 0;
+uint32_t flash_current_address_plant_sml = W25N_START_ADDRESS_PLANT;
 
 uint16_t Log2n(uint16_t n) {
 	return (n > 1) ? 1 + Log2n(n / 2) : 0;
@@ -178,3 +205,298 @@ void check_cmd_frame() {
 	}
 }
 
+void sm_plant_extract_data() {
+
+	uint8_t *needle_ptr;
+	uint8_t needle[20] = { 0 };
+
+	if (sml_plant_raw_data_idx > sizeof(sml_plant_raw_data)
+			|| sml_plant_raw_data_idx < 200) {
+
+		sml_plant_raw_data_idx = 0;
+	} else {
+		uint16_t crc_calc = ccrc16((char*) sml_plant_raw_data,
+				sml_plant_raw_data_idx - 2);
+		uint16_t crc_check =
+				((uint16_t) sml_plant_raw_data[sml_plant_raw_data_idx - 2] << 8)
+						+ (uint16_t) sml_plant_raw_data[sml_plant_raw_data_idx
+								- 1];
+
+		if (crc_check != crc_calc) {
+
+			sml_plant_raw_data_idx = 0;
+
+		} else {
+
+			sml_plant_raw_data_idx = 0;
+
+			needle[0] = 0x07;
+			needle[1] = 0x01;
+			needle[2] = 0x00;
+			needle[3] = 0x10;
+			needle[4] = 0x07;
+			needle[5] = 0x00;
+			needle[6] = 0xff;	//Set String for Powervalue key
+
+			if ((needle_ptr = (uint8_t*) memmem(sml_plant_raw_data,
+					sizeof(sml_plant_raw_data), needle, 7)) == NULL) {
+				//No Active Power String detected, ERror
+
+				return;
+			} else {
+				float consumption_tmp = 0;
+				int32_t tmp_value = (needle_ptr[14] << 24)
+						+ (needle_ptr[15] << 16) + (needle_ptr[16] << 8)
+						+ (needle_ptr[18]);	//Extract and calculate Powervalue
+				sm_plant_current_data.power = tmp_value / 10;
+				/*
+				 * powervalue_buying_from_grid is only for testing and represent the
+				 * attached consumers, if they actually connected!
+				 * This value means, that this power is used by the connected consumers so we have to add it
+				 * to the current power value
+				 */
+				//						powervalue_current += powervalue_used_by_consumers;
+				/*
+				 * calculate a millisecond timer without the need of a 1khz interrupt by using
+				 * the cnt regiser of Timer 6
+				 */
+
+				/*
+				 * end of mean value calculation
+				 */
+
+				needle[0] = 0x07;
+				needle[1] = 0x01;
+				needle[2] = 0x00;
+				needle[3] = 0x02;
+				needle[4] = 0x08;
+				needle[5] = 0x01;
+				needle[6] = 0xff;	//Set String for consumption fare 1
+
+				if ((needle_ptr = (unsigned char*) memmem(sml_plant_raw_data,
+						sizeof(sml_plant_raw_data), needle, 7)) == NULL) {
+					return;
+				} else {
+
+					sm_plant_current_data.meter_delivery = ((needle_ptr[15]
+							<< 24) + (needle_ptr[16] << 16)
+							+ (needle_ptr[17] << 8) + (needle_ptr[18])) / 10000;
+
+				}
+
+				/*
+				 * at this point all data from the smart meter was written
+				 * to the struct an we can copy it into the array
+				 * and increment the idx
+				 */
+				LED_ERROR2_TOGGLE;
+				if (old_plant_power != sm_plant_current_data.power) {
+					old_plant_power = sm_plant_current_data.power;
+
+					RTC_GetTime(RTC_FORMAT_BIN, &sm_time);
+					RTC_GetDate(RTC_FORMAT_BIN, &sm_date);
+					sm_plant_current_data.uptime = RTC_ToEpoch(&sm_time,
+							&sm_date);
+
+					sm_flash_plant_cache_data[sm_idx_for_plant_cache_data].data =
+							sm_plant_current_data;
+					sm_flash_plant_cache_data[sm_idx_for_plant_cache_data].begin =
+					BEGIN_DELIMITER;
+					sm_flash_plant_cache_data[sm_idx_for_plant_cache_data].delimiter =
+					END_DELIMITER;
+
+					sm_idx_for_plant_cache_data++;
+
+					/*
+					 * if the cache is full, write it to the flash
+					 */
+					if (sm_idx_for_plant_cache_data
+							> ((W25N_MAX_CLOUMN
+									/ sizeof(smartmeter_flash_data_t)) - 1)) {
+						/*
+						 * cache is full, so write it to the flash
+						 * init the cache with 0 and set the correct packet ctr
+						 */
+						LED_STATUS_TOGGLE;
+
+						flash_write_data(flash_current_address_plant_sml,
+								sm_flash_plant_cache_data,
+								sizeof(sm_flash_plant_cache_data));
+						flash_current_address_plant_sml +=
+						W25N_MAX_CLOUMN;
+						sm_idx_for_plant_cache_data = 0;
+						if (flash_current_address_plant_sml
+								> W25N_MAX_ADDRESS_PLANT) {
+							/*
+							 * if we reached the end of the flash memory,
+							 * start at the beginning again.
+							 */
+							flash_current_address_plant_sml = 0;
+						}
+
+					}
+				}
+
+			}
+		}
+	}
+
+}
+
+void sm_main_extract_data() {
+
+	uint8_t *needle_ptr;
+	uint8_t needle[20] = { 0 };
+
+	if (sml_main_raw_data_idx > sizeof(sml_main_raw_data)
+			|| sml_main_raw_data_idx < 200) {
+
+		sml_main_raw_data_idx = 0;
+
+	} else {
+		uint16_t crc_calc = ccrc16((char*) sml_main_raw_data,
+				sml_main_raw_data_idx - 2);
+		uint16_t crc_check = ((uint16_t) sml_main_raw_data[sml_main_raw_data_idx
+				- 2] << 8)
+				+ (uint16_t) sml_main_raw_data[sml_main_raw_data_idx - 1];
+
+		if (crc_check == crc_calc) {
+
+			sml_main_raw_data_idx = 0;
+
+			needle[0] = 0x07;
+			needle[1] = 0x01;
+			needle[2] = 0x00;
+			needle[3] = 0x10;
+			needle[4] = 0x07;
+			needle[5] = 0x00;
+			needle[6] = 0xff;	//Set String for Powervalue key
+
+			if ((needle_ptr = (uint8_t*) memmem(sml_main_raw_data,
+					sizeof(sml_main_raw_data), needle, 7)) == NULL) {
+				//No Active Power String detected, ERror
+
+				return;
+			} else {
+				int32_t tmp_value = (needle_ptr[14] << 24)
+						+ (needle_ptr[15] << 16) + (needle_ptr[16] << 8)
+						+ (needle_ptr[18]);	//Extract and calculate Powervalue
+				sm_main_current_data.power = tmp_value / 10;
+				/*
+				 * powervalue_buying_from_grid is only for testing and represent the
+				 * attached consumers, if they actually connected!
+				 * This value means, that this power is used by the connected consumers so we have to add it
+				 * to the current power value
+				 */
+				//						powervalue_current += powervalue_used_by_consumers;
+				/*
+				 * calculate a millisecond timer without the need of a 1khz interrupt by using
+				 * the cnt regiser of Timer 6
+				 */
+
+				/*
+				 * end of mean value calculation
+				 */
+				needle[0] = 0x07;
+				needle[1] = 0x01;
+				needle[2] = 0x00;
+				needle[3] = 0x01;
+				needle[4] = 0x08;
+				needle[5] = 0x01;
+				needle[6] = 0xff;	//Set String for consumption fare 1
+
+				if ((needle_ptr = (unsigned char*) memmem(sml_main_raw_data,
+						sizeof(sml_main_raw_data), needle, 7)) == NULL) {
+					return;
+				} else {
+
+					sm_main_current_data.meter_purchase =
+							((needle_ptr[15] << 24) + (needle_ptr[16] << 16)
+									+ (needle_ptr[17] << 8) + (needle_ptr[18]))
+									/ 10000;
+
+				}
+
+				needle[0] = 0x07;
+				needle[1] = 0x01;
+				needle[2] = 0x00;
+				needle[3] = 0x02;
+				needle[4] = 0x08;
+				needle[5] = 0x01;
+				needle[6] = 0xff;	//Set String for consumption fare 1
+
+				if ((needle_ptr = (unsigned char*) memmem(sml_main_raw_data,
+						sizeof(sml_main_raw_data), needle, 7)) == NULL) {
+					return;
+				} else {
+
+					sm_main_current_data.meter_delivery =
+							((needle_ptr[15] << 24) + (needle_ptr[16] << 16)
+									+ (needle_ptr[17] << 8) + (needle_ptr[18]))
+									/ 10000;
+
+				}
+
+				/*
+				 * at this point all data from the smart meter was written
+				 * to the struct an we can copy it into the array
+				 * and increment the idx
+				 */
+				LED_ERROR_TOGGLE;
+
+				if (old_main_power != sm_main_current_data.power) {
+					old_main_power = sm_main_current_data.power;
+					/*
+					 * we only need to store new data if the power
+					 * has changed, otherwise we would need more space
+					 * than needed
+					 */
+					RTC_GetTime(RTC_FORMAT_BIN, &sm_time);
+					RTC_GetDate(RTC_FORMAT_BIN, &sm_date);
+					sm_main_current_data.uptime = RTC_ToEpoch(&sm_time,
+							&sm_date);
+
+					sm_flash_main_cache_data[sm_idx_for_main_cache_data].data =
+							sm_main_current_data;
+					sm_flash_main_cache_data[sm_idx_for_main_cache_data].begin =
+					BEGIN_DELIMITER;
+					sm_flash_main_cache_data[sm_idx_for_main_cache_data].delimiter =
+					END_DELIMITER;
+
+					sm_idx_for_main_cache_data++;
+
+					/*
+					 * if the cache is full, write it to the flash
+					 */
+					if (sm_idx_for_main_cache_data
+							> ((W25N_MAX_CLOUMN
+									/ sizeof(smartmeter_flash_data_t)) - 1)) {
+						/*
+						 * cache is full, so write it to the flash
+						 * init the cache with 0 and set the correct packet ctr
+						 */
+						LED_STATUS_TOGGLE;
+						flash_write_data(flash_current_address_main_sml,
+								sm_flash_main_cache_data,
+								sizeof(sm_flash_main_cache_data));
+						flash_current_address_main_sml +=
+						W25N_MAX_CLOUMN;
+						sm_idx_for_main_cache_data = 0;
+
+						if (flash_current_address_main_sml
+								> W25N_MAX_ADDRESS_MAIN) {
+							/*
+							 * if we reached the end of the flash memory,
+							 * start at the beginning again.
+							 */
+							flash_current_address_main_sml = 0;
+						}
+
+					}
+				}
+
+			}
+		}
+	}
+
+}

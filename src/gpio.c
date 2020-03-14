@@ -48,6 +48,18 @@ void gpio_init(void) {
 	GPIO_InitStruct.Alternate = GPIO_AF2_USART6;
 	HAL_GPIO_Init(USART6_RX_GPIO_Port, &GPIO_InitStruct);
 
+	/*
+	 * usart5 is temporarily used to gateway the data from the main unit
+	 * to the old system V1 to display it on the display placed in the
+	 * kitchen
+	 */
+	GPIO_InitStruct.Pin = GPIO_PIN_12;
+	GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
+	GPIO_InitStruct.Pull = GPIO_NOPULL;
+	GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
+	GPIO_InitStruct.Alternate = GPIO_AF2_USART5;
+	HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
+
 	GPIO_InitStruct.Pin = COMP1_INP_Pin;
 	GPIO_InitStruct.Mode = GPIO_MODE_ANALOG;
 	GPIO_InitStruct.Pull = GPIO_NOPULL;
@@ -92,11 +104,11 @@ void gpio_init(void) {
 	HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 	SPI_CS_FLASH_HIGH;
 
-	/*Configure GPIO pin : PtPin */
-	GPIO_InitStruct.Pin = NRF_IRQ_Pin;
-	GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
-	GPIO_InitStruct.Pull = GPIO_NOPULL;
-	HAL_GPIO_Init(NRF_IRQ_GPIO_Port, &GPIO_InitStruct);
+//	/*Configure GPIO pin : PtPin */
+//	GPIO_InitStruct.Pin = NRF_IRQ_Pin;
+//	GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+//	GPIO_InitStruct.Pull = GPIO_NOPULL;
+//	HAL_GPIO_Init(NRF_IRQ_GPIO_Port, &GPIO_InitStruct);
 
 	/*Configure GPIO pin : PtPin */
 	GPIO_InitStruct.Pin = SPI1_CS_NRF_Pin;

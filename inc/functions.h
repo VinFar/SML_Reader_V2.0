@@ -14,6 +14,9 @@
 uint16_t Log2n(uint16_t n);
 int16_t isPowerOfTwo(uint16_t n);
 int16_t findPosition(uint16_t n);
+void check_cmd_frame();
+void sm_main_extract_data();
+void sm_plant_extract_data();
 
 void check_cmd_struct(void *param);
 

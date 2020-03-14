@@ -37,7 +37,8 @@ void rtc_init() {
 	while ((RTC->ISR & RTC_ISR_RECALPF) == RTC_ISR_RECALPF)
 		;
 
-	RTC->CALR = RTC_CALR_CALP | 961;
+	RTC->CALR = RTC_CALR_CALP | 1;
+	RTC->CALR = RTC_CALR_CALM | 961;
 
 	RTC->WPR = 0xFE;
 	RTC->WPR = 0x64;

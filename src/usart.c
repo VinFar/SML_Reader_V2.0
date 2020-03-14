@@ -52,6 +52,25 @@ void usart3_init() {
 	return;
 }
 
+void usart5_init() {
+
+//	RCC_APB2PeriphClockCmd(RCC_APB2Periph_USART1, ENABLE);
+
+	/* (1) Oversampling by 16, 9600 baud */
+	/* (2) 8 data bit, 1 start bit, 1 stop bit, no parity */
+	__HAL_RCC_USART5_CLK_ENABLE()
+	;
+	USART5->BRR = SystemCoreClock / SMART_METER_BAUDRATE; /* (1) */
+
+	USART5->CR1 |= USART_CR1_TE; /* (2) */
+	USART5->RQR |= USART_RQR_RXFRQ;
+	USART5->CR1 |= USART_CR1_UE;
+
+	//Usart1 is not enabled here. it is enabled over menu by the user
+
+	return;
+}
+
 /*
  * usart6 is used to communicate with a host pc, in order
  * to receive the data from the flash
@@ -86,10 +105,9 @@ void usart6_send_data(uint8_t *ptr, uint32_t nbr) {
 
 void usart6_send_ack_frame(ack_frame_t *ack) {
 
-
 	uint32_t *crc = (uint32_t*) &((uint8_t*) ack)[ack->size - 4];
 
 //	*crc = crc32_calc((uint8_t*) ack, ack->size - 4);
 
-	usart6_send_data((uint8_t*)ack,ack->size);
+	usart6_send_data((uint8_t*) ack, ack->size);
 }

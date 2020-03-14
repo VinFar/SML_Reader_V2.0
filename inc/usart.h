@@ -76,6 +76,7 @@ enum commands{
 void usart1_init();
 void usart6_init();
 void usart3_init();
+void usart5_init();
 void usart6_send_data(uint8_t *ptr, uint32_t nbr);
 void usart6_send_ack_frame(ack_frame_t *ack);
 
