@@ -3,7 +3,8 @@ function [ret] = connect_smu()
 %device
  
 delete(instrfindall) % closes all serial ports
-
+% t = tcpip('192.168.178.59', 1000, 'NetworkRole', 'client')
+% t.Timeout=1;
 stm32=serial('COM3','BaudRate',1000000); %Konfiguriert Serial Port
 stm32.Timeout = 10;
 stm32.InputBufferSize = 3000;
