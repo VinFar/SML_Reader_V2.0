@@ -8,5 +8,4 @@ if(struct(2)~=70)
     ret = smu_set_RTC(serial);
     return
 end
-ret = struct(4:end-7);
 end
