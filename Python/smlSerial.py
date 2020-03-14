@@ -16,6 +16,11 @@ def __sml_twobytestodec(data):
     return ret
 
 
+def __sml_fourbytestodec(data):
+    ret = struct.unpack('<I', data)[0]
+    return ret
+
+
 def __receive_ack_struct(ser):
     timeout = 100
     i = 1
@@ -137,6 +142,25 @@ def __sml_check_connect(ser, tries=5):
     if ret[2] != 70:
         return 0
     return 1
+
+
+def smu_get_unix_time(ser):
+    struct = __sml_transfer(ser,9,0,0,0)
+    if(struct[2]!=70):
+        return smu_get_unix_time(ser)
+    return __sml_fourbytestodec((struct[3:7]))
+
+
+def smu_get_RTC_registers():
+
+    return
+
+def smu_set_RTC(ser):
+    reg = smu_get_RTC_registers()
+    struct =__sml_transfer(ser,8,0,0,uint32(reg))
+    if(struct[2]!=70):
+        smu_set_RTC(ser)
+        return
 
 
 def sml_connect():
