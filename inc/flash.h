@@ -192,4 +192,7 @@ int8_t flash_block_WIP();
 
 int8_t flash_check_status();
 
+int8_t flash_address_get_plant();
+int8_t flash_address_get_main();
+
 #endif /* FLASH_H_ */

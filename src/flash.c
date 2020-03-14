@@ -5,7 +5,7 @@
 
 void flash_send_data(uint8_t * buf, uint32_t len) {
 	SPI_CS_FLASH_LOW;
-	HAL_SPI_TransmitReceive(&hspi1, buf, buf, len, 50);
+	spi_transmit_receive(buf,buf,len);
 	SPI_CS_FLASH_HIGH;
 }
 
@@ -108,7 +108,7 @@ int8_t flash_ProgramExecute(uint32_t pageAdd) {
 }
 
 int8_t flash_write_data(uint32_t address, uint8_t *buf, uint32_t datalen) {
-	address+=W25N_START_OF_USER_PAGE*W25N_MAX_CLOUMN;
+	address += W25N_START_OF_USER_PAGE * W25N_MAX_CLOUMN;
 	/*
 	 * the first 11 pages are factory programmed and can't be written,
 	 * so step this this
@@ -123,8 +123,7 @@ int8_t flash_write_data(uint32_t address, uint8_t *buf, uint32_t datalen) {
 	 * These 12 bits are used later
 	 * Here we just need the upper 16 bits to address the page
 	 */
-	uint16_t
-	page = (uint16_t)(address >> 11);
+	uint16_t page = (uint16_t) (address >> 11);
 	address -= page * 2048;
 	uint16_t byte = (address & 0xfff);
 //	flash_blockErase(page);
@@ -143,21 +142,14 @@ int8_t flash_write_data(uint32_t address, uint8_t *buf, uint32_t datalen) {
 	cmdbuf_prog_exec[3] = (uint8_t) (page & 0xff);
 
 	SPI_CS_FLASH_LOW;
+	spi_transmit(cmdbuf_load_data,3);
+	spi_transmit(buf,datalen);
 
-	if (HAL_SPI_Transmit(&hspi1, cmdbuf_load_data, 3, 50) != HAL_OK) {
-		return -1;
-	}
-	if (HAL_SPI_Transmit(&hspi1, buf, datalen, 50) != HAL_OK) {
-		return -1;
-	}
 	SPI_CS_FLASH_HIGH;
 	for (int i = 0; i < 1000; i++)
 		;
 	SPI_CS_FLASH_LOW;
-
-	if (HAL_SPI_Transmit(&hspi1, cmdbuf_prog_exec, 4, 50) != HAL_OK) {
-		return -1;
-	}
+	spi_transmit(cmdbuf_prog_exec,4);
 
 	SPI_CS_FLASH_HIGH;
 
@@ -165,7 +157,7 @@ int8_t flash_write_data(uint32_t address, uint8_t *buf, uint32_t datalen) {
 }
 
 int8_t flash_read_data(uint32_t address, uint8_t *buf, uint32_t datalen) {
-	address+=W25N_START_OF_USER_PAGE*W25N_MAX_CLOUMN;
+	address += W25N_START_OF_USER_PAGE * W25N_MAX_CLOUMN;
 	/*
 	 * To read data from the flash, we first have to issue the flash
 	 * to load the page of the data into the internal buffer and
@@ -216,9 +208,7 @@ int8_t flash_read_data(uint32_t address, uint8_t *buf, uint32_t datalen) {
 	/*
 	 * transmit page address
 	 */
-	if (HAL_SPI_Transmit(&hspi1, cmdbuf_page_data_read, 4, 50) != HAL_OK) {
-		return -1;
-	}
+	spi_transmit(cmdbuf_page_data_read,4);
 	SPI_CS_FLASH_HIGH;
 	flash_block_WIP();
 	SPI_CS_FLASH_LOW;
@@ -226,12 +216,8 @@ int8_t flash_read_data(uint32_t address, uint8_t *buf, uint32_t datalen) {
 	/*
 	 * transmit byte address of the selected page
 	 */
-	if (HAL_SPI_Transmit(&hspi1, cmdbuf_read_data, 4, 50) != HAL_OK) {
-		return -1;
-	}
-	if (HAL_SPI_Receive(&hspi1, buf, datalen, 50) != HAL_OK) {
-		return -1;
-	}
+	spi_transmit(cmdbuf_read_data,4);
+	spi_receive(buf,datalen);
 
 	SPI_CS_FLASH_HIGH;
 
@@ -252,4 +238,95 @@ int8_t flash_block_WIP() {
 	while (flash_check_WIP())
 		;
 	return 0;
+}
+
+int8_t flash_address_get_plant() {
+	uint32_t flash_address = W25N_START_ADDRESS_PLANT;
+	for (uint32_t i = W25N_START_PAGE_PLANT; i < W25N_MAX_PAGE_PLANT;
+			i++, flash_address +=
+			W25N_MAX_CLOUMN) {
+		uint8_t first_byte[2] = { 0 };
+		flash_read_data(flash_address, first_byte, 1);
+		if (first_byte[0] != BEGIN_DELIMITER) {
+			/*
+			 * this may be the first page that is empty.
+			 * We have to check if the previous page was fully written
+			 */
+			flash_address -= W25N_MAX_CLOUMN;
+			smartmeter_flash_data_t flash_data = { 0 };
+			for (uint32_t j = 0;
+					j < (W25N_MAX_CLOUMN / sizeof(smartmeter_flash_data_t));
+					j++) {
+				flash_read_data(
+						flash_address + j * sizeof(smartmeter_flash_data_t),
+						&flash_data, sizeof(flash_data));
+
+				if (flash_data.begin != BEGIN_DELIMITER
+						|| flash_data.delimiter != END_DELIMITER) {
+					/*
+					 * this means that the page was not fully written and is corrupted,
+					 * so delete it and begin with this page
+					 */
+					//					flash_blockErase(flash_address / W25N_MAX_CLOUMN);
+					flash_current_address_plant_sml = flash_address;
+					break;
+				}
+			}
+			/*
+			 * the page was checked and is valid, so the following page is the correct page for writing
+			 */
+			flash_current_address_plant_sml = flash_address + W25N_MAX_CLOUMN;
+			break;
+		}
+	}
+}
+
+int8_t flash_address_get_main() {
+	/*
+	 * in order to find the last page that was written before system reset,
+	 * we have to search the entire flah for a non 0xFF page:
+	 * 1. Read page n and search for delimiters (137,78) with and distance of 16 bytes
+	 * 2. this is the last page that was written
+	 */
+	uint32_t flash_address = 0;
+	for (uint32_t i = 0; i < W25N_MAX_PAGE_MAIN; i++, flash_address +=
+	W25N_MAX_CLOUMN) {
+		uint8_t first_byte[1] = { 0 };
+		flash_read_data(flash_address, first_byte, 1);
+		if (first_byte[0] != BEGIN_DELIMITER) {
+			/*
+			 * this may be the first page that is empty.
+			 * We have to check if the previous page was fully written
+			 */
+			if (flash_address == 0) {
+				flash_current_address_main_sml = 0;
+				break;
+			}
+			flash_address -= W25N_MAX_CLOUMN;
+			smartmeter_flash_data_t flash_data = { 0 };
+			for (uint32_t j = 0;
+					j < (W25N_MAX_CLOUMN / sizeof(smartmeter_flash_data_t));
+					j++) {
+				flash_read_data(
+						flash_address + j * sizeof(smartmeter_flash_data_t),
+						&flash_data, sizeof(flash_data));
+
+				if (flash_data.begin != BEGIN_DELIMITER
+						|| flash_data.delimiter != END_DELIMITER) {
+					/*
+					 * this means that the page was not fully written and is corrupted,
+					 * so delete it and begin with this page
+					 */
+//					flash_blockErase(flash_address / W25N_MAX_CLOUMN);
+					flash_current_address_main_sml = flash_address;
+					break;
+				}
+			}
+			/*
+			 * the page was checked and is valid, so the following page is the correct page for writing
+			 */
+			flash_current_address_main_sml = flash_address + W25N_MAX_CLOUMN;
+			break;
+		}
+	}
 }
