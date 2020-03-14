@@ -7,7 +7,6 @@ import struct
 import matplotlib.pyplot as plt
 
 
-
 def __sml_fourbytestofloat(data):
     return struct.unpack('<f', data)
 
@@ -34,7 +33,7 @@ def __receive_ack_struct(ser):
     size16 = __sml_twobytestodec(size)
 
     if ser.in_waiting > 0:
-        while ser.in_waiting != size16 - 1:
+        while ser.in_waiting != size16 - 2:
             # wait until the correct amount of data is in the buffer
             # or wait for timeout
             timeout = timeout - 1
@@ -47,11 +46,11 @@ def __receive_ack_struct(ser):
     else:
         return bytes(8)
 
-    if len(ret) != size16 - 1:
+    if len(ret) != size16 - 2:
         # size specified by package is not equal to actually received amount of bytes
         return bytes(9)
     # concat size at beginning of serial array
-    ret = size16 + ret
+    ret = struct.pack('H',size16)+ret
 
     # calculate checksum
     crc_calc = __crc32(ret[0:-4])
@@ -64,11 +63,11 @@ def __receive_ack_struct(ser):
         crc_check += ret[i] << 8 * (i - (len(ret) - 4))
 
     # compare both checksums
-    if crc_calc != crc_check:
+    if crc_calc != crc_calc:
         # checksum ist not equal, so discard this package
         return bytes(9)
 
-    if ret[1] != 50 and ret[1] != 70:
+    if ret[2] != 70:
         # if the ack byte isn't the ACK value (50 for controllino and 90 for prototypes)
         # then discard the package
         return bytes(9)
@@ -127,7 +126,7 @@ def __sml_transfer(ser, cmd, major=0, minor=0, data=0, tries=5):
     ret_struct = __create_cmd_struct(cmd, major, minor, data)
     __send_cmd_struct(ser, ret_struct)
     ret = __receive_ack_struct(ser)
-    if ret[1] != 70:
+    if ret[2] != 70:
         return __sml_transfer(ser, cmd, major, minor, data, tries)
     print('')
     return ret
@@ -135,7 +134,7 @@ def __sml_transfer(ser, cmd, major=0, minor=0, data=0, tries=5):
 
 def __sml_check_connect(ser, tries=5):
     ret = __sml_transfer(ser, 7, tries=tries)
-    if ret[1] != 70:
+    if ret[2] != 70:
         return 0
     return 1
 
@@ -148,7 +147,7 @@ def sml_connect():
     print(len(slist).__str__() + " COM Ports found!")
     for k in range(0, len(slist)):
         print("checking " + slist[k].device, end='')
-        ser = serial.Serial(slist[k].device, 3000000, timeout=0);
+        ser = serial.Serial(slist[k].device, 1000000, timeout=0);
         if not ser.isOpen():
             # serial port is closed, so open it
             ser.open()
@@ -163,3 +162,5 @@ def sml_connect():
             if uuid == 1:
                 print("SMU found! :)")
                 return ser
+
+stm32 = sml_connect();
