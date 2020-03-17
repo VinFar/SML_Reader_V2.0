@@ -1,14 +1,6 @@
-/*
- * dac.c
- *
- *  Created on: 24.12.2019
- *      Author: vfv13
- */
-
 #include "main.h"
 #include "dac.h"
 #include "i2c.h"
-
 
 void dac_init(){
 
@@ -27,7 +19,6 @@ void dac_init(){
 //	DAC->CR |= DAC_CR_EN2;
 
 }
-
 
 void dac1_set(uint16_t value){
 	DAC->DHR12R1 = value;
