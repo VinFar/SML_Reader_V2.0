@@ -5,6 +5,8 @@ from zlib import crc32
 from time import sleep
 import struct
 import matplotlib.pyplot as plt
+import datetime
+from dec2bin import dec2bin
 
 
 def __sml_fourbytestofloat(data):
@@ -152,8 +154,49 @@ def smu_get_unix_time(ser):
 
 
 def smu_get_RTC_registers():
+    t = datetime.datetime.now(datetime.timezone.utc)
 
-    return
+    sec_tens = uint32(t.second / 10)
+    sec_ones = uint32(t.second - sec_tens * 10)
+
+    min_tens = uint32(t.minute / 10)
+    min_ones = uint32(t.minute - min_tens * 10)
+
+    hr_tens = uint32(t.hour / 10)
+    hr_ones = uint32(t.hour - hr_tens * 10)
+
+    day_tens = uint32(t.day / 10)
+    day_ones = uint32(t.day - day_tens * 10)
+
+    month_tens = uint32(t.month / 10)
+    month_ones = uint32(t.month - month_tens * 10)
+
+    year_thousands = uint32(t.year / 1000)
+    year_hundreds = uint32((t.year - year_thousands * 1000) / 100)
+    year_tens = uint32((t.year - year_thousands * 1000 - year_hundreds * 100) / 10)
+    year_ones = uint32(t.year - year_thousands * 1000 - year_hundreds * 100 - year_tens * 10)
+
+    sec_ones_str = dec2bin(sec_ones)
+    sec_tens_str = dec2bin(sec_tens)
+
+    min_ones_str = dec2bin(min_ones)
+    min_tens_str = dec2bin(min_tens)
+
+    hr_ones_str = dec2bin(hr_ones)
+    hr_tens_str = dec2bin(hr_tens)
+
+    bcd_TR = (sec_ones + sec_tens * (2**4) + min_ones * (2**8) + min_tens * (2**12) + hr_ones * (2**16) + hr_tens * (2**20))
+
+    day_of_week = t.weekday() - 1;
+
+    if (day_of_week == 0):
+        day_of_week = 7
+
+    bcd_DR = (day_ones + day_tens * (2**4) + month_ones * (2**8) + month_tens * (2**12) + day_of_week * (2**13) + year_ones * (2**16) + year_tens * (2**20))
+
+    ret = [bcd_DR,bcd_TR]
+
+    return ret
 
 def smu_set_RTC(ser):
     reg = smu_get_RTC_registers()
@@ -187,4 +230,4 @@ def sml_connect():
                 print("SMU found! :)")
                 return ser
 
-stm32 = sml_connect();
+smu_get_RTC_registers()
