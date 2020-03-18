@@ -120,6 +120,8 @@ static void prvSetupHardware(void) {
 
 	rtc_init();
 
+	eeprom_erase_page(0);
+
 }
 
 void SystemClock_Config(void) {

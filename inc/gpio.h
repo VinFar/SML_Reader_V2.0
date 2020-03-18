@@ -15,9 +15,14 @@
 #define LED_STATUS_OFF (LED3_GPIO_Port->ODR&=~LED3_Pin)
 #define LED_STATUS_TOGGLE (LED3_GPIO_Port->ODR^=LED3_Pin)
 
-
 #define SPI_CS_FLASH_LOW (FLASH_CS_GPIO_Port->ODR&=~FLASH_CS_Pin)
 #define SPI_CS_FLASH_HIGH (FLASH_CS_GPIO_Port->ODR|=FLASH_CS_Pin)
+
+#define GPIO_SET(PORT,PIN) (PORT->BSRR|=PIN)
+#define GPIO_RESET(PORT,PIN) (PORT->BSRR|=PIN<<16)
+
+#define GPIO_SetBits(PORT,PIN) GPIO_SET
+#define GPIO_ResetBits(PORT,PIN)
 
 
 void gpio_init(void);
