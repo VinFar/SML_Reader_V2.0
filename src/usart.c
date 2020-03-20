@@ -13,7 +13,7 @@ void usart6_init() {
 	__HAL_RCC_USART6_CLK_ENABLE()
 	;
 
-	USART6->BRR = SystemCoreClock / 1000000;
+	USART6->BRR = SystemCoreClock / 115200;
 
 	USART6->CR1 |= USART_CR1_TE;
 //	USART6->CR1 |= USART_CR1_RXNEIE; //Reciever Interrupt Enable

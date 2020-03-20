@@ -66,7 +66,7 @@ uint8_t nRF24_payload[32];
 nRF24_RXResult pipe;
 
 // Length of received payload
-uint8_t payload_length;
+uint8_t payload_length = 32;
 
 nRF24_TXResult tx_res;
 
@@ -80,49 +80,67 @@ int main(void) {
 	rtc_current_time_unix = rtc_old_time_unix = rtc_get_unix_time(&sm_time,
 			&sm_date);
 
-	nRF24_Init();
-	nRF24_SetAddrWidth(4);
-	nRF24_SetAddr(nRF24_PIPETX, 0xdeadbeef);
-	nRF24_SetAddr(nRF24_PIPE0, 0xdeadbeef);
-	nRF24_SetDataRate(nRF24_DR_250kbps);
+	// This is simple transmitter with Enhanced ShockBurst (to one logic address):
+	//   - TX address: 'ESB'
+	//   - payload: 10 bytes
+	//   - RF channel: 40 (2440MHz)
+	//   - data rate: 2Mbps
+	//   - CRC scheme: 2 byte
 
-	/*
-	 * set output power to max
-	 */
+	// The transmitter sends a 10-byte packets to the address 'ESB' with Auto-ACK (ShockBurst enabled)
+
+	// Set RF channel
+	nRF24_SetRFChannel(40);
+
+	// Set data rate
+	nRF24_SetDataRate(nRF24_DR_2Mbps);
+
+	// Set CRC scheme
+	nRF24_SetCRCScheme(nRF24_CRC_2byte);
+
+	// Set address width, its common for all pipes (RX and TX)
+	nRF24_SetAddrWidth(3);
+
+	// Configure TX PIPE
+	static const uint8_t nRF24_ADDR[] = { 'E', 'S', 'B' };
+	nRF24_SetAddr(nRF24_PIPETX, nRF24_ADDR); // program TX address
+	nRF24_SetAddr(nRF24_PIPE0, nRF24_ADDR); // program address for pipe#0, must be same as TX (for Auto-ACK)
+
+	// Set TX power (maximum)
 	nRF24_SetTXPower(nRF24_TXPWR_0dBm);
 
-	/*
-	 * set auto retransmit delay to 4ms and the count to 15
-	 */
-	nRF24_SetAutoRetr(nRF24_ARD_4000us, 15);
+	// Configure auto retransmit: 10 retransmissions with pause of 2500s in between
+	nRF24_SetAutoRetr(nRF24_ARD_2500us, 10);
 
-	nRF24_SetRFChannel(90);
+	// Enable Auto-ACK for pipe#0 (for ACK packets)
+	nRF24_EnableAA(nRF24_PIPE0);
 
-	nrf24_enable_ShockBurst(nrf24_rx_pipe0);
-
-	/*
-	 * set modul to TX
-	 */
+	// Set operational mode (PTX == transmitter)
 	nRF24_SetOperationalMode(nRF24_MODE_TX);
 
-	nRF24_SetPowerMode(nRF24_PWR_UP); // wake-up transceiver (in case if it sleeping)
-
-	uint8_t buf_tx[32];
-
-	for (int i = 0; i < sizeof(buf_tx); i++) {
-		buf_tx[i] = i;
-	}
-
+	// Clear any pending IRQ flags
 	nRF24_ClearIRQFlags();
 
-	nRF24_TransmitPacket(buf_tx, sizeof(buf_tx));
+	// Wake the transceiver
+	nRF24_SetPowerMode(nRF24_PWR_UP);
 
-	 uint32_t packets_lost = 0; // global counter of lost packets
-	    uint8_t otx;
-	    uint8_t otx_plos_cnt; // lost packet count
-		uint8_t otx_arc_cnt; // retransmit count
+	// Some variables
+	uint32_t packets_lost = 0; // global counter of lost packets
+	uint8_t otx;
+	uint8_t otx_plos_cnt; // lost packet count
+	uint8_t otx_arc_cnt; // retransmit count
 
+	// The main loop
+	payload_length = 10;
+	j = 0;
 	while (1) {
+		// Prepare data packet
+		for (i = 0; i < payload_length; i++) {
+			nRF24_payload[i] = j++;
+			if (j > 0x000000FF)
+				j = 0;
+		}
+
 		// Print a payload
 		UART_SendStr("PAYLOAD:>");
 		UART_SendBufHex((char*) nRF24_payload, payload_length);
@@ -156,8 +174,9 @@ int main(void) {
 		UART_SendStr("\r\n");
 
 		// Wait ~0.5s
-		delay_us(500000);
+		Delay_ms(500);
 	}
+
 }
 
 void vApplicationMallocFailedHook(void) {
