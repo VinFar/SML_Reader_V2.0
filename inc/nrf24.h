@@ -13,6 +13,9 @@
 #define nRF24_ADDR_REVERSE         0
 #endif
 
+// Timeout counter (depends on the CPU speed)
+// Used for not stuck waiting for IRQ
+#define nRF24_WAIT_TIMEOUT         (uint32_t)0x000FFFFF
 
 // nRF24L0 instruction definitions
 #define nRF24_CMD_R_REGISTER       (uint8_t)0x00 // Register read
@@ -79,7 +82,7 @@
 
 
 // Retransmit delay
-enum {
+typedef enum {
 	nRF24_ARD_NONE   = (uint8_t)0x00, // Dummy value for case when retransmission is not used
 	nRF24_ARD_250us  = (uint8_t)0x00,
 	nRF24_ARD_500us  = (uint8_t)0x01,
@@ -97,44 +100,44 @@ enum {
 	nRF24_ARD_3500us = (uint8_t)0x0D,
 	nRF24_ARD_3750us = (uint8_t)0x0E,
 	nRF24_ARD_4000us = (uint8_t)0x0F
-};
+}nrf24_ard_delays_t;
 
 // Data rate
-enum {
+typedef enum {
 	nRF24_DR_250kbps = (uint8_t)0x20, // 250kbps data rate
 	nRF24_DR_1Mbps   = (uint8_t)0x00, // 1Mbps data rate
 	nRF24_DR_2Mbps   = (uint8_t)0x08  // 2Mbps data rate
-};
+}nrf24_datarates_t;
 
 // RF output power in TX mode
-enum {
+typedef enum {
 	nRF24_TXPWR_18dBm = (uint8_t)0x00, // -18dBm
 	nRF24_TXPWR_12dBm = (uint8_t)0x02, // -12dBm
 	nRF24_TXPWR_6dBm  = (uint8_t)0x04, //  -6dBm
 	nRF24_TXPWR_0dBm  = (uint8_t)0x06  //   0dBm
-};
+}nrf24_txpwr_t;
 
 // CRC encoding scheme
-enum {
+typedef enum {
 	nRF24_CRC_off   = (uint8_t)0x00, // CRC disabled
 	nRF24_CRC_1byte = (uint8_t)0x08, // 1-byte CRC
 	nRF24_CRC_2byte = (uint8_t)0x0c  // 2-byte CRC
-};
+}nrf24_crc_scheme_t;
 
 // nRF24L01 power control
-enum {
+typedef enum {
 	nRF24_PWR_UP   = (uint8_t)0x02, // Power up
 	nRF24_PWR_DOWN = (uint8_t)0x00  // Power down
-};
+}nrf24_pwr_mode_t;
 
 // Transceiver mode
-enum {
+typedef enum {
 	nRF24_MODE_RX = (uint8_t)0x01, // PRX
 	nRF24_MODE_TX = (uint8_t)0x00  // PTX
-};
+}nrf24_mode_t;
 
 // Enumeration of RX pipe addresses and TX address
-enum {
+typedef enum {
 	nRF24_PIPE0  = (uint8_t)0x00, // pipe0
 	nRF24_PIPE1  = (uint8_t)0x01, // pipe1
 	nRF24_PIPE2  = (uint8_t)0x02, // pipe2
@@ -142,13 +145,13 @@ enum {
 	nRF24_PIPE4  = (uint8_t)0x04, // pipe4
 	nRF24_PIPE5  = (uint8_t)0x05, // pipe5
 	nRF24_PIPETX = (uint8_t)0x06  // TX address (not a pipe in fact)
-};
+}nrf24_pipes_t;
 
 // State of auto acknowledgment for specified pipe
-enum {
+typedef enum {
 	nRF24_AA_OFF = (uint8_t)0x00,
 	nRF24_AA_ON  = (uint8_t)0x01
-};
+}nrf24_aa_t;
 
 // Status of the RX FIFO
 enum {
@@ -177,24 +180,60 @@ typedef enum {
 	nRF24_RX_EMPTY  = (uint8_t)0xff  // The RX FIFO is empty
 } nRF24_RXResult;
 
+// Result of packet transmission
+typedef enum {
+	nRF24_TX_ERROR = (uint8_t) 0x00, // Unknown error
+	nRF24_TX_SUCCESS,                // Packet has been transmitted successfully
+	nRF24_TX_TIMEOUT,                // It was timeout during packet transmit
+	nRF24_TX_MAXRT         // Transmit failed with maximum auto retransmit count
+} nRF24_TXResult;
+
+typedef enum{
+	nrf24_addr_width_3 = 3,
+	nrf24_addr_width_4,
+	nrf24_addr_width_5
+}nrf24_addr_width_t;
+
+typedef enum{
+	nrf24_rx_pipe0=0,
+	nrf24_rx_pipe1,
+	nrf24_rx_pipe2,
+	nrf24_rx_pipe3,
+	nrf24_rx_pipe4,
+	nrf24_rx_pipe5,
+}nrf24_rx_pipes_t;
 
 // Function prototypes
 void nRF24_Init(void);
 uint8_t nRF24_Check(void);
 
-void nRF24_SetPowerMode(uint8_t mode);
+void nRF24_SetPowerMode(nrf24_pwr_mode_t mode);
 void nRF24_SetOperationalMode(uint8_t mode);
 void nRF24_SetRFChannel(uint8_t channel);
-void nRF24_SetAutoRetr(uint8_t ard, uint8_t arc);
-void nRF24_SetAddrWidth(uint8_t addr_width);
+void nRF24_SetAutoRetr(nrf24_ard_delays_t ard, uint8_t arc);
+void nRF24_SetAddrWidth(nrf24_addr_width_t addr_width);
 void nRF24_SetAddr(uint8_t pipe, const uint8_t *addr);
-void nRF24_SetTXPower(uint8_t tx_pwr);
-void nRF24_SetDataRate(uint8_t data_rate);
+void nRF24_SetTXPower(nrf24_txpwr_t tx_pwr);
+void nRF24_SetDataRate(nrf24_datarates_t data_rate);
 void nRF24_SetCRCScheme(uint8_t scheme);
-void nRF24_SetRXPipe(uint8_t pipe, uint8_t aa_state, uint8_t payload_len);
+void nRF24_SetRXPipe(nrf24_rx_pipes_t pipe, nrf24_aa_t aa_state, uint8_t payload_len);
 void nRF24_ClosePipe(uint8_t pipe);
 void nRF24_EnableAA(uint8_t pipe);
 void nRF24_DisableAA(uint8_t pipe);
+
+void nrf24_powerdown();
+void nrf24_powerup();
+
+void nrf24_set_mode_rx();
+void nrf24_set_mode_tx();
+
+void nrf24_set_crc_scheme_1byte();
+void nrf24_set_crc_scheme_2byte();
+void nrf24_set_crc_scheme_off();
+
+void nrf24_enable_ShockBurst(nrf24_rx_pipes_t pipe);
+void nrf24_disable_ShockBurst(nrf24_rx_pipes_t pipe);
+
 
 uint8_t nRF24_GetAddrWidth(void);
 uint8_t nRF24_GetStatus(void);

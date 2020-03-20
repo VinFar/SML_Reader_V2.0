@@ -19,6 +19,7 @@
 #include "defines.h"
 #include "dac.h"
 #include "rtc.h"
+#include "nrf24.h"
 
 /* Priorities at which the tasks are created.  The event semaphore task is
  given the maximum priority of ( configMAX_PRIORITIES - 1 ) to ensure it runs as
@@ -51,13 +52,23 @@ TaskHandle_t xcheck_cmd_struct;
 
 //uint8_t ucHeap[ configTOTAL_HEAP_SIZE ]={0};
 
-
 uuid_t uuid = { { ((uint32_t*) UUID_BASE_ADDRESS),
 		(((uint32_t*) UUID_BASE_ADDRESS + 1)), ((uint32_t*) (UUID_BASE_ADDRESS
 				+ 2)) } };
 
 uint32_t rtc_current_time_unix;
 uint32_t rtc_old_time_unix;
+
+// Buffer to store a payload of maximum width
+uint8_t nRF24_payload[32];
+
+// Pipe number
+nRF24_RXResult pipe;
+
+// Length of received payload
+uint8_t payload_length;
+
+nRF24_TXResult tx_res;
 
 int main(void) {
 
@@ -69,16 +80,83 @@ int main(void) {
 	rtc_current_time_unix = rtc_old_time_unix = rtc_get_unix_time(&sm_time,
 			&sm_date);
 
+	nRF24_Init();
+	nRF24_SetAddrWidth(4);
+	nRF24_SetAddr(nRF24_PIPETX, 0xdeadbeef);
+	nRF24_SetAddr(nRF24_PIPE0, 0xdeadbeef);
+	nRF24_SetDataRate(nRF24_DR_250kbps);
+
+	/*
+	 * set output power to max
+	 */
+	nRF24_SetTXPower(nRF24_TXPWR_0dBm);
+
+	/*
+	 * set auto retransmit delay to 4ms and the count to 15
+	 */
+	nRF24_SetAutoRetr(nRF24_ARD_4000us, 15);
+
+	nRF24_SetRFChannel(90);
+
+	nrf24_enable_ShockBurst(nrf24_rx_pipe0);
+
+	/*
+	 * set modul to TX
+	 */
+	nRF24_SetOperationalMode(nRF24_MODE_TX);
+
+	nRF24_SetPowerMode(nRF24_PWR_UP); // wake-up transceiver (in case if it sleeping)
+
+	uint8_t buf_tx[32];
+
+	for (int i = 0; i < sizeof(buf_tx); i++) {
+		buf_tx[i] = i;
+	}
+
+	nRF24_ClearIRQFlags();
+
+	nRF24_TransmitPacket(buf_tx, sizeof(buf_tx));
+
+	 uint32_t packets_lost = 0; // global counter of lost packets
+	    uint8_t otx;
+	    uint8_t otx_plos_cnt; // lost packet count
+		uint8_t otx_arc_cnt; // retransmit count
+
 	while (1) {
+		// Print a payload
+		UART_SendStr("PAYLOAD:>");
+		UART_SendBufHex((char*) nRF24_payload, payload_length);
+		UART_SendStr("< ... TX: ");
 
-		RTC_GetTime(RTC_FORMAT_BIN, &sm_time);
-		RTC_GetDate(RTC_FORMAT_BIN, &sm_date);
-		rtc_current_time_unix = rtc_get_unix_time(&sm_time, &sm_date);
-
-		if (flags.usart6_new_cmd) {
-			check_cmd_frame();
+		// Transmit a packet
+		tx_res = nRF24_TransmitPacket(nRF24_payload, payload_length);
+		otx = nRF24_GetRetransmitCounters();
+		otx_plos_cnt = (otx & nRF24_MASK_PLOS_CNT ) >> 4; // packets lost counter
+		otx_arc_cnt = (otx & nRF24_MASK_ARC_CNT ); // auto retransmissions counter
+		switch (tx_res) {
+		case nRF24_TX_SUCCESS:
+			UART_SendStr("OK");
+			break;
+		case nRF24_TX_TIMEOUT:
+			UART_SendStr("TIMEOUT");
+			break;
+		case nRF24_TX_MAXRT:
+			UART_SendStr("MAX RETRANSMIT");
+			packets_lost += otx_plos_cnt;
+			nRF24_ResetPLOS();
+			break;
+		default:
+			UART_SendStr("ERROR");
+			break;
 		}
+		UART_SendStr("   ARC=");
+		UART_SendInt(otx_arc_cnt);
+		UART_SendStr(" LOST=");
+		UART_SendInt(packets_lost);
+		UART_SendStr("\r\n");
 
+		// Wait ~0.5s
+		delay_us(500000);
 	}
 }
 
@@ -101,6 +179,8 @@ void vApplicationTickHook() {
 static void prvSetupHardware(void) {
 
 	SystemClock_Config();
+
+	timer2_init();
 
 	gpio_init();
 

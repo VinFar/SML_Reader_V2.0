@@ -1,26 +1,20 @@
-// Functions to manage the nRF24L01+ transceiver
-
-
 #include "nrf24.h"
-
 
 // The address used to test presence of the transceiver,
 // note: should not exceed 5 bytes
 #define nRF24_TEST_ADDR            "nRF24"
 
-
 // Addresses of the address registers
 static const uint8_t nRF24_ADDR_REGS[7] = {
-		nRF24_REG_RX_ADDR_P0,
-		nRF24_REG_RX_ADDR_P1,
-		nRF24_REG_RX_ADDR_P2,
-		nRF24_REG_RX_ADDR_P3,
-		nRF24_REG_RX_ADDR_P4,
-		nRF24_REG_RX_ADDR_P5,
-		nRF24_REG_TX_ADDR
-};
+nRF24_REG_RX_ADDR_P0,
+nRF24_REG_RX_ADDR_P1,
+nRF24_REG_RX_ADDR_P2,
+nRF24_REG_RX_ADDR_P3,
+nRF24_REG_RX_ADDR_P4,
+nRF24_REG_RX_ADDR_P5,
+nRF24_REG_TX_ADDR };
 
-
+//
 // Reads a value of register
 // input:
 //   reg - number of register to read
@@ -44,13 +38,13 @@ static void nRF24_WriteReg(uint8_t reg, uint8_t value) {
 	nRF24_CSN_L;
 	if (reg < nRF24_CMD_W_REGISTER) {
 		// This is a register access
-		nRF24_LL_RW(nRF24_CMD_W_REGISTER | (reg & nRF24_MASK_REG_MAP));
+		nRF24_LL_RW(nRF24_CMD_W_REGISTER | (reg & nRF24_MASK_REG_MAP ));
 		nRF24_LL_RW(value);
 	} else {
 		// This is a single byte command or future command/register
 		nRF24_LL_RW(reg);
-		if ((reg != nRF24_CMD_FLUSH_TX) && (reg != nRF24_CMD_FLUSH_RX) && \
-				(reg != nRF24_CMD_REUSE_TX_PL) && (reg != nRF24_CMD_NOP)) {
+		if ((reg != nRF24_CMD_FLUSH_TX ) && (reg != nRF24_CMD_FLUSH_RX )
+				&& (reg != nRF24_CMD_REUSE_TX_PL ) && (reg != nRF24_CMD_NOP )) {
 			// Send register value
 			nRF24_LL_RW(value);
 		}
@@ -66,7 +60,9 @@ static void nRF24_WriteReg(uint8_t reg, uint8_t value) {
 static void nRF24_ReadMBReg(uint8_t reg, uint8_t *pBuf, uint8_t count) {
 	nRF24_CSN_L;
 	nRF24_LL_RW(reg);
-	while (count--) { *pBuf++ = nRF24_LL_RW(nRF24_CMD_NOP); }
+	while (count--) {
+		*pBuf++ = nRF24_LL_RW(nRF24_CMD_NOP);
+	}
 	nRF24_CSN_H;
 }
 
@@ -87,22 +83,22 @@ static void nRF24_WriteMBReg(uint8_t reg, uint8_t *pBuf, uint8_t count) {
 // Configures the transceiver to its initial state
 void nRF24_Init(void) {
 	// Write to the registers their initial values
-	nRF24_WriteReg(nRF24_REG_CONFIG,     0x08);
-	nRF24_WriteReg(nRF24_REG_EN_AA,      0x3F);
-	nRF24_WriteReg(nRF24_REG_EN_RXADDR,  0x03);
-	nRF24_WriteReg(nRF24_REG_SETUP_AW,   0x03);
+	nRF24_WriteReg(nRF24_REG_CONFIG, 0x08);
+	nRF24_WriteReg(nRF24_REG_EN_AA, 0x3F);
+	nRF24_WriteReg(nRF24_REG_EN_RXADDR, 0x03);
+	nRF24_WriteReg(nRF24_REG_SETUP_AW, 0x03);
 	nRF24_WriteReg(nRF24_REG_SETUP_RETR, 0x03);
-	nRF24_WriteReg(nRF24_REG_RF_CH,      0x02);
-	nRF24_WriteReg(nRF24_REG_RF_SETUP,   0x0E);
-	nRF24_WriteReg(nRF24_REG_STATUS,     0x00);
-	nRF24_WriteReg(nRF24_REG_RX_PW_P0,   0x00);
-	nRF24_WriteReg(nRF24_REG_RX_PW_P1,   0x00);
-	nRF24_WriteReg(nRF24_REG_RX_PW_P2,   0x00);
-	nRF24_WriteReg(nRF24_REG_RX_PW_P3,   0x00);
-	nRF24_WriteReg(nRF24_REG_RX_PW_P4,   0x00);
-	nRF24_WriteReg(nRF24_REG_RX_PW_P5,   0x00);
-	nRF24_WriteReg(nRF24_REG_DYNPD,      0x00);
-	nRF24_WriteReg(nRF24_REG_FEATURE,    0x00);
+	nRF24_WriteReg(nRF24_REG_RF_CH, 0x02);
+	nRF24_WriteReg(nRF24_REG_RF_SETUP, 0x0E);
+	nRF24_WriteReg(nRF24_REG_STATUS, 0x00);
+	nRF24_WriteReg(nRF24_REG_RX_PW_P0, 0x00);
+	nRF24_WriteReg(nRF24_REG_RX_PW_P1, 0x00);
+	nRF24_WriteReg(nRF24_REG_RX_PW_P2, 0x00);
+	nRF24_WriteReg(nRF24_REG_RX_PW_P3, 0x00);
+	nRF24_WriteReg(nRF24_REG_RX_PW_P4, 0x00);
+	nRF24_WriteReg(nRF24_REG_RX_PW_P5, 0x00);
+	nRF24_WriteReg(nRF24_REG_DYNPD, 0x00);
+	nRF24_WriteReg(nRF24_REG_FEATURE, 0x00);
 
 	// Configure the default RX/TX address values
 	uint8_t addr[5];
@@ -138,22 +134,18 @@ void nRF24_Init(void) {
 //   non-zero: transceiver is present
 uint8_t nRF24_Check(void) {
 	uint8_t rxbuf[sizeof(nRF24_TEST_ADDR) - 1U];
-	uint8_t *ptr = (uint8_t *)nRF24_TEST_ADDR;
+	uint8_t *ptr = (uint8_t*) nRF24_TEST_ADDR;
 	uint8_t idx;
 
 	// Write the test address to the TX_ADDR register
 	nRF24_WriteMBReg(
-		nRF24_CMD_W_REGISTER | nRF24_REG_TX_ADDR,
-		ptr,
-		sizeof(nRF24_TEST_ADDR) - 1U
-	);
+	nRF24_CMD_W_REGISTER | nRF24_REG_TX_ADDR, ptr,
+			sizeof(nRF24_TEST_ADDR) - 1U);
 
 	// Read it back to the buffer
 	nRF24_ReadMBReg(
-		nRF24_CMD_R_REGISTER | nRF24_REG_TX_ADDR,
-		rxbuf,
-		sizeof(nRF24_TEST_ADDR) - 1U
-	);
+	nRF24_CMD_R_REGISTER | nRF24_REG_TX_ADDR, rxbuf,
+			sizeof(nRF24_TEST_ADDR) - 1U);
 
 	// Compare transmitted and received data...
 	for (idx = 0U; idx < sizeof(nRF24_TEST_ADDR) - 1U; idx++) {
@@ -170,7 +162,7 @@ uint8_t nRF24_Check(void) {
 // Set transceiver power mode
 // input:
 //   mode - new state of power mode, one of nRF24_PWR_xx values
-void nRF24_SetPowerMode(uint8_t mode) {
+void nRF24_SetPowerMode(nrf24_pwr_mode_t mode) {
 	uint8_t reg;
 
 	reg = nRF24_ReadReg(nRF24_REG_CONFIG);
@@ -186,17 +178,33 @@ void nRF24_SetPowerMode(uint8_t mode) {
 	nRF24_WriteReg(nRF24_REG_CONFIG, reg);
 }
 
+void nrf24_powerdown() {
+	nRF24_SetPowerMode(nRF24_PWR_DOWN);
+}
+
+void nrf24_powerup() {
+	nRF24_SetPowerMode(nRF24_PWR_UP);
+}
+
 // Set transceiver operational mode
 // input:
 //   mode - operational mode, one of nRF24_MODE_xx values
-void nRF24_SetOperationalMode(uint8_t mode) {
+void nRF24_SetOperationalMode(nrf24_mode_t mode) {
 	uint8_t reg;
 
 	// Configure PRIM_RX bit of the CONFIG register
 	reg = nRF24_ReadReg(nRF24_REG_CONFIG);
 	reg &= ~nRF24_CONFIG_PRIM_RX;
-	reg |= (mode & nRF24_CONFIG_PRIM_RX);
+	reg |= (mode & nRF24_CONFIG_PRIM_RX );
 	nRF24_WriteReg(nRF24_REG_CONFIG, reg);
+}
+
+void nrf24_set_mode_rx() {
+	nRF24_SetOperationalMode(nRF24_MODE_RX);
+}
+
+void nrf24_set_mode_tx() {
+	nRF24_SetOperationalMode(nRF24_MODE_TX);
 }
 
 // Configure transceiver CRC scheme
@@ -204,14 +212,26 @@ void nRF24_SetOperationalMode(uint8_t mode) {
 //   scheme - CRC scheme, one of nRF24_CRC_xx values
 // note: transceiver will forcibly turn on the CRC in case if auto acknowledgment
 //       enabled for at least one RX pipe
-void nRF24_SetCRCScheme(uint8_t scheme) {
+void nRF24_SetCRCScheme(nrf24_crc_scheme_t scheme) {
 	uint8_t reg;
 
 	// Configure EN_CRC[3] and CRCO[2] bits of the CONFIG register
 	reg = nRF24_ReadReg(nRF24_REG_CONFIG);
 	reg &= ~nRF24_MASK_CRC;
-	reg |= (scheme & nRF24_MASK_CRC);
+	reg |= (scheme & nRF24_MASK_CRC );
 	nRF24_WriteReg(nRF24_REG_CONFIG, reg);
+}
+
+void nrf24_set_crc_scheme_1byte() {
+	nRF24_SetCRCScheme(nRF24_CRC_1byte);
+}
+
+void nrf24_set_crc_scheme_2byte() {
+	nRF24_SetCRCScheme(nRF24_CRC_2byte);
+}
+
+void nrf24_set_crc_scheme_off() {
+	nRF24_SetCRCScheme(nRF24_CRC_off);
 }
 
 // Set RF frequency channel
@@ -229,18 +249,20 @@ void nRF24_SetRFChannel(uint8_t channel) {
 //   arc - count of auto retransmits, value form 0 to 15
 // note: in order to disable automatic retransmission,
 //       the value of the variable XXX should be zero
-void nRF24_SetAutoRetr(uint8_t ard, uint8_t arc) {
+void nRF24_SetAutoRetr(nrf24_ard_delays_t ard, uint8_t arc) {
+	if (arc > 15) {
+		arc = 15;
+	}
 	nRF24_WriteReg(
-		nRF24_REG_SETUP_RETR,
-		(uint8_t)((ard << 4) | (arc & nRF24_MASK_RETR_ARC))
-	);
+	nRF24_REG_SETUP_RETR,
+			(uint8_t) ((ard << 4) | (arc & nRF24_MASK_RETR_ARC )));
 }
 
 // Set of address widths
 // input:
 //   addr_width - RX/TX address field width, value from 3 to 5
 // note: this setting is common for all pipes
-void nRF24_SetAddrWidth(uint8_t addr_width) {
+void nRF24_SetAddrWidth(nrf24_addr_width_t addr_width) {
 	nRF24_WriteReg(nRF24_REG_SETUP_AW, addr_width - 2U);
 }
 
@@ -255,22 +277,20 @@ void nRF24_SetAddrWidth(uint8_t addr_width) {
 //       will be written since the pipes[1..5] share the four
 //       most significant address bytes
 // note: always ensure that none of the data pipes have the same address
-void nRF24_SetAddr(uint8_t pipe, const uint8_t *addr) {
+void nRF24_SetAddr(nrf24_pipes_t pipe, const uint8_t *addr) {
 	uint8_t addr_width;
 
 	// RX_ADDR_Px register
 	switch (pipe) {
-		case nRF24_PIPETX:
-		case nRF24_PIPE0:
-		case nRF24_PIPE1:
-			// Get address width
-			addr_width = nRF24_GetAddrWidth();
+	case nRF24_PIPETX:
+	case nRF24_PIPE0:
+	case nRF24_PIPE1:
+		// Get address width
+		addr_width = nRF24_GetAddrWidth();
 #if (!nRF24_ADDR_REVERSE)
-			nRF24_WriteMBReg(
-				nRF24_CMD_W_REGISTER | nRF24_ADDR_REGS[pipe],
-				(uint8_t *)addr,
-				addr_width
-			);
+		nRF24_WriteMBReg(
+		nRF24_CMD_W_REGISTER | nRF24_ADDR_REGS[pipe], (uint8_t*) addr,
+				addr_width);
 #else
 			// Write address in reverse order
 			nRF24_CSN_L;
@@ -278,25 +298,25 @@ void nRF24_SetAddr(uint8_t pipe, const uint8_t *addr) {
 			while (addr_width--) { nRF24_LL_RW(*(addr + addr_width)); }
 			nRF24_CSN_H;
 #endif // nRF24_ADDR_REVERSE
-			break;
-		case nRF24_PIPE2:
-		case nRF24_PIPE3:
-		case nRF24_PIPE4:
-		case nRF24_PIPE5:
-			// Write first byte from the addr buffer,
-			// it will be the LSByte of the pipe address
-			nRF24_WriteReg(nRF24_ADDR_REGS[pipe], *addr);
-			break;
-		default:
-			// Incorrect pipe number -> do nothing
-			break;
+		break;
+	case nRF24_PIPE2:
+	case nRF24_PIPE3:
+	case nRF24_PIPE4:
+	case nRF24_PIPE5:
+		// Write first byte from the addr buffer,
+		// it will be the LSByte of the pipe address
+		nRF24_WriteReg(nRF24_ADDR_REGS[pipe], *addr);
+		break;
+	default:
+		// Incorrect pipe number -> do nothing
+		break;
 	}
 }
 
 // Configure RF output power in TX mode
 // input:
 //   tx_pwr - RF output power, one of nRF24_TXPWR_xx values
-void nRF24_SetTXPower(uint8_t tx_pwr) {
+void nRF24_SetTXPower(nrf24_txpwr_t tx_pwr) {
 	uint8_t reg;
 
 	// Configure RF_PWR[2:1] bits of the RF_SETUP register
@@ -309,7 +329,7 @@ void nRF24_SetTXPower(uint8_t tx_pwr) {
 // Configure transceiver data rate
 // input:
 //   data_rate - data rate, one of nRF24_DR_xx values
-void nRF24_SetDataRate(uint8_t data_rate) {
+void nRF24_SetDataRate(nrf24_datarates_t data_rate) {
 	uint8_t reg;
 
 	// Configure RF_DR_LOW[5] and RF_DR_HIGH[3] bits of the RF_SETUP register
@@ -324,11 +344,16 @@ void nRF24_SetDataRate(uint8_t data_rate) {
 //   pipe - number of the RX pipe, value from 0 to 5
 //   aa_state - state of auto acknowledgment, one of nRF24_AA_xx values
 //   payload_len - payload length in bytes
-void nRF24_SetRXPipe(uint8_t pipe, uint8_t aa_state, uint8_t payload_len) {
+void nRF24_SetRXPipe(nrf24_rx_pipes_t pipe, nrf24_aa_t aa_state,
+		uint8_t payload_len) {
 	uint8_t reg;
-
+	if (payload_len > 32) {
+		payload_len = 32;
+	}
 	// Enable the specified pipe (EN_RXADDR register)
-	reg = (nRF24_ReadReg(nRF24_REG_EN_RXADDR) | (1U << pipe)) & nRF24_MASK_EN_RX;
+	reg =
+			(nRF24_ReadReg(nRF24_REG_EN_RXADDR) | (1U << pipe))
+					& nRF24_MASK_EN_RX;
 	nRF24_WriteReg(nRF24_REG_EN_RXADDR, reg);
 
 	// Set RX payload length (RX_PW_Px register)
@@ -347,7 +372,7 @@ void nRF24_SetRXPipe(uint8_t pipe, uint8_t aa_state, uint8_t payload_len) {
 // Disable specified RX pipe
 // input:
 //   PIPE - number of RX pipe, value from 0 to 5
-void nRF24_ClosePipe(uint8_t pipe) {
+void nRF24_ClosePipe(nrf24_rx_pipes_t pipe) {
 	uint8_t reg;
 
 	reg = nRF24_ReadReg(nRF24_REG_EN_RXADDR);
@@ -359,13 +384,17 @@ void nRF24_ClosePipe(uint8_t pipe) {
 // Enable the auto retransmit (a.k.a. enhanced ShockBurst) for the specified RX pipe
 // input:
 //   pipe - number of the RX pipe, value from 0 to 5
-void nRF24_EnableAA(uint8_t pipe) {
+void nRF24_EnableAA(nrf24_rx_pipes_t pipe) {
 	uint8_t reg;
 
 	// Set bit in EN_AA register
 	reg = nRF24_ReadReg(nRF24_REG_EN_AA);
 	reg |= (1U << pipe);
 	nRF24_WriteReg(nRF24_REG_EN_AA, reg);
+}
+
+void nrf24_enable_ShockBurst(nrf24_rx_pipes_t pipe) {
+	nRF24_EnableAA(pipe);
 }
 
 // Disable the auto retransmit (a.k.a. enhanced ShockBurst) for one or all RX pipes
@@ -384,6 +413,10 @@ void nRF24_DisableAA(uint8_t pipe) {
 	}
 }
 
+void nrf24_disable_ShockBurst(nrf24_rx_pipes_t pipe) {
+	nRF24_DisableAA(pipe);
+}
+
 // Get address length
 // return: the length of the address configured in the transceiver,
 //         value from 3 to 5
@@ -400,26 +433,26 @@ uint8_t nRF24_GetStatus(void) {
 // Get pending IRQ flags
 // return: current status of RX_DR, TX_DS and MAX_RT bits of the STATUS register
 uint8_t nRF24_GetIRQFlags(void) {
-	return (nRF24_ReadReg(nRF24_REG_STATUS) & nRF24_MASK_STATUS_IRQ);
+	return (nRF24_ReadReg(nRF24_REG_STATUS) & nRF24_MASK_STATUS_IRQ );
 }
 
 // Get status of the RX FIFO
 // return: one of the nRF24_STATUS_RXFIFO_xx values
 uint8_t nRF24_GetStatus_RXFIFO(void) {
-	return (nRF24_ReadReg(nRF24_REG_FIFO_STATUS) & nRF24_MASK_RXFIFO);
+	return (nRF24_ReadReg(nRF24_REG_FIFO_STATUS) & nRF24_MASK_RXFIFO );
 }
 
 // Get status of the TX FIFO
 // return: one of the nRF24_STATUS_TXFIFO_xx values
 // note: the TX_REUSE bit ignored
 uint8_t nRF24_GetStatus_TXFIFO(void) {
-	return ((nRF24_ReadReg(nRF24_REG_FIFO_STATUS) & nRF24_MASK_TXFIFO) >> 4);
+	return ((nRF24_ReadReg(nRF24_REG_FIFO_STATUS) & nRF24_MASK_TXFIFO ) >> 4);
 }
 
 // Get pipe number for the payload available for reading from RX FIFO
 // return: pipe number or 0x07 if the RX FIFO is empty
 uint8_t nRF24_GetRXSource(void) {
-	return ((nRF24_ReadReg(nRF24_REG_STATUS) & nRF24_MASK_RX_P_NO) >> 1);
+	return ((nRF24_ReadReg(nRF24_REG_STATUS) & nRF24_MASK_RX_P_NO ) >> 1);
 }
 
 // Get auto retransmit statistic
@@ -478,7 +511,7 @@ nRF24_RXResult nRF24_ReadPayload(uint8_t *pBuf, uint8_t *length) {
 	uint8_t pipe;
 
 	// Extract a payload pipe number from the STATUS register
-	pipe = (nRF24_ReadReg(nRF24_REG_STATUS) & nRF24_MASK_RX_P_NO) >> 1;
+	pipe = (nRF24_ReadReg(nRF24_REG_STATUS) & nRF24_MASK_RX_P_NO ) >> 1;
 
 	// RX FIFO empty?
 	if (pipe < 6U) {
@@ -490,7 +523,7 @@ nRF24_RXResult nRF24_ReadPayload(uint8_t *pBuf, uint8_t *length) {
 			nRF24_ReadMBReg(nRF24_CMD_R_RX_PAYLOAD, pBuf, *length);
 		}
 
-		return ((nRF24_RXResult)pipe);
+		return ((nRF24_RXResult) pipe);
 	}
 
 	// The RX FIFO is empty
@@ -499,10 +532,73 @@ nRF24_RXResult nRF24_ReadPayload(uint8_t *pBuf, uint8_t *length) {
 	return nRF24_RX_EMPTY;
 }
 
+// Function to transmit data packet
+// input:
+//   pBuf - pointer to the buffer with data to transmit
+//   length - length of the data buffer in bytes
+// return: one of nRF24_TX_xx values
+nRF24_TXResult nRF24_TransmitPacket(uint8_t *pBuf, uint8_t length) {
+	volatile uint32_t wait = nRF24_WAIT_TIMEOUT;
+	uint8_t status;
 
+	// Deassert the CE pin (in case if it still high)
+	nRF24_CE_L;
+
+	// Transfer a data from the specified buffer to the TX FIFO
+	nRF24_WritePayload(pBuf, length);
+
+	// Start a transmission by asserting CE pin (must be held at least 10us)
+	nRF24_CE_H;
+
+	// Poll the transceiver status register until one of the following flags will be set:
+	//   TX_DS  - means the packet has been transmitted
+	//   MAX_RT - means the maximum number of TX retransmits happened
+	// note: this solution is far from perfect, better to use IRQ instead of polling the status
+	do {
+		status = nRF24_GetStatus();
+		if (status & (nRF24_FLAG_TX_DS | nRF24_FLAG_MAX_RT )) {
+			break;
+		}
+	} while (wait--);
+
+	// Deassert the CE pin (Standby-II --> Standby-I)
+	nRF24_CE_L;
+
+	if (!wait) {
+		// Timeout
+		return nRF24_TX_TIMEOUT;
+	}
+
+	// Check the flags in STATUS register
+	UART_SendStr("[");
+	UART_SendHex8(status);
+	UART_SendStr("] ");
+
+	// Clear pending IRQ flags
+	nRF24_ClearIRQFlags();
+
+	if (status & nRF24_FLAG_MAX_RT) {
+		// Auto retransmit counter exceeds the programmed maximum limit (FIFO is not removed)
+		return nRF24_TX_MAXRT;
+	}
+
+	if (status & nRF24_FLAG_TX_DS) {
+		// Successful transmission
+		return nRF24_TX_SUCCESS;
+	}
+
+	// Some banana happens, a payload remains in the TX FIFO, flush it
+	nRF24_FlushTX();
+
+	return nRF24_TX_ERROR;
+}
+
+void nrf24_pipe_set_payload_length(int8_t pipe, uint8_t length) {
+
+}
 #if 0
 
-#define __printf(...) USART_printf(USART1, __VA_ARGS__)
+#define __printf(...) iprintf(__VA_ARGS__)
 
 // Print nRF24L01+ current configuration (for debug purposes)
 void nRF24_DumpConfig(void) {

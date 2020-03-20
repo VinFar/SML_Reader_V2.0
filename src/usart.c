@@ -15,8 +15,8 @@ void usart6_init() {
 
 	USART6->BRR = SystemCoreClock / 1000000;
 
-	USART6->CR1 |= USART_CR1_RE | USART_CR1_TE;
-	USART6->CR1 |= USART_CR1_RXNEIE; //Reciever Interrupt Enable
+	USART6->CR1 |= USART_CR1_TE;
+//	USART6->CR1 |= USART_CR1_RXNEIE; //Reciever Interrupt Enable
 	USART6->CR1 |= USART_CR1_IDLEIE; //idle line detection interrupt
 	USART6->CR1 |= USART_CR1_UE;
 
@@ -43,4 +43,127 @@ void usart6_send_ack_frame(ack_frame_t *ack) {
 //	*crc = crc32_calc((uint8_t*) ack, ack->size - 4);
 
 	usart6_send_data((uint8_t*) ack, ack->size);
+}
+
+void UART_SendChar(char ch) {
+	while ((USART6->ISR & USART_ISR_TXE) != USART_ISR_TXE)
+		;
+	USART6->TDR = ch;
+}
+
+void UART_SendInt(int32_t num) {
+	char str[10]; // 10 chars max for INT32_MAX
+	int i = 0;
+	if (num < 0) {
+		UART_SendChar('-');
+		num *= -1;
+	}
+	do
+		str[i++] = num % 10 + '0';
+	while ((num /= 10) > 0);
+	for (i--; i >= 0; i--)
+		UART_SendChar(str[i]);
+}
+
+void UART_SendInt0(int32_t num) {
+	char str[10]; // 10 chars max for INT32_MAX
+	int i = 0;
+	if (num < 0) {
+		UART_SendChar('-');
+		num *= -1;
+	}
+	if ((num < 10) && (num >= 0))
+		UART_SendChar('0');
+	do
+		str[i++] = num % 10 + '0';
+	while ((num /= 10) > 0);
+	for (i--; i >= 0; i--)
+		UART_SendChar(str[i]);
+}
+
+void UART_SendHex8(uint16_t num) {
+	UART_SendChar(HEX_CHARS[(num >> 4) % 0x10]);
+	UART_SendChar(HEX_CHARS[(num & 0x0f) % 0x10]);
+}
+
+void UART_SendHex16(uint16_t num) {
+	uint8_t i;
+	for (i = 12; i > 0; i -= 4)
+		UART_SendChar(HEX_CHARS[(num >> i) % 0x10]);
+	UART_SendChar(HEX_CHARS[(num & 0x0f) % 0x10]);
+}
+
+void UART_SendHex32(uint32_t num) {
+	uint8_t i;
+	for (i = 28; i > 0; i -= 4)
+		UART_SendChar(HEX_CHARS[(num >> i) % 0x10]);
+	UART_SendChar(HEX_CHARS[(num & 0x0f) % 0x10]);
+}
+
+void UART_SendStr(char *str) {
+	while (*str)
+		UART_SendChar(*str++);
+}
+
+void UART_SendBuf(char *buf, uint16_t bufsize) {
+	USART6->CR1 |= USART_CR1_TE;
+	while (bufsize--) {
+		while ((USART6->ISR & USART_ISR_TXE) != USART_ISR_TXE)
+			;
+		USART6->TDR = *buf++;
+	}
+}
+
+void UART_SendBufPrintable(char *buf, uint16_t bufsize, char subst) {
+	uint16_t i;
+	char ch;
+	for (i = 0; i < bufsize; i++) {
+		ch = *buf++;
+		UART_SendChar(ch > 32 ? ch : subst);
+	}
+}
+
+void UART_SendBufHex(char *buf, uint16_t bufsize) {
+	uint16_t i;
+	char ch;
+	for (i = 0; i < bufsize; i++) {
+		ch = *buf++;
+		UART_SendChar(HEX_CHARS[(ch >> 4) % 0x10]);
+		UART_SendChar(HEX_CHARS[(ch & 0x0f) % 0x10]);
+	}
+}
+
+void UART_SendBufHexFancy(char *buf, uint16_t bufsize, uint8_t column_width,
+		char subst) {
+	uint16_t i = 0, len, pos;
+	char buffer[column_width];
+
+	while (i < bufsize) {
+		// Line number
+		UART_SendHex16(i);
+		UART_SendChar(':');
+		UART_SendChar(' '); // Faster and less code than UART_SendStr(": ");
+
+		// Copy one line
+		if (i + column_width >= bufsize)
+			len = bufsize - i;
+		else
+			len = column_width;
+		memcpy(buffer, &buf[i], len);
+
+		// Hex data
+		pos = 0;
+		while (pos < len)
+			UART_SendHex8(buffer[pos++]);
+		UART_SendChar(' ');
+
+		// Raw data
+		pos = 0;
+		do
+			UART_SendChar(buffer[pos] > 32 ? buffer[pos] : subst);
+		while (++pos < len);
+		UART_SendChar('\n');
+
+		i += len;
+	}
 }

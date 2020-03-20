@@ -1,10 +1,3 @@
-/*
- * main.h
- *
- *  Created on: 23.12.2019
- *      Author: vfv13
- */
-
 #ifndef MAIN_H_
 #define MAIN_H_
 
@@ -13,7 +6,6 @@
 #include "stm32f0xx_hal.h"
 #include "defines.h"
 
-#define delay_us(us)
 #define NOP asm("nop");
 #define STRUCT_PACKED __attribute__((packed))
 #define UUID_BASE_ADDRESS 0x1FFF7A10

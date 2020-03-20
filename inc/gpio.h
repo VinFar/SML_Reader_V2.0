@@ -18,12 +18,11 @@
 #define SPI_CS_FLASH_LOW (FLASH_CS_GPIO_Port->ODR&=~FLASH_CS_Pin)
 #define SPI_CS_FLASH_HIGH (FLASH_CS_GPIO_Port->ODR|=FLASH_CS_Pin)
 
-#define GPIO_SET(PORT,PIN) (PORT->BSRR|=PIN)
-#define GPIO_RESET(PORT,PIN) (PORT->BSRR|=PIN<<16)
+#define GPIO_SET(PT, P) (PT->BSRR = P)
+#define GPIO_RESET(PT, P) (PT->BSRR = (P<<16))
 
-#define GPIO_SetBits(PORT,PIN) GPIO_SET
-#define GPIO_ResetBits(PORT,PIN)
-
+#define GPIO_SetBits(PT, P) GPIO_SET(PT, P)
+#define GPIO_ResetBits(PT, P) GPIO_RESET(PT, P)
 
 void gpio_init(void);
 
