@@ -4,7 +4,10 @@
 
 // Low level functions (hardware depended)
 #include "nrf24_hal.h"
+#include "usart.h"
 
+extern data_union_t nrf24_rx_data[5];
+extern uint8_t nrf24_rx_size;
 
 #ifndef nRF24_ADDR_REVERSE
 // How the TX/RX address should be transmitted to the transceiver

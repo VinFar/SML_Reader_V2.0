@@ -70,6 +70,9 @@ uint8_t payload_length;
 
 nRF24_TXResult tx_res;
 
+data_union_t nrf24_rx_data[5];
+uint8_t nrf24_rx_size=0;
+
 int main(void) {
 
 	prvSetupHardware();
@@ -80,83 +83,30 @@ int main(void) {
 	rtc_current_time_unix = rtc_old_time_unix = rtc_get_unix_time(&sm_time,
 			&sm_date);
 
-	nRF24_Init();
-	nRF24_SetAddrWidth(4);
-	nRF24_SetAddr(nRF24_PIPETX, 0xdeadbeef);
-	nRF24_SetAddr(nRF24_PIPE0, 0xdeadbeef);
-	nRF24_SetDataRate(nRF24_DR_250kbps);
-
-	/*
-	 * set output power to max
-	 */
-	nRF24_SetTXPower(nRF24_TXPWR_0dBm);
-
-	/*
-	 * set auto retransmit delay to 4ms and the count to 15
-	 */
-	nRF24_SetAutoRetr(nRF24_ARD_4000us, 15);
-
-	nRF24_SetRFChannel(90);
-
-	nrf24_enable_ShockBurst(nrf24_rx_pipe0);
-
-	/*
-	 * set modul to TX
-	 */
-	nRF24_SetOperationalMode(nRF24_MODE_TX);
-
-	nRF24_SetPowerMode(nRF24_PWR_UP); // wake-up transceiver (in case if it sleeping)
-
-	uint8_t buf_tx[32];
-
-	for (int i = 0; i < sizeof(buf_tx); i++) {
-		buf_tx[i] = i;
-	}
-
-	nRF24_ClearIRQFlags();
-
-	nRF24_TransmitPacket(buf_tx, sizeof(buf_tx));
-
-	 uint32_t packets_lost = 0; // global counter of lost packets
-	    uint8_t otx;
-	    uint8_t otx_plos_cnt; // lost packet count
-		uint8_t otx_arc_cnt; // retransmit count
-
 	while (1) {
-		// Print a payload
-		UART_SendStr("PAYLOAD:>");
-		UART_SendBufHex((char*) nRF24_payload, payload_length);
-		UART_SendStr("< ... TX: ");
 
-		// Transmit a packet
-		tx_res = nRF24_TransmitPacket(nRF24_payload, payload_length);
-		otx = nRF24_GetRetransmitCounters();
-		otx_plos_cnt = (otx & nRF24_MASK_PLOS_CNT ) >> 4; // packets lost counter
-		otx_arc_cnt = (otx & nRF24_MASK_ARC_CNT ); // auto retransmissions counter
-		switch (tx_res) {
-		case nRF24_TX_SUCCESS:
-			UART_SendStr("OK");
-			break;
-		case nRF24_TX_TIMEOUT:
-			UART_SendStr("TIMEOUT");
-			break;
-		case nRF24_TX_MAXRT:
-			UART_SendStr("MAX RETRANSMIT");
-			packets_lost += otx_plos_cnt;
-			nRF24_ResetPLOS();
-			break;
-		default:
-			UART_SendStr("ERROR");
-			break;
+		//
+		// Constantly poll the status of the RX FIFO and get a payload if FIFO is not empty
+		//
+		// This is far from best solution, but it's ok for testing purposes
+		// More smart way is to use the IRQ pin :)
+		//
+		if (nRF24_GetStatus_RXFIFO() != nRF24_STATUS_RXFIFO_EMPTY) {
+			// Get a payload from the transceiver
+			pipe = nRF24_ReadPayload(nrf24_rx_data, &nrf24_rx_size);
+
+			// Clear all pending IRQ flags
+			nRF24_ClearIRQFlags();
+
+			// Print a payload contents to UART
+			UART_SendStr("RCV PIPE#");
+			UART_SendInt(pipe);
+			UART_SendInt0(nrf24_rx_data[0].int32_data);
+			UART_SendInt0(nrf24_rx_data[1].int32_data);
+			UART_SendStr(" PAYLOAD:>");
+			UART_SendBufHex((char*) nRF24_payload, payload_length);
+			UART_SendStr("<\r\n");
 		}
-		UART_SendStr("   ARC=");
-		UART_SendInt(otx_arc_cnt);
-		UART_SendStr(" LOST=");
-		UART_SendInt(packets_lost);
-		UART_SendStr("\r\n");
-
-		// Wait ~0.5s
-		delay_us(500000);
 	}
 }
 
