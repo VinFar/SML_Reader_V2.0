@@ -71,6 +71,20 @@ uint32_t rtc_old_time_unix;
 const uint8_t nrf24_tx_size = NRF24_TX_SIZE;
 data_union_t nrf24_tx_buf[(NRF24_TX_SIZE / 4)];
 
+uint32_t i,j,k;
+
+// Buffer to store a payload of maximum width
+uint8_t nRF24_payload[32];
+
+// Pipe number
+nRF24_RXResult pipe;
+
+// Length of received payload
+uint8_t payload_length;
+
+nRF24_TXResult tx_res;
+
+
 int main(void) {
 
 	prvSetupHardware();
@@ -89,74 +103,101 @@ int main(void) {
 	rtc_current_time_unix = rtc_old_time_unix = rtc_get_unix_time(&sm_time,
 			&sm_date);
 
-	nrf24_init_tx();
+	// This is simple transmitter with Enhanced ShockBurst (to one logic address):
+	//   - TX address: 'ESB'
+	//   - payload: 10 bytes
+	//   - RF channel: 40 (2440MHz)
+	//   - data rate: 2Mbps
+	//   - CRC scheme: 2 byte
 
-	nRF24_TXResult tx_res;
+	// The transmitter sends a 10-byte packets to the address 'ESB' with Auto-ACK (ShockBurst enabled)
+
+	// Set RF channel
+	nRF24_SetRFChannel(40);
+
+	// Set data rate
+	nRF24_SetDataRate(nRF24_DR_2Mbps);
+
+	// Set CRC scheme
+	nRF24_SetCRCScheme(nRF24_CRC_2byte);
+
+	// Set address width, its common for all pipes (RX and TX)
+	nRF24_SetAddrWidth(3);
+
+	// Configure TX PIPE
+	static const uint8_t nRF24_ADDR[] = { 'E', 'S', 'B' };
+	nRF24_SetAddr(nRF24_PIPETX, nRF24_ADDR); // program TX address
+	nRF24_SetAddr(nRF24_PIPE0, nRF24_ADDR); // program address for pipe#0, must be same as TX (for Auto-ACK)
+
+	// Set TX power (maximum)
+	nRF24_SetTXPower(nRF24_TXPWR_0dBm);
+
+	// Configure auto retransmit: 10 retransmissions with pause of 2500s in between
+	nRF24_SetAutoRetr(nRF24_ARD_2500us, 10);
+
+	// Enable Auto-ACK for pipe#0 (for ACK packets)
+	nRF24_EnableAA(nRF24_PIPE0);
+
+	// Set operational mode (PTX == transmitter)
+	nRF24_SetOperationalMode(nRF24_MODE_TX);
+
+	// Clear any pending IRQ flags
+	nRF24_ClearIRQFlags();
+
+	// Wake the transceiver
+	nRF24_SetPowerMode(nRF24_PWR_UP);
+
+	// Some variables
+	uint32_t packets_lost = 0; // global counter of lost packets
 	uint8_t otx;
+	uint8_t otx_plos_cnt; // lost packet count
+	uint8_t otx_arc_cnt; // retransmit count
 
+	// The main loop
+	payload_length = 10;
+	j = 0;
 	while (1) {
-
-		RTC_GetTime(RTC_FORMAT_BIN, &sm_time);
-		RTC_GetDate(RTC_FORMAT_BIN, &sm_date);
-		rtc_current_time_unix = rtc_get_unix_time(&sm_time, &sm_date);
-
-		if (flags.new_plant_sml_packet) {
-			flags.new_plant_sml_packet = 0;
-			sm_plant_extract_data();
+		// Prepare data packet
+		for (i = 0; i < payload_length; i++) {
+			nRF24_payload[i] = j++;
+			if (j > 0x000000FF)
+				j = 0;
 		}
 
-		if (flags.new_main_sml_packet) {
-			flags.new_main_sml_packet = 0;
-			sm_main_extract_data();
+		// Print a payload
+		UART_SendStr("PAYLOAD:>");
+		UART_SendBufHex((char*) nRF24_payload, payload_length);
+		UART_SendStr("< ... TX: ");
+
+		// Transmit a packet
+		tx_res = nRF24_TransmitPacket(nRF24_payload, payload_length);
+		otx = nRF24_GetRetransmitCounters();
+		otx_plos_cnt = (otx & nRF24_MASK_PLOS_CNT ) >> 4; // packets lost counter
+		otx_arc_cnt = (otx & nRF24_MASK_ARC_CNT ); // auto retransmissions counter
+		switch (tx_res) {
+		case nRF24_TX_SUCCESS:
+			UART_SendStr("OK");
+			break;
+		case nRF24_TX_TIMEOUT:
+			UART_SendStr("TIMEOUT");
+			break;
+		case nRF24_TX_MAXRT:
+			UART_SendStr("MAX RETRANSMIT");
+			packets_lost += otx_plos_cnt;
+			nRF24_ResetPLOS();
+			break;
+		default:
+			UART_SendStr("ERROR");
+			break;
 		}
+		UART_SendStr("   ARC=");
+		UART_SendInt(otx_arc_cnt);
+		UART_SendStr(" LOST=");
+		UART_SendInt(packets_lost);
+		UART_SendStr("\r\n");
 
-		if ((rtc_current_time_unix - rtc_old_time_unix) >= FLASH_SAVE_INTERVALL) {
-			rtc_old_time_unix = rtc_current_time_unix;
-			/*
-			 * save data every 2 seconds
-			 */
-
-			nrf24_tx_buf[0].uint32_data = sm_main_current_data.power;
-			nrf24_tx_buf[1].uint32_data = sm_plant_current_data.power;
-			tx_res = nRF24_TransmitPacket(nrf24_tx_buf, nrf24_tx_size);
-			otx = nRF24_GetRetransmitCounters();
-			if (tx_res == nRF24_TX_SUCCESS) {
-				/*
-				 * OK
-				 */
-				NOP
-			} else {
-				/*
-				 * not ok
-				 */
-				NOP
-			}
-			switch (tx_res) {
-			case nRF24_TX_SUCCESS:
-				UART_SendStr("OK");
-				break;
-			case nRF24_TX_TIMEOUT:
-				UART_SendStr("TIMEOUT");
-				break;
-			case nRF24_TX_MAXRT:
-				UART_SendStr("MAX RETRANSMIT");
-				nRF24_ResetPLOS();
-				break;
-			default:
-				UART_SendStr("ERROR");
-				break;
-			}
-
-			LED_STATUS_TOGGLE;
-			flash_main_store_data_in_cache(rtc_current_time_unix);
-			flash_plant_store_data_in_cache(rtc_current_time_unix);
-
-		}
-
-		if (flags.usart6_new_cmd) {
-			check_cmd_frame();
-		}
-
+		// Wait ~0.5s
+		delay_us(100000);
 	}
 }
 
