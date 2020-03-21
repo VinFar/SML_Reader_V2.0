@@ -5,6 +5,7 @@ smu_read_free_cap(stm32)
 
 addresses = smu_read_flash_address_plant(stm32);
 start_address = addresses(3);
+max_address = addresses(2);
 end_address = addresses(1);
 pages = (end_address-start_address)/2048
 pages = uint32(pages);
@@ -13,6 +14,7 @@ if(pages == 0)
     display('no pages to read. Flash IC is empty!');
     return;
 end
+end_address/(max_address - start_address)*100
 
 smu_data_plant = zeros(1,pages*size);
 a=1;

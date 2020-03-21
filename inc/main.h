@@ -10,6 +10,8 @@
 #define STRUCT_PACKED __attribute__((packed))
 #define UUID_BASE_ADDRESS 0x1FFF7A10
 
+extern uint32_t uptime_of_smartmeter;
+
 
 void Error_Handler(void);
 #define RCC_OSC32_IN_Pin GPIO_PIN_14
@@ -82,6 +84,13 @@ volatile typedef struct {
 	unsigned usart6_new_cmd:1;
 	unsigned usart6_rx_busy:1;
 	unsigned gateway:1;
+	unsigned init_lcd:1;
+	unsigned refreshed_rotary:1;
+	unsigned currently_in_menu:1;
+	unsigned set_power_min_max:1;
+	unsigned sml_rx_on_off_flag:1;
+	unsigned refreshed_push:1;
+	unsigned lcd_light_on_off:1;
 }flags_t;
 
 flags_t flags;

@@ -2,7 +2,7 @@
 #include "timer.h"
 #include "stm32f0xx_hal_tim.h"
 
-#define TIMER_INSTANCE TIM2
+#define TIMER_INSTANCE TIM16
 
 
 void delay_us(uint32_t Delay) {
