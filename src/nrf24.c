@@ -598,49 +598,49 @@ void nrf24_pipe_set_payload_length(int8_t pipe, uint8_t length) {
 }
 
 void nrf24_init_tx() {
-    // This is simple transmitter with Enhanced ShockBurst (to one logic address):
+	// This is simple transmitter with Enhanced ShockBurst (to one logic address):
 	//   - TX address: 'ESB'
 	//   - payload: 10 bytes
 	//   - RF channel: 40 (2440MHz)
 	//   - data rate: 2Mbps
 	//   - CRC scheme: 2 byte
 
-    // The transmitter sends a 10-byte packets to the address 'ESB' with Auto-ACK (ShockBurst enabled)
+	// The transmitter sends a 10-byte packets to the address 'ESB' with Auto-ACK (ShockBurst enabled)
 
-    // Set RF channel
-    nRF24_SetRFChannel(40);
+	// Set RF channel
+	nRF24_SetRFChannel(40);
 
-    // Set data rate
-    nRF24_SetDataRate(nRF24_DR_2Mbps);
+	// Set data rate
+	nRF24_SetDataRate(nRF24_DR_2Mbps);
 
-    // Set CRC scheme
-    nRF24_SetCRCScheme(nRF24_CRC_2byte);
+	// Set CRC scheme
+	nRF24_SetCRCScheme(nRF24_CRC_2byte);
 
-    // Set address width, its common for all pipes (RX and TX)
-    nRF24_SetAddrWidth(3);
+	// Set address width, its common for all pipes (RX and TX)
+	nRF24_SetAddrWidth(3);
 
-    // Configure TX PIPE
-    static const uint8_t nRF24_ADDR[] = { 'E', 'S', 'B' };
-    nRF24_SetAddr(nRF24_PIPETX, nRF24_ADDR); // program TX address
-    nRF24_SetAddr(nRF24_PIPE0, nRF24_ADDR); // program address for pipe#0, must be same as TX (for Auto-ACK)
+	// Configure TX PIPE
+	static const uint8_t nRF24_ADDR[] = { 'E', 'S', 'B' };
+	nRF24_SetAddr(nRF24_PIPETX, nRF24_ADDR); // program TX address
+	nRF24_SetAddr(nRF24_PIPE0, nRF24_ADDR); // program address for pipe#0, must be same as TX (for Auto-ACK)
 
-    // Set TX power (maximum)
-    nRF24_SetTXPower(nRF24_TXPWR_0dBm);
+	// Set TX power (maximum)
+	nRF24_SetTXPower(nRF24_TXPWR_0dBm);
 
-    // Configure auto retransmit: 10 retransmissions with pause of 2500s in between
-    nRF24_SetAutoRetr(nRF24_ARD_2500us, 10);
+	// Configure auto retransmit: 10 retransmissions with pause of 2500s in between
+	nRF24_SetAutoRetr(nRF24_ARD_2500us, 10);
 
-    // Enable Auto-ACK for pipe#0 (for ACK packets)
-    nRF24_EnableAA(nRF24_PIPE0);
+	// Enable Auto-ACK for pipe#0 (for ACK packets)
+	nRF24_EnableAA(nRF24_PIPE0);
 
-    // Set operational mode (PTX == transmitter)
-    nRF24_SetOperationalMode(nRF24_MODE_TX);
+	// Set operational mode (PTX == transmitter)
+	nRF24_SetOperationalMode(nRF24_MODE_TX);
 
-    // Clear any pending IRQ flags
-    nRF24_ClearIRQFlags();
+	// Clear any pending IRQ flags
+	nRF24_ClearIRQFlags();
 
-    // Wake the transceiver
-    nRF24_SetPowerMode(nRF24_PWR_UP);
+	// Wake the transceiver
+	nRF24_SetPowerMode(nRF24_PWR_UP);
 }
 
 #if 0
