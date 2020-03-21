@@ -185,8 +185,6 @@ static void prvSetupHardware(void) {
 	 */
 	i2c1_init();
 
-
-
 	/*
 	 * communication for NRF24 Wireless Chip and FLASH IC
 	 */
@@ -197,6 +195,11 @@ static void prvSetupHardware(void) {
 	crc_init();
 
 	rtc_init();
+
+	TIM3_Init(); //timer for rotary encoder
+	TIM6_Init(); //1khz counter for millisecond count
+	TIM14_Init(); //used for resetting values and the system
+	TIM15_Init();
 
 	eeprom_erase_page(0);
 

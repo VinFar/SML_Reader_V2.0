@@ -116,4 +116,11 @@ void gpio_init(void) {
 	nRF24_CSN_H;
 	nRF24_CE_L;
 
+	GPIO_InitStruct.Pin = ROTARY_1 | ROTARY_2;
+	GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+	GPIO_InitStruct.Alternate = GPIO_AF1_TIM3;
+	GPIO_InitStruct.Pull = GPIO_NOPULL;
+	HAL_GPIO_Init(ROTARY_BANK, &GPIO_InitStruct);
+
+
 }
