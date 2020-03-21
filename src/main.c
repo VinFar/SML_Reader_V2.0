@@ -24,7 +24,6 @@
 #include "nrf24.h"
 #include "nrf24_hal.h"
 
-
 /* Priorities at which the tasks are created.  The event semaphore task is
  given the maximum priority of ( configMAX_PRIORITIES - 1 ) to ensure it runs as
  soon as the semaphore is given. */
@@ -69,8 +68,8 @@ uuid_t uuid = { { ((uint32_t*) UUID_BASE_ADDRESS),
 uint32_t rtc_current_time_unix;
 uint32_t rtc_old_time_unix;
 
-const uint8_t nrf24_tx_size=NRF24_TX_SIZE;
-data_union_t nrf24_tx_buf[(NRF24_TX_SIZE/4)];
+const uint8_t nrf24_tx_size = NRF24_TX_SIZE;
+data_union_t nrf24_tx_buf[(NRF24_TX_SIZE / 4)];
 
 int main(void) {
 
@@ -121,16 +120,31 @@ int main(void) {
 			nrf24_tx_buf[1].uint32_data = sm_plant_current_data.power;
 			tx_res = nRF24_TransmitPacket(nrf24_tx_buf, nrf24_tx_size);
 			otx = nRF24_GetRetransmitCounters();
-			if(tx_res = nRF24_TX_SUCCESS){
+			if (tx_res == nRF24_TX_SUCCESS) {
 				/*
 				 * OK
 				 */
 				NOP
-			}else{
+			} else {
 				/*
 				 * not ok
 				 */
 				NOP
+			}
+			switch (tx_res) {
+			case nRF24_TX_SUCCESS:
+				UART_SendStr("OK");
+				break;
+			case nRF24_TX_TIMEOUT:
+				UART_SendStr("TIMEOUT");
+				break;
+			case nRF24_TX_MAXRT:
+				UART_SendStr("MAX RETRANSMIT");
+				nRF24_ResetPLOS();
+				break;
+			default:
+				UART_SendStr("ERROR");
+				break;
 			}
 
 			LED_STATUS_TOGGLE;
