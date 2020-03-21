@@ -21,6 +21,10 @@
 #include "comp.h"
 #include "dac.h"
 #include "rtc.h"
+#include "nrf24.h"
+#include "nrf24_hal.h"
+
+
 /* Priorities at which the tasks are created.  The event semaphore task is
  given the maximum priority of ( configMAX_PRIORITIES - 1 ) to ensure it runs as
  soon as the semaphore is given. */
@@ -65,6 +69,9 @@ uuid_t uuid = { { ((uint32_t*) UUID_BASE_ADDRESS),
 uint32_t rtc_current_time_unix;
 uint32_t rtc_old_time_unix;
 
+const uint8_t nrf24_tx_size=NRF24_TX_SIZE;
+data_union_t nrf24_tx_buf[(NRF24_TX_SIZE/4)];
+
 int main(void) {
 
 	prvSetupHardware();
@@ -82,6 +89,11 @@ int main(void) {
 
 	rtc_current_time_unix = rtc_old_time_unix = rtc_get_unix_time(&sm_time,
 			&sm_date);
+
+	nrf24_init_tx();
+
+	nRF24_TXResult tx_res;
+	uint8_t otx;
 
 	while (1) {
 
@@ -104,6 +116,23 @@ int main(void) {
 			/*
 			 * save data every 2 seconds
 			 */
+
+			nrf24_tx_buf[0].uint32_data = sm_main_current_data.power;
+			nrf24_tx_buf[1].uint32_data = sm_plant_current_data.power;
+			tx_res = nRF24_TransmitPacket(nrf24_tx_buf, nrf24_tx_size);
+			otx = nRF24_GetRetransmitCounters();
+			if(tx_res = nRF24_TX_SUCCESS){
+				/*
+				 * OK
+				 */
+				NOP
+			}else{
+				/*
+				 * not ok
+				 */
+				NOP
+			}
+
 			LED_STATUS_TOGGLE;
 			flash_main_store_data_in_cache(rtc_current_time_unix);
 			flash_plant_store_data_in_cache(rtc_current_time_unix);
