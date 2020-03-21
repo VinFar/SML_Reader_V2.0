@@ -181,7 +181,7 @@ static void prvSetupHardware(void) {
 	usart1_init();
 	usart6_init();
 	usart3_init();
-	usart5_init();
+//	usart5_init();
 
 	dac_init();
 	comp_init();

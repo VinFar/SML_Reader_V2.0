@@ -607,6 +607,8 @@ void nrf24_init_tx() {
 
 	// The transmitter sends a 10-byte packets to the address 'ESB' with Auto-ACK (ShockBurst enabled)
 
+	nRF24_Check();
+
 	// Set RF channel
 	nRF24_SetRFChannel(40);
 
