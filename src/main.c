@@ -151,6 +151,8 @@ int main(void) {
 		if (nRF24_GetStatus_RXFIFO() != nRF24_STATUS_RXFIFO_EMPTY) {
 			// Get a payload from the transceiver
 			pipe = nRF24_ReadPayload(nrf24_rx_data, &nrf24_rx_size);
+			powervalue_mean = nrf24_rx_data[0].int32_data;
+			flags.refreshed_push = 1;
 
 			// Clear all pending IRQ flags
 			nRF24_ClearIRQFlags();
@@ -434,6 +436,7 @@ void Initial_Init() {
 	flags.sml_rx_on_off_flag = 1;
 	current_menu_ptr = &Hauptmenu;
 	flags.currently_in_menu = 1;
+	flags.refreshed_push = 1;
 	return;
 }
 

@@ -8,6 +8,8 @@
 #ifndef DEFINES_H_
 #define DEFINES_H_
 
+#include "main.h"
+
 #define SMART_METER_BAUDRATE 9600
 
 typedef struct smart_meter_struct {
@@ -52,10 +54,6 @@ typedef struct {
 #define PO_5_OUTPUT GPIO_PIN_12	//PO_1_OUTPUT is PC12
 #define PO_6_OUTPUT GPIO_PIN_13	//PO_1_OUTPUT is PC12
 
-#define ROTARY_1	GPIO_PIN_6
-#define ROTARY_2	GPIO_PIN_7
-#define ROTARY_BANK	GPIOC
-#define ROTARY_PUSH	GPIO_PIN_12
 
 #define SML_ERROR -1
 #define SML_SUCCESS 0

@@ -57,7 +57,6 @@ void gpio_init(void) {
 //	GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
 //	GPIO_InitStruct.Alternate = GPIO_AF2_USART5;
 //	HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
-
 	GPIO_InitStruct.Pin = COMP1_INP_Pin;
 	GPIO_InitStruct.Mode = GPIO_MODE_ANALOG;
 	GPIO_InitStruct.Pull = GPIO_NOPULL;
@@ -116,11 +115,23 @@ void gpio_init(void) {
 	nRF24_CSN_H;
 	nRF24_CE_L;
 
-	GPIO_InitStruct.Pin = ROTARY_1 | ROTARY_2;
-	GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+	GPIO_InitStruct.Pin = ROTARY_A_Pin;
 	GPIO_InitStruct.Alternate = GPIO_AF1_TIM3;
+	GPIO_InitStruct.Mode = GPIO_MODE_IT_FALLING;
 	GPIO_InitStruct.Pull = GPIO_NOPULL;
-	HAL_GPIO_Init(ROTARY_BANK, &GPIO_InitStruct);
+	HAL_GPIO_Init(ROTARY_A_GPIO_Port, &GPIO_InitStruct);
+	NVIC_EnableIRQ(EXTI4_15_IRQn);
 
+	GPIO_InitStruct.Pin = ROTARY_B_Pin;
+	GPIO_InitStruct.Alternate = GPIO_AF1_TIM3;
+	GPIO_InitStruct.Mode = 0;
+	GPIO_InitStruct.Pull = GPIO_NOPULL;
+	HAL_GPIO_Init(ROTARY_B_GPIO_Port, &GPIO_InitStruct);
+
+	GPIO_InitStruct.Pin = ROTARY_PUSH_PIN;
+	GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING_FALLING;
+	GPIO_InitStruct.Alternate = 0;
+	GPIO_InitStruct.Pull = GPIO_NOPULL;
+	HAL_GPIO_Init(ROTARY_PUSH_GPIO_Port, &GPIO_InitStruct);
 
 }

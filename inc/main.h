@@ -50,6 +50,12 @@ void Error_Handler(void);
 #define LED2_GPIO_Port GPIOB
 #define LED3_Pin GPIO_PIN_14
 #define LED3_GPIO_Port GPIOB
+#define ROTARY_PUSH_PIN GPIO_PIN_15
+#define ROTARY_PUSH_GPIO_Port GPIOB
+#define ROTARY_A_Pin GPIO_PIN_6
+#define ROTARY_A_GPIO_Port GPIOC
+#define ROTARY_B_Pin GPIO_PIN_7
+#define ROTARY_B_GPIO_Port GPIOC
 #define FLASH_CS_Pin GPIO_PIN_9
 #define FLASH_CS_GPIO_Port GPIOC
 #define USART1_TX_Pin GPIO_PIN_9

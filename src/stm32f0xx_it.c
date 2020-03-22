@@ -99,7 +99,7 @@ void EXTI4_15_IRQHandler() {
 	if (( EXTI->PR & EXTI_PR_PR6)) {	//Interrupt from rotating rotary encoder
 
 		flags.refreshed_rotary = 1;
-		if (ROTARY_BANK->IDR & ROTARY_2) {
+		if (ROTARY_B_GPIO_Port->IDR & ROTARY_B_Pin) {
 			menu_timer_index++;
 
 		} else {
@@ -111,9 +111,9 @@ void EXTI4_15_IRQHandler() {
 
 	}
 
-	if ((EXTI->PR & EXTI_PR_PR12)) {	//Interrupt from pressing rotary encoder
+	if ((EXTI->PR & EXTI_PR_PR15)) {	//Interrupt from pressing rotary encoder
 
-		if (!(ROTARY_BANK->IDR & ROTARY_PUSH)) {
+		if (!(ROTARY_PUSH_GPIO_Port->IDR & ROTARY_PUSH_PIN)) {
 			/*
 			 * rotary encoder was pushed
 			 */
@@ -125,13 +125,13 @@ void EXTI4_15_IRQHandler() {
 			TIM14->CR1 |= TIM_CR1_CEN;
 			TIM14->SR &= ~TIM_SR_UIF;	//Reset Interrupt Flag
 
-		} else if ((ROTARY_BANK->IDR & ROTARY_PUSH)) {
+		} else if ((ROTARY_PUSH_GPIO_Port->IDR & ROTARY_PUSH_PIN)) {
 			/*
 			 * encoder push button was released inside the reset period
 			 */
 			TIM14->CR1 &= ~TIM_CR1_CEN;
 		}
-		EXTI->PR |= EXTI_PR_PR12;
+		EXTI->PR |= EXTI_PR_PR15;
 
 		return;
 
