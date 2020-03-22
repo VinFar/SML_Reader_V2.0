@@ -146,29 +146,17 @@ int main(void) {
 			flags.refreshed_rotary = 0;
 		}
 
-		//
-		// Constantly poll the status of the RX FIFO and get a payload if FIFO is not empty
-		//
-		// This is far from best solution, but it's ok for testing purposes
-		// More smart way is to use the IRQ pin :)
-		//
 		if (nRF24_GetStatus_RXFIFO() != nRF24_STATUS_RXFIFO_EMPTY) {
 			// Get a payload from the transceiver
 			pipe = nRF24_ReadPayload(nrf24_rx_data, &nrf24_rx_size);
-			powervalue_mean = nrf24_rx_data[0].int32_data;
+			powervalue_current_main = nrf24_rx_data[0].int32_data;
+			powervalue_current_main = nrf24_rx_data[1].int32_data;
+
 			flags.refreshed_rotary = 1;
 
 			// Clear all pending IRQ flags
 			nRF24_ClearIRQFlags();
 
-			// Print a payload contents to UART
-			UART_SendStr("RCV PIPE#");
-			UART_SendInt(pipe);
-			UART_SendInt0(nrf24_rx_data[0].int32_data);
-			UART_SendInt0(nrf24_rx_data[1].int32_data);
-			UART_SendStr(" PAYLOAD:>");
-			UART_SendBufHex((char*) nRF24_payload, payload_length);
-			UART_SendStr("<\r\n");
 		}
 	}
 }
@@ -237,9 +225,6 @@ void Initial_Init() {
 	LED_FAULT_OFF;
 	LED_OK_OFF;
 
-	powervalue_current = 0;
-	powervalue_used_by_consumers = 0;
-	old_Powervalue = 0;
 
 	TIM3->CNT = 0x00ff;
 	flags.sml_rx_on_off_flag = 0;
@@ -261,10 +246,6 @@ void Initial_Init() {
 	 */
 	menu_init_struct(&Hauptmenu, Hauptmenu_items,
 			SIZE_OF_MENU(Hauptmenu_items));
-	menu_init_struct(&Steckdoseneinstellungen, Steckdoseneinstellungen_items,
-			SIZE_OF_MENU(Steckdoseneinstellungen_items));
-	menu_init_struct(&Tarifeinstellungen, Tarifeinstellungen_items,
-			SIZE_OF_MENU(Tarifeinstellungen_items));
 	menu_init_struct(&infomenu, infomenu_items, SIZE_OF_MENU(infomenu_items));
 
 	/*
@@ -291,8 +272,7 @@ void Initial_Init() {
 	 * add the corresponding submenus
 	 */
 	menu_add_submenu(&Hauptmenu, &infomenu, 2);
-	menu_add_submenu(&Hauptmenu, &Steckdoseneinstellungen, 3);
-	menu_add_submenu(&Hauptmenu, &Tarifeinstellungen, 4);
+
 
 	menu_add_submenu(&infomenu, &maxima_menu, 1);
 	menu_add_submenu(&infomenu, &minima_menu, 2);
@@ -323,16 +303,6 @@ void Initial_Init() {
 	menu_init_text(&Hauptmenu.items[4], (char*) "Tarifeinst.");
 
 	/*
-	 * init text of tarifeinstellungen
-	 */
-	menu_init_text(&Tarifeinstellungen.items[0], "Zurueck ");
-	menu_init_text(&Tarifeinstellungen.items[1], "Preis kWh EK");
-	menu_init_text(&Tarifeinstellungen.items[2], "Preis kWh VK");
-	menu_init_text(&Tarifeinstellungen.items[3], "Preis kWh EV <0.3");
-	menu_init_text(&Tarifeinstellungen.items[4], "Preis kWh EV >0.3");
-	menu_init_text(&Tarifeinstellungen.items[5], "Monatl. Grundpreis");
-
-	/*
 	 * Initiation of infomenu
 	 */
 	menu_init_text(&infomenu.items[1], "Maxima");
@@ -348,34 +318,9 @@ void Initial_Init() {
 	 */
 	int32_t max_value = 0;
 
-	/*
-	 * init outlets menu and structs
-	 */
 	char tmp_str[20];
 	char men[20];
-	for (int i = 1; i < NUMBER_OF_OUTLETS + 1; i++) {
-		strcpy(men, "Steckdose ");
-		itoa(i, tmp_str, 10);
-		const char dp[6] = ": aus";
-		strcat(men, tmp_str);
-		strcat(men, dp);
-		menu_init_text(&Steckdoseneinstellungen.items[i], men);
-		menu_fct_for_push(&Steckdoseneinstellungen.items[i], &outlet_on_off);
-		menu_add_submenu(&Steckdoseneinstellungen, &changing_value, i + 6);
-		menu_fct_for_push(&Steckdoseneinstellungen.items[i + 6],
-				&call_menu_steckdoseneinstellunge);
-		menu_add_userdata(&Steckdoseneinstellungen.items[i + 6],
-				&outlets[i - 1]);
-		menu_add_userdata(&Steckdoseneinstellungen.items[i], &outlets[i - 1]);
-		outlets[i - 1].ptr_to_string = Steckdoseneinstellungen.items[i].string;
-	}
 
-	menu_init_text(&Steckdoseneinstellungen.items[7], "Leistung Steckd. 1");
-	menu_init_text(&Steckdoseneinstellungen.items[8], "Leistung Steckd. 2");
-	menu_init_text(&Steckdoseneinstellungen.items[9], "Leistung Steckd. 3");
-	menu_init_text(&Steckdoseneinstellungen.items[10], "Leistung Steckd. 4");
-	menu_init_text(&Steckdoseneinstellungen.items[11], "Leistung Steckd. 5");
-	menu_init_text(&Steckdoseneinstellungen.items[12], "Leistung Steckd. 6");
 
 	/*
 	 * maximum power value of all time

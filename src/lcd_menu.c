@@ -184,86 +184,49 @@ void lcd_refresh_rotary() {
 		lcd_setcursor(page_index + 1, 1);
 		lcd_putchar('>');
 	} else {
-		lcd_print_info(&powervalue_mean, &total_consumption);
+		lcd_print_info();
 	}
 	return;
 }
 
-void lcd_print_info(int32_t *Power, int32_t *consumption) {
+void lcd_print_info() {
 
 	char tmp_string[20] = "";
-	int32_t tmp_power = *Power;
 	lcd_clear();
 
 	switch (((menu_timer_index) % 5)) {				//Main manue
 	case 0:
 
 		lcd_setcursor(1, 1);
-		if (tmp_power > 0) {
-			lcd_print("Virtuell:");
-		} else {
-			lcd_print("Virtuell:");
-		}
+		lcd_print("PV:");
+		lcd_setcursor(2, 4);
+		itoa((int32_t) powervalue_current_plant, tmp_string, 10);
+		strcat(tmp_string, "W");
+		lcd_print(tmp_string);
+
+		lcd_setcursor(2, 1);
+		lcd_print("Main:");
+		lcd_setcursor(2, 6);
+		itoa((int32_t) powervalue_current_main, tmp_string, 10);
+		strcat(tmp_string, "W");
+		lcd_print(tmp_string);
+
 		lcd_setcursor(3, 1);
-		lcd_print("Zaehler:");
-		lcd_setcursor(3, 10);
-		itoa(*Power - powervalue_used_by_consumers, tmp_string, 10);
+		lcd_print("MW Main:");
+		lcd_setcursor(3, 9);
+		itoa(powervalue_mean_main, tmp_string, 10);
 		lcd_setcursor(3, 9);
 		strcat(tmp_string, "W");
 		lcd_print(tmp_string);
 
 		lcd_setcursor(4, 1);
-		lcd_print("Consumer:");
+		lcd_print("MW Plant:");
 		lcd_setcursor(4, 10);
-		itoa(powervalue_used_by_consumers, tmp_string, 10);
+		itoa(powervalue_mean_plant, tmp_string, 10);
 		lcd_setcursor(4, 10);
 		strcat(tmp_string, "W");
 		lcd_print(tmp_string);
 
-		itoa(*Power, tmp_string, 10);
-		lcd_setcursor(1, 10);
-		strcat(tmp_string, "W");
-		lcd_print(tmp_string);
-		lcd_setcursor(2, 1);
-
-		lcd_setcursor(2, 1);
-		lcd_print("Aktuell:");
-		lcd_setcursor(2, 9);
-		itoa((int32_t) powervalue_no_mean, tmp_string, 10);
-		strcat(tmp_string, "W");
-		lcd_print(tmp_string);
-
-//		if (*Power > 0) { //Buying power
-//			lcd_print("Kosten:");
-//			tmp_power = *Power;
-//			lcd_setcursor(2, 9);
-//			itoa((int) (((tmp_power * PRICE) / 1000) + BASIC_CHARGE / 720),
-//					tmp_string, sizeof(tmp_string));
-//			strcat(tmp_string, "ct/h");	//Add Substring to the end of "string"
-//			lcd_print(tmp_string);
-//			lcd_setcursor(1, 20);
-//		} else {	//Selling Power
-//			lcd_print("Gewinn:");
-//			tmp_power = (*Power);
-//			lcd_setcursor(2, 8);
-//			money = tmp_power * SELL_COST;
-//			if (ownconsumption <= (0.3 * SOLARPOWER)) {
-//				money += ownconsumption * CONSUME_FEE_U30;
-//
-//			} else {
-//				money += ownconsumption * CONSUME_FEE_O30;
-//
-//			}
-//			itoa((int) (money / 1000), tmp_string, sizeof(tmp_string));
-//			lcd_print(tmp_string);
-//			money = money - ((money / 1000) * 1000);
-//			lcd_putchar(44);
-//			itoa((int) money, tmp_string, sizeof(tmp_string));
-//			strcat(tmp_string, "ct/h");	//Add Substring to the end of "string"
-//			lcd_print(tmp_string);
-//			lcd_setcursor(1, 20);
-//
-//		}
 		break;
 	case 1:						//Menue two
 		lcd_setcursor(1, 1);
@@ -313,7 +276,7 @@ void lcd_print_info(int32_t *Power, int32_t *consumption) {
 		lcd_setcursor(1, 1);
 		lcd_print("mean time:");
 		lcd_setcursor(1, 11);
-		itoa((int) time_mean, tmp_string, 10);
+		itoa((int) 0, tmp_string, 10);
 		strcat(tmp_string, "ms");
 		lcd_print(tmp_string);
 		break;
@@ -349,7 +312,7 @@ void lcd_print_checkbox(int pos_line, int pos_row, unsigned flag) {
 
 }
 
-void lcd_print_value_unit(int pos_line, int pos_row, char *value, char* unit) {
+void lcd_print_value_unit(int pos_line, int pos_row, char *value, char *unit) {
 
 	for (char i = pos_row; i <= 20; i++) {		//flush line
 		lcd_setcursor(pos_line, i);
@@ -458,7 +421,7 @@ void menu_fct_for_rotary(item_t *item, void (*ptr)()) {
 	item->on_rotate = ptr;
 }
 
-void menu_add_userdata(item_t * item, void *ptr_to_data) {
+void menu_add_userdata(item_t *item, void *ptr_to_data) {
 	item->user_data = ptr_to_data;
 }
 
@@ -501,9 +464,7 @@ void on_push_reset_value(menu_t *instance) {
 			((eeprom_t*) (instance->items[menu_index].user_data));
 
 	memset(&eeprom_data->data, 0, eeprom_data->size);
-	flags.set_power_min_max = 1;
-	milli_seconds_passsed = 1;
-	powervalue_current = 1;
+
 
 }
 

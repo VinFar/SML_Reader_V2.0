@@ -61,24 +61,12 @@ void menu_fct_for_delayed_push(item_t *item, void (*ptr)(menu_t *instance));
 void on_rotary_change_value(menu_t *instance);
 void on_push_reset_value(menu_t *instance);
 void on_push_reset_system(menu_t *instance);
-
+void menu_printf(item_t *item, const char *fmt, ...);
 /*
  * Main menu
  */
 menu_t Hauptmenu;
 item_t Hauptmenu_items[5];
-
-/*
- * Steckdoseneintellungen
- */
-menu_t Steckdoseneinstellungen;
-item_t Steckdoseneinstellungen_items[(NUMBER_OF_OUTLETS * 2) + 1];
-
-/*
- * Tarifeinstellungen
- */
-menu_t Tarifeinstellungen;
-item_t Tarifeinstellungen_items[6];
 
 /*
  * submenu for changing a value

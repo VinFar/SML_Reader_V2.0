@@ -14,12 +14,15 @@
 extern int32_t old_Powervalue;
 extern int32_t tmp_PWR;
 
-extern int32_t powervalue_current, powervalue_mean,powervalue_used_by_consumers;
-extern int32_t total_consumption, total_money;
+extern int32_t powervalue_current_main, powervalue_mean_main;
+extern int32_t powervalue_current_plant, powervalue_mean_plant;
+extern int32_t total_consumption_main, total_consumption_plant;
 extern int32_t highest_prio;
-extern int32_t powervalue_no_mean;
+extern int32_t power_value_mean_main, power_value_mean_plant;
+extern int32_t powervalue_used_by_consumers;
 
-extern int32_t power_value_history[300];
+extern int32_t power_value_history_main[300];
+extern int32_t power_value_history_plant[300];
 extern uint16_t time_history[300];
 extern uint16_t time_mean;
 extern uint16_t milli_seconds_passsed;

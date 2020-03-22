@@ -175,7 +175,7 @@ double PreiskWhEK, PreiskWhVK, PreiskWhEVsmall, PreiskWhEVbig, MonatlGrundpreis;
  * TODO: write documentation
  */
 void _delay_ms(uint32_t value);
-void lcd_print_info(int32_t *Power, int32_t *consumption);
+void lcd_print_info();
 void lcd_refresh_push();
 void lcd_refresh_rotary();
 void lcd_print_on_off(int pos_line, int pos_row, unsigned flag);

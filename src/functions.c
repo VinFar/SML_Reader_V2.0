@@ -13,14 +13,17 @@
 int32_t old_Powervalue;
 int32_t tmp_PWR;
 
-int32_t powervalue_current, powervalue_mean, powervalue_used_by_consumers = 0;
-int32_t total_consumption, total_money;
+int32_t powervalue_current_main, powervalue_mean_main;
+int32_t powervalue_current_plant, powervalue_mean_plant;
+int32_t total_consumption_main, total_consumption_plant;
 int32_t highest_prio;
-int32_t powervalue_no_mean = 0;
+int32_t power_value_mean_main = 0, power_value_mean_plant = 0;
+int32_t powervalue_used_by_consumers=0;
 
-int32_t power_value_history[300];
+int32_t power_value_history_main[300];
+int32_t power_value_history_plant[300];
+
 uint16_t time_history[300]; //max 60 second history
-uint16_t time_mean = 0;
 uint16_t milli_seconds_passsed = 0;
 
 uint16_t seconds_for_meanvalue = 60;
@@ -531,6 +534,4 @@ void set_max_min_time(uint16_t time) {
 	}
 
 }
-
-
 
