@@ -13,7 +13,6 @@
 #include "stm32f0xx_hal.h"
 #include "defines.h"
 
-#define delay_us(us)
 #define NOP asm("nop");
 #define STRUCT_PACKED __attribute__((packed))
 #define UUID_BASE_ADDRESS 0x1FFF7A10

@@ -74,7 +74,7 @@ data_union_t nrf24_tx_buf[(NRF24_TX_SIZE / 4)];
 uint32_t i,j,k;
 
 // Buffer to store a payload of maximum width
-uint8_t nRF24_payload[32];
+data_union_t nRF24_payload[32];
 
 // Pipe number
 nRF24_RXResult pipe;
@@ -158,11 +158,7 @@ int main(void) {
 	j = 0;
 	while (1) {
 		// Prepare data packet
-		for (i = 0; i < payload_length; i++) {
-			nRF24_payload[i] = j++;
-			if (j > 0x000000FF)
-				j = 0;
-		}
+		nRF24_payload[0].int32_data = sm_main_current_data.power+=13;
 
 		// Print a payload
 		UART_SendStr("PAYLOAD:>");
@@ -197,7 +193,7 @@ int main(void) {
 		UART_SendStr("\r\n");
 
 		// Wait ~0.5s
-		delay_us(100000);
+		delay_us(500000);
 	}
 }
 
@@ -222,6 +218,8 @@ static void prvSetupHardware(void) {
 	SystemClock_Config();
 
 	gpio_init();
+
+	timer16_init();
 
 	/*
 	 * communication for DAC and EEPROM
