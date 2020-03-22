@@ -98,7 +98,7 @@ nRF24_RXResult pipe;
 uint8_t payload_length;
 
 /*
- * Version v0.1.0.0
+ * Version v0.1.0.1
  */
 
 int main(void) {
@@ -156,7 +156,7 @@ int main(void) {
 			// Get a payload from the transceiver
 			pipe = nRF24_ReadPayload(nrf24_rx_data, &nrf24_rx_size);
 			powervalue_mean = nrf24_rx_data[0].int32_data;
-			flags.refreshed_push = 1;
+			flags.refreshed_rotary = 1;
 
 			// Clear all pending IRQ flags
 			nRF24_ClearIRQFlags();
