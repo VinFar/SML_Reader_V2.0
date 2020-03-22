@@ -86,7 +86,7 @@ uint32_t last_eeprom_timestamp = 0;
 uint32_t uptime_of_smartmeter;
 static uint32_t runtime_of_system_sec;
 
-uint32_t i,j,k;
+uint32_t i, j, k;
 
 // Buffer to store a payload of maximum width
 uint8_t nRF24_payload[32];
@@ -107,71 +107,64 @@ int main(void) {
 	rtc_current_time_unix = rtc_old_time_unix = rtc_get_unix_time(&sm_time,
 			&sm_date);
 
-	// This is simple receiver with Enhanced ShockBurst:
-		//   - RX address: 'ESB'
-		//   - payload: 10 bytes
-		//   - RF channel: 40 (2440MHz)
-		//   - data rate: 2Mbps
-		//   - CRC scheme: 2 byte
+	nrf24_init_rx();
 
-	    // The transmitter sends a 10-byte packets to the address 'ESB' with Auto-ACK (ShockBurst enabled)
+	while (1) {
+		if (flags.init_lcd) {
+			if (lcd_poll() < 0) {
+				/*
+				 * still can't reach display
+				 */
 
-	    // Set RF channel
-	    nRF24_SetRFChannel(40);
+			} else {
+				/*
+				 * display is connected again
+				 */
+				current_menu_ptr = &Hauptmenu;
+				menu_index = 0;
+				flags.init_lcd = 0;
+				lcd_init();
+			}
+		}
+		if (flags.refreshed_push) {
+			if (current_menu_ptr->items[menu_index].on_push == NULL) {
 
-	    // Set data rate
-	    nRF24_SetDataRate(nRF24_DR_2Mbps);
+			} else {
 
-	    // Set CRC scheme
-	    nRF24_SetCRCScheme(nRF24_CRC_2byte);
+				current_menu_ptr->items[menu_index].on_push(current_menu_ptr);
+				flags.refreshed_rotary = 1;
 
-	    // Set address width, its common for all pipes (RX and TX)
-	    nRF24_SetAddrWidth(3);
+			}
+			flags.refreshed_push = 0;
+		}
+		if (flags.refreshed_rotary) {
+			current_menu_ptr->items[menu_index].on_rotate(current_menu_ptr);
+			flags.refreshed_rotary = 0;
+		}
 
-	    // Configure RX PIPE
-	    static const uint8_t nRF24_ADDR[] = { 'E', 'S', 'B' };
-	    nRF24_SetAddr(nRF24_PIPE1, nRF24_ADDR); // program address for pipe
-	    nRF24_SetRXPipe(nRF24_PIPE1, nRF24_AA_ON, 10); // Auto-ACK: enabled, payload length: 10 bytes
+		//
+		// Constantly poll the status of the RX FIFO and get a payload if FIFO is not empty
+		//
+		// This is far from best solution, but it's ok for testing purposes
+		// More smart way is to use the IRQ pin :)
+		//
+		if (nRF24_GetStatus_RXFIFO() != nRF24_STATUS_RXFIFO_EMPTY) {
+			// Get a payload from the transceiver
+			pipe = nRF24_ReadPayload(nrf24_rx_data, &nrf24_rx_size);
 
-	    // Set TX power for Auto-ACK (maximum, to ensure that transmitter will hear ACK reply)
-	    nRF24_SetTXPower(nRF24_TXPWR_0dBm);
+			// Clear all pending IRQ flags
+			nRF24_ClearIRQFlags();
 
-	    // Set operational mode (PRX == receiver)
-	    nRF24_SetOperationalMode(nRF24_MODE_RX);
-
-	    // Clear any pending IRQ flags
-	    nRF24_ClearIRQFlags();
-
-	    // Wake the transceiver
-	    nRF24_SetPowerMode(nRF24_PWR_UP);
-
-	    // Put the transceiver to the RX mode
-	    nRF24_CE_H;
-
-
-	    // The main loop
-	    while (1) {
-	    	//
-	    	// Constantly poll the status of the RX FIFO and get a payload if FIFO is not empty
-	    	//
-	    	// This is far from best solution, but it's ok for testing purposes
-	    	// More smart way is to use the IRQ pin :)
-	    	//
-	    	if (nRF24_GetStatus_RXFIFO() != nRF24_STATUS_RXFIFO_EMPTY) {
-	    		// Get a payload from the transceiver
-	    		pipe = nRF24_ReadPayload(nRF24_payload, &payload_length);
-
-	    		// Clear all pending IRQ flags
-				nRF24_ClearIRQFlags();
-
-				// Print a payload contents to UART
-				UART_SendStr("RCV PIPE#");
-				UART_SendInt(pipe);
-				UART_SendStr(" PAYLOAD:>");
-				UART_SendBufHex((char *)nRF24_payload, payload_length);
-				UART_SendStr("<\r\n");
-	    	}
-	    }
+			// Print a payload contents to UART
+			UART_SendStr("RCV PIPE#");
+			UART_SendInt(pipe);
+			UART_SendInt0(nrf24_rx_data[0].int32_data);
+			UART_SendInt0(nrf24_rx_data[1].int32_data);
+			UART_SendStr(" PAYLOAD:>");
+			UART_SendBufHex((char*) nRF24_payload, payload_length);
+			UART_SendStr("<\r\n");
+		}
+	}
 }
 
 void vApplicationMallocFailedHook(void) {

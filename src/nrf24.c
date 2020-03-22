@@ -598,46 +598,47 @@ void nrf24_pipe_set_payload_length(int8_t pipe, uint8_t length) {
 }
 
 void nrf24_init_rx() {
-	   // This is simple receiver with Enhanced ShockBurst:
-		//   - RX address: 'ESB'
-		//   - payload: 10 bytes
-		//   - RF channel: 40 (2440MHz)
-		//   - data rate: 2Mbps
-		//   - CRC scheme: 2 byte
+	// This is simple receiver with Enhanced ShockBurst:
+	//   - RX address: 'ESB'
+	//   - payload: 10 bytes
+	//   - RF channel: 40 (2440MHz)
+	//   - data rate: 2Mbps
+	//   - CRC scheme: 2 byte
 
-	    // The transmitter sends a 10-byte packets to the address 'ESB' with Auto-ACK (ShockBurst enabled)
+	// The transmitter sends a 10-byte packets to the address 'ESB' with Auto-ACK (ShockBurst enabled)
 
-	    // Set RF channel
-	    nRF24_SetRFChannel(40);
+	// Set RF channel
+	nRF24_SetRFChannel(40);
 
-	    // Set data rate
-	    nRF24_SetDataRate(nRF24_DR_2Mbps);
+	// Set data rate
+	nRF24_SetDataRate(nRF24_DR_2Mbps);
 
-	    // Set CRC scheme
-	    nRF24_SetCRCScheme(nRF24_CRC_2byte);
+	// Set CRC scheme
+	nRF24_SetCRCScheme(nRF24_CRC_2byte);
 
-	    // Set address width, its common for all pipes (RX and TX)
-	    nRF24_SetAddrWidth(3);
+	// Set address width, its common for all pipes (RX and TX)
+	nRF24_SetAddrWidth(3);
 
-	    // Configure RX PIPE
-	    static const uint8_t nRF24_ADDR[] = { 'E', 'S', 'B' };
-	    nRF24_SetAddr(nRF24_PIPE1, nRF24_ADDR); // program address for pipe
-	    nRF24_SetRXPipe(nRF24_PIPE1, nRF24_AA_ON, 10); // Auto-ACK: enabled, payload length: 10 bytes
+	// Configure RX PIPE
+	static const uint8_t nRF24_ADDR[] = { 'E', 'S', 'B' };
+	nRF24_SetAddr(nRF24_PIPE1, nRF24_ADDR); // program address for pipe
+	nRF24_SetRXPipe(nRF24_PIPE1, nRF24_AA_ON, 10); // Auto-ACK: enabled, payload length: 10 bytes
 
-	    // Set TX power for Auto-ACK (maximum, to ensure that transmitter will hear ACK reply)
-	    nRF24_SetTXPower(nRF24_TXPWR_0dBm);
+	// Set TX power for Auto-ACK (maximum, to ensure that transmitter will hear ACK reply)
+	nRF24_SetTXPower(nRF24_TXPWR_0dBm);
 
-	    // Set operational mode (PRX == receiver)
-	    nRF24_SetOperationalMode(nRF24_MODE_RX);
+	// Set operational mode (PRX == receiver)
+	nRF24_SetOperationalMode(nRF24_MODE_RX);
 
-	    // Clear any pending IRQ flags
-	    nRF24_ClearIRQFlags();
+	// Clear any pending IRQ flags
+	nRF24_ClearIRQFlags();
 
-	    // Wake the transceiver
-	    nRF24_SetPowerMode(nRF24_PWR_UP);
+	// Wake the transceiver
+	nRF24_SetPowerMode(nRF24_PWR_UP);
 
-	    // Put the transceiver to the RX mode
-	    nRF24_CE_H;
+	// Put the transceiver to the RX mode
+	nRF24_CE_H;
+
 }
 
 #if 0
