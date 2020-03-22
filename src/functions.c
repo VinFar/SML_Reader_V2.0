@@ -406,7 +406,7 @@ void sm_main_extract_data() {
 				 * at this point all data from the smart meter was written
 				 * to the struct
 				 */
-				LED_ERROR_TOGGLE;
+
 
 			}
 		}
