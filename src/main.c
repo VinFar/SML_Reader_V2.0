@@ -71,7 +71,7 @@ uint32_t rtc_old_time_unix;
 const uint8_t nrf24_tx_size = NRF24_TX_SIZE;
 data_union_t nrf24_tx_buf[(NRF24_TX_SIZE / 4)];
 
-uint32_t i,j,k;
+uint32_t i, j, k;
 
 // Buffer to store a payload of maximum width
 uint8_t nRF24_payload[32];
@@ -83,7 +83,6 @@ nRF24_RXResult pipe;
 uint8_t payload_length;
 
 nRF24_TXResult tx_res;
-
 
 int main(void) {
 
@@ -116,72 +115,74 @@ int main(void) {
 	j = 0;
 	while (1) {
 
-			RTC_GetTime(RTC_FORMAT_BIN, &sm_time);
-			RTC_GetDate(RTC_FORMAT_BIN, &sm_date);
-			rtc_current_time_unix = rtc_get_unix_time(&sm_time, &sm_date);
+		RTC_GetTime(RTC_FORMAT_BIN, &sm_time);
+		RTC_GetDate(RTC_FORMAT_BIN, &sm_date);
+		rtc_current_time_unix = rtc_get_unix_time(&sm_time, &sm_date);
 
-			if (flags.new_plant_sml_packet) {
-				flags.new_plant_sml_packet = 0;
-				sm_plant_extract_data();
-			}
+		if (flags.new_plant_sml_packet) {
+			flags.new_plant_sml_packet = 0;
+			sm_plant_extract_data();
+		}
 
-			if (flags.new_main_sml_packet) {
-				flags.new_main_sml_packet = 0;
-				sm_main_extract_data();
-			}
+		if (flags.new_main_sml_packet) {
+			flags.new_main_sml_packet = 0;
+			sm_main_extract_data();
+		}
 
-			if ((rtc_current_time_unix - rtc_old_time_unix) >= FLASH_SAVE_INTERVALL) {
-				rtc_old_time_unix = rtc_current_time_unix;
+		if ((rtc_current_time_unix - rtc_old_time_unix) >= FLASH_SAVE_INTERVALL) {
+			rtc_old_time_unix = rtc_current_time_unix;
+			/*
+			 * save data every 2 seconds
+			 */
+
+			nrf24_tx_buf[0].uint32_data = sm_main_current_data.power;
+			nrf24_tx_buf[1].uint32_data = sm_plant_current_data.power;
+			tx_res = nRF24_TransmitPacket((uint8_t) nrf24_tx_buf,
+					nrf24_tx_size);
+			otx = nRF24_GetRetransmitCounters();
+			otx_plos_cnt = (otx & nRF24_MASK_PLOS_CNT ) >> 4; // packets lost counter
+			otx_arc_cnt = (otx & nRF24_MASK_ARC_CNT ); // auto retransmissions counter
+			if (tx_res == nRF24_TX_SUCCESS) {
 				/*
-				 * save data every 2 seconds
+				 * OK
 				 */
-
-				nrf24_tx_buf[0].uint32_data = sm_main_current_data.power;
-				nrf24_tx_buf[1].uint32_data = sm_plant_current_data.power;
-				tx_res = nRF24_TransmitPacket(nrf24_tx_buf, nrf24_tx_size);
-				otx = nRF24_GetRetransmitCounters();
-				if (tx_res == nRF24_TX_SUCCESS) {
-					/*
-					 * OK
-					 */
-					NOP
-				} else {
-					/*
-					 * not ok
-					 */
-					NOP
-				}
-				switch (tx_res) {
-				case nRF24_TX_SUCCESS:
-					LED_STATUS_TOGGLE;
-					UART_SendStr("OK");
-					break;
-				case nRF24_TX_TIMEOUT:
-					LED_ERROR_TOGGLE;
-					UART_SendStr("TIMEOUT");
-					break;
-				case nRF24_TX_MAXRT:
-					LED_ERROR_TOGGLE;
-					UART_SendStr("MAX RETRANSMIT");
-					nRF24_ResetPLOS();
-					break;
-				default:
-					LED_ERROR_TOGGLE;
-					UART_SendStr("ERROR");
-					break;
-				}
-
-
-				flash_main_store_data_in_cache(rtc_current_time_unix);
-				flash_plant_store_data_in_cache(rtc_current_time_unix);
-
+				NOP
+			} else {
+				/*
+				 * not ok
+				 */
+				NOP
+			}
+			switch (tx_res) {
+			case nRF24_TX_SUCCESS:
+				LED_STATUS_TOGGLE;
+				UART_SendStr("OK");
+				break;
+			case nRF24_TX_TIMEOUT:
+				LED_ERROR_TOGGLE;
+				UART_SendStr("TIMEOUT");
+				break;
+			case nRF24_TX_MAXRT:
+				LED_ERROR_TOGGLE;
+				UART_SendStr("MAX RETRANSMIT");
+				nRF24_ResetPLOS();
+				break;
+			default:
+				LED_ERROR_TOGGLE;
+				UART_SendStr("ERROR");
+				break;
 			}
 
-			if (flags.usart6_new_cmd) {
-				check_cmd_frame();
-			}
+			flash_main_store_data_in_cache(rtc_current_time_unix);
+			flash_plant_store_data_in_cache(rtc_current_time_unix);
 
 		}
+
+		if (flags.usart6_new_cmd) {
+			check_cmd_frame();
+		}
+
+	}
 }
 
 void vApplicationMallocFailedHook(void) {
