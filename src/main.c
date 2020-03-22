@@ -71,7 +71,7 @@ uint32_t rtc_old_time_unix;
 const uint8_t nrf24_tx_size = NRF24_TX_SIZE;
 data_union_t nrf24_tx_buf[(NRF24_TX_SIZE / 4)];
 
-uint32_t i,j,k;
+uint32_t i, j, k;
 
 // Buffer to store a payload of maximum width
 data_union_t nRF24_payload[32];
@@ -83,7 +83,6 @@ nRF24_RXResult pipe;
 uint8_t payload_length;
 
 nRF24_TXResult tx_res;
-
 
 int main(void) {
 
@@ -154,46 +153,74 @@ int main(void) {
 	uint8_t otx_arc_cnt; // retransmit count
 
 	// The main loop
-	payload_length = 10;
+	payload_length = 20;
 	j = 0;
 	while (1) {
-		// Prepare data packet
-		nRF24_payload[0].int32_data = sm_main_current_data.power+=13;
 
-		// Print a payload
-		UART_SendStr("PAYLOAD:>");
-		UART_SendBufHex((char*) nRF24_payload, payload_length);
-		UART_SendStr("< ... TX: ");
+		RTC_GetTime(RTC_FORMAT_BIN, &sm_time);
+		RTC_GetDate(RTC_FORMAT_BIN, &sm_date);
+		rtc_current_time_unix = rtc_get_unix_time(&sm_time, &sm_date);
 
-		// Transmit a packet
-		tx_res = nRF24_TransmitPacket(nRF24_payload, payload_length);
-		otx = nRF24_GetRetransmitCounters();
-		otx_plos_cnt = (otx & nRF24_MASK_PLOS_CNT ) >> 4; // packets lost counter
-		otx_arc_cnt = (otx & nRF24_MASK_ARC_CNT ); // auto retransmissions counter
-		switch (tx_res) {
-		case nRF24_TX_SUCCESS:
-			UART_SendStr("OK");
-			break;
-		case nRF24_TX_TIMEOUT:
-			UART_SendStr("TIMEOUT");
-			break;
-		case nRF24_TX_MAXRT:
-			UART_SendStr("MAX RETRANSMIT");
-			packets_lost += otx_plos_cnt;
-			nRF24_ResetPLOS();
-			break;
-		default:
-			UART_SendStr("ERROR");
-			break;
+		if (flags.new_plant_sml_packet) {
+			flags.new_plant_sml_packet = 0;
+			sm_plant_extract_data();
 		}
-		UART_SendStr("   ARC=");
-		UART_SendInt(otx_arc_cnt);
-		UART_SendStr(" LOST=");
-		UART_SendInt(packets_lost);
-		UART_SendStr("\r\n");
 
-		// Wait ~0.5s
-		delay_us(500000);
+		if (flags.new_main_sml_packet) {
+			flags.new_main_sml_packet = 0;
+			sm_main_extract_data();
+		}
+
+		// Prepare data packet
+		// Transmit a packet
+		if ((rtc_current_time_unix - rtc_old_time_unix) >= FLASH_SAVE_INTERVALL) {
+			rtc_old_time_unix = rtc_current_time_unix;
+			/*
+			 * save data every 2 seconds
+			 */
+
+			nRF24_payload[0].int32_data = sm_main_current_data.power;
+			nRF24_payload[1].int32_data = sm_plant_current_data.power;
+			nRF24_payload[2].int32_data = sm_main_current_data.meter_delivery;
+			nRF24_payload[3].int32_data = sm_main_current_data.meter_purchase;
+			nRF24_payload[4].int32_data = sm_plant_current_data.meter_delivery;
+
+			tx_res = nRF24_TransmitPacket((uint8_t) nrf24_tx_buf,
+					nrf24_tx_size);
+			otx = nRF24_GetRetransmitCounters();
+			otx_plos_cnt = (otx & nRF24_MASK_PLOS_CNT ) >> 4; // packets lost counter
+			otx_arc_cnt = (otx & nRF24_MASK_ARC_CNT ); // auto retransmissions counter
+			if (tx_res == nRF24_TX_SUCCESS) {
+				/*
+				 * OK
+				 */
+				NOP
+			} else {
+				/*
+				 * not ok
+				 */
+				NOP
+			}
+			switch (tx_res) {
+			case nRF24_TX_SUCCESS:
+				break;
+			case nRF24_TX_TIMEOUT:
+				break;
+			case nRF24_TX_MAXRT:
+				nRF24_ResetPLOS();
+				break;
+			default:
+				break;
+			}
+
+			flash_main_store_data_in_cache(rtc_current_time_unix);
+			flash_plant_store_data_in_cache(rtc_current_time_unix);
+
+		}
+
+		if (flags.usart6_new_cmd) {
+			check_cmd_frame();
+		}
 	}
 }
 
