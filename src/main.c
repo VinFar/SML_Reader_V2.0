@@ -76,7 +76,7 @@ uint8_t payload_length;
 nRF24_TXResult tx_res;
 
 data_union_t nrf24_rx_data[5];
-uint8_t nrf24_rx_size = 0;
+uint8_t nrf24_rx_size = 24;
 
 static uint32_t idx_mean_value = 0;
 
@@ -98,7 +98,7 @@ nRF24_RXResult pipe;
 uint8_t payload_length;
 
 /*
- * Version v0.1.0.1
+ * Version v0.1.0.2
  */
 
 int main(void) {
@@ -211,9 +211,12 @@ int main(void) {
 
 		if (nRF24_GetStatus_RXFIFO() != nRF24_STATUS_RXFIFO_EMPTY) {
 			// Get a payload from the transceiver
-			pipe = nRF24_ReadPayload(nrf24_rx_data, &nrf24_rx_size);
+			nrf24_rx_size=24;
+			pipe = nRF24_ReadPayload((uint8_t*)nrf24_rx_data, &nrf24_rx_size);
 			powervalue_current_main = nrf24_rx_data[0].int32_data;
 			powervalue_current_plant = nrf24_rx_data[1].int32_data;
+			powervalue_mean_main = nrf24_rx_data[5].uint32_data;
+
 
 			flags.refreshed_rotary = 1;
 
