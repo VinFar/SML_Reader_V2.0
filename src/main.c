@@ -68,6 +68,9 @@ uuid_t uuid = { { ((uint32_t*) UUID_BASE_ADDRESS),
 uint32_t rtc_current_time_unix;
 uint32_t rtc_old_time_unix;
 
+static uint32_t rtx_cur_time_nrf24 = 0;
+static uint32_t rtx_old_time_nrf24 = 0;
+
 const uint8_t nrf24_tx_size = NRF24_TX_SIZE;
 data_union_t nrf24_tx_buf[(NRF24_TX_SIZE / 4)];
 
@@ -160,7 +163,8 @@ int main(void) {
 
 		RTC_GetTime(RTC_FORMAT_BIN, &sm_time);
 		RTC_GetDate(RTC_FORMAT_BIN, &sm_date);
-		rtc_current_time_unix = rtc_get_unix_time(&sm_time, &sm_date);
+		rtx_cur_time_nrf24 = rtc_current_time_unix = rtc_get_unix_time(&sm_time,
+				&sm_date);
 
 		if (flags.new_plant_sml_packet) {
 			flags.new_plant_sml_packet = 0;
@@ -174,10 +178,11 @@ int main(void) {
 
 		// Prepare data packet
 		// Transmit a packet
-		if ((rtc_current_time_unix - rtc_old_time_unix) >= FLASH_SAVE_INTERVALL) {
-			rtc_old_time_unix = rtc_current_time_unix;
+
+		if ((rtx_cur_time_nrf24 - rtx_old_time_nrf24) >= 1) {
+			rtx_old_time_nrf24 = rtx_cur_time_nrf24;
 			/*
-			 * save data every 2 seconds
+			 * transmit data every 1 second
 			 */
 
 			nRF24_payload[0].int32_data = sm_main_current_data.power;
@@ -192,7 +197,6 @@ int main(void) {
 			otx = nRF24_GetRetransmitCounters();
 			otx_plos_cnt = (otx & nRF24_MASK_PLOS_CNT ) >> 4; // packets lost counter
 			otx_arc_cnt = (otx & nRF24_MASK_ARC_CNT ); // auto retransmissions counter
-			LED_STATUS_TOGGLE;
 			if (tx_res == nRF24_TX_SUCCESS) {
 				/*
 				 * OK
@@ -215,9 +219,15 @@ int main(void) {
 			default:
 				break;
 			}
+		}
+		if ((rtc_current_time_unix - rtc_old_time_unix) >= FLASH_SAVE_INTERVALL) {
+			rtc_old_time_unix = rtc_current_time_unix;
+			/*
+			 * save data every 2 seconds
+			 */
 
-//			flash_main_store_data_in_cache(rtc_current_time_unix);
-//			flash_plant_store_data_in_cache(rtc_current_time_unix);
+			flash_main_store_data_in_cache(rtc_current_time_unix);
+			flash_plant_store_data_in_cache(rtc_current_time_unix);
 
 		}
 
