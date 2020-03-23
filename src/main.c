@@ -213,7 +213,7 @@ int main(void) {
 			// Get a payload from the transceiver
 			pipe = nRF24_ReadPayload(nrf24_rx_data, &nrf24_rx_size);
 			powervalue_current_main = nrf24_rx_data[0].int32_data;
-			powervalue_current_main = nrf24_rx_data[1].int32_data;
+			powervalue_current_plant = nrf24_rx_data[1].int32_data;
 
 			flags.refreshed_rotary = 1;
 
