@@ -146,6 +146,85 @@ int main(void) {
 			flags.refreshed_rotary = 0;
 		}
 
+		if (1) {
+			/*
+			 * write powervalue into history
+			 */
+			power_value_history_main[idx_mean_value] = powervalue_current_main;
+			power_value_history_plant[idx_mean_value] = powervalue_current_plant;
+
+			consumption_tmp = powervalue_current * milli_seconds_passsed;//Wms
+			consumption_tmp /= 1000;	//Ws
+			consumption_tmp /= 60;	//Wminuten
+			consumption_tmp /= 60;	//watthours
+
+			/*
+			 * summary_consumption is the overall energy balance since the start of the system
+			 */
+			eeprom_consumption_balance.data += consumption_tmp;
+
+			consumption_tmp = powervalue_used_by_consumers
+					* milli_seconds_passsed;	//Wms
+			consumption_tmp /= 1000;	//Ws
+			consumption_tmp /= 60;	//Wminuten
+			consumption_tmp /= 60;	//watthours
+
+			eeprom_consumption_by_system.data += consumption_tmp;
+
+			/*
+			 * we have a history of 600 values, so catch overflow
+			 */
+			uint16_t idx_newest_value = idx_mean_value;
+			if (idx_mean_value++
+					== (sizeof(time_history) / sizeof(time_history[0]))) {
+				idx_mean_value = 0;
+			}
+
+			uint32_t sum_of_time = 0;
+			int64_t sum_of_power = 0;
+			/*
+			 * we have to add all values that are inside the period specified by SECONDS_FOR_MEAN_VALUE
+			 * From the newest value down to the period
+			 */
+			uint16_t loop_ctr = 0;
+			while (sum_of_time < (SECONDS_FOR_MEAN_VALUE * 1000)) {
+				if (time_history[idx_newest_value] != 0) {
+					loop_ctr++;
+				}
+				/*
+				 * add all values
+				 */
+				sum_of_time += time_history[idx_newest_value];
+				sum_of_power += (power_value_history[idx_newest_value]
+						* (int32_t) time_history[idx_newest_value]);
+
+				/*
+				 * catch overflow of index
+				 */
+				if (idx_newest_value == 0) {
+					idx_newest_value = (sizeof(time_history)
+							/ sizeof(time_history[0])) - 1;
+				} else {
+					idx_newest_value--;
+				}
+				if (idx_newest_value == idx_mean_value) {
+					/*
+					 * at the beginning there will be not enough time stamps in the array
+					 * to reach the sum of SECONDS_FOR_MEAN_VALUE, so catch index on which we began.
+					 * if this is the case take the maximum passed time and use this for the mean value
+					 */
+					break;
+				}
+			}
+			powervalue_mean = (int32_t) ((double) sum_of_power
+					/ ((double) sum_of_time));
+			time_mean = (uint16_t) ((float) sum_of_time / (float) loop_ctr);
+
+			/*
+			 * end of mean value calculation
+			 */
+		}
+
 		if (nRF24_GetStatus_RXFIFO() != nRF24_STATUS_RXFIFO_EMPTY) {
 			// Get a payload from the transceiver
 			pipe = nRF24_ReadPayload(nrf24_rx_data, &nrf24_rx_size);
@@ -225,7 +304,6 @@ void Initial_Init() {
 	LED_FAULT_OFF;
 	LED_OK_OFF;
 
-
 	TIM3->CNT = 0x00ff;
 	flags.sml_rx_on_off_flag = 0;
 	flags.lcd_light_on_off = 1;
@@ -273,7 +351,6 @@ void Initial_Init() {
 	 */
 	menu_add_submenu(&Hauptmenu, &infomenu, 2);
 
-
 	menu_add_submenu(&infomenu, &maxima_menu, 1);
 	menu_add_submenu(&infomenu, &minima_menu, 2);
 	menu_add_submenu(&infomenu, &used_energy_menu, 3);
@@ -320,7 +397,6 @@ void Initial_Init() {
 
 	char tmp_str[20];
 	char men[20];
-
 
 	/*
 	 * maximum power value of all time
