@@ -113,10 +113,10 @@ int main(void) {
 	nRF24_Check();
 	nRF24_Init();
 	// Set RF channel
-	nRF24_SetRFChannel(90);
+	nRF24_SetRFChannel(40);
 
 	// Set data rate
-	nRF24_SetDataRate(nRF24_DR_250kbps);
+	nRF24_SetDataRate(nRF24_DR_2Mbps);
 
 	// Set CRC scheme
 	nRF24_SetCRCScheme(nRF24_CRC_2byte);
