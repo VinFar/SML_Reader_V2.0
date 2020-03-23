@@ -204,7 +204,7 @@ typedef enum{
 	nrf24_rx_pipe5,
 }nrf24_rx_pipes_t;
 
-#define NRF24_TX_SIZE 20
+#define NRF24_TX_SIZE 24
 
 extern const uint8_t nrf24_tx_size;
 extern data_union_t nrf24_tx_buf[(NRF24_TX_SIZE/4)];
