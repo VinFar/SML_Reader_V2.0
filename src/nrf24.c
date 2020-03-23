@@ -609,7 +609,7 @@ void nrf24_init_rx() {
 	nRF24_Init();
 	nRF24_Check();
 	// Set RF channel
-	nRF24_SetRFChannel(90);
+	nRF24_SetRFChannel(40);
 
 	// Set data rate
 	nRF24_SetDataRate(nRF24_DR_2Mbps);
@@ -623,7 +623,7 @@ void nrf24_init_rx() {
 	// Configure RX PIPE
 	static const uint8_t nRF24_ADDR[] = { 'E', 'S', 'B' };
 	nRF24_SetAddr(nRF24_PIPE1, nRF24_ADDR); // program address for pipe
-	nRF24_SetRXPipe(nRF24_PIPE1, nRF24_AA_ON, 10); // Auto-ACK: enabled, payload length: 10 bytes
+	nRF24_SetRXPipe(nRF24_PIPE1, nRF24_AA_ON, 20); // Auto-ACK: enabled, payload length: 10 bytes
 
 	// Set TX power for Auto-ACK (maximum, to ensure that transmitter will hear ACK reply)
 	nRF24_SetTXPower(nRF24_TXPWR_0dBm);
