@@ -154,7 +154,7 @@ int main(void) {
 	uint8_t otx_arc_cnt; // retransmit count
 
 	// The main loop
-	payload_length = 20;
+	payload_length = 24;
 	j = 0;
 	while (1) {
 
@@ -180,13 +180,14 @@ int main(void) {
 			 * save data every 2 seconds
 			 */
 
-			nRF24_payload[0].int32_data = sm_main_current_data.power+=13;
-			nRF24_payload[1].int32_data = sm_plant_current_data.power+=26;
+			nRF24_payload[0].int32_data = sm_main_current_data.power;
+			nRF24_payload[1].int32_data = sm_plant_current_data.power;
 			nRF24_payload[2].int32_data = sm_main_current_data.meter_delivery;
 			nRF24_payload[3].int32_data = sm_main_current_data.meter_purchase;
 			nRF24_payload[4].int32_data = sm_plant_current_data.meter_delivery;
+			nRF24_payload[5].int32_data++;
 
-			tx_res = nRF24_TransmitPacket((uint8_t) nrf24_tx_buf,
+			tx_res = nRF24_TransmitPacket((uint8_t*) nRF24_payload,
 					nrf24_tx_size);
 			otx = nRF24_GetRetransmitCounters();
 			otx_plos_cnt = (otx & nRF24_MASK_PLOS_CNT ) >> 4; // packets lost counter
@@ -215,8 +216,8 @@ int main(void) {
 				break;
 			}
 
-			flash_main_store_data_in_cache(rtc_current_time_unix);
-			flash_plant_store_data_in_cache(rtc_current_time_unix);
+//			flash_main_store_data_in_cache(rtc_current_time_unix);
+//			flash_plant_store_data_in_cache(rtc_current_time_unix);
 
 		}
 
