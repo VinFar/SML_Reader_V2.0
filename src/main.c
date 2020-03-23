@@ -153,23 +153,7 @@ int main(void) {
 			power_value_history_main[idx_mean_value] = powervalue_current_main;
 			power_value_history_plant[idx_mean_value] = powervalue_current_plant;
 
-			consumption_tmp = powervalue_current * milli_seconds_passsed;//Wms
-			consumption_tmp /= 1000;	//Ws
-			consumption_tmp /= 60;	//Wminuten
-			consumption_tmp /= 60;	//watthours
 
-			/*
-			 * summary_consumption is the overall energy balance since the start of the system
-			 */
-			eeprom_consumption_balance.data += consumption_tmp;
-
-			consumption_tmp = powervalue_used_by_consumers
-					* milli_seconds_passsed;	//Wms
-			consumption_tmp /= 1000;	//Ws
-			consumption_tmp /= 60;	//Wminuten
-			consumption_tmp /= 60;	//watthours
-
-			eeprom_consumption_by_system.data += consumption_tmp;
 
 			/*
 			 * we have a history of 600 values, so catch overflow
