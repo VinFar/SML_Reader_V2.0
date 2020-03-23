@@ -110,9 +110,10 @@ int main(void) {
 	//   - CRC scheme: 2 byte
 
 	// The transmitter sends a 10-byte packets to the address 'ESB' with Auto-ACK (ShockBurst enabled)
-
+	nRF24_Check();
+	nRF24_Init();
 	// Set RF channel
-	nRF24_SetRFChannel(40);
+	nRF24_SetRFChannel(90);
 
 	// Set data rate
 	nRF24_SetDataRate(nRF24_DR_2Mbps);
@@ -179,8 +180,8 @@ int main(void) {
 			 * save data every 2 seconds
 			 */
 
-			nRF24_payload[0].int32_data = sm_main_current_data.power;
-			nRF24_payload[1].int32_data = sm_plant_current_data.power;
+			nRF24_payload[0].int32_data = sm_main_current_data.power+=13;
+			nRF24_payload[1].int32_data = sm_plant_current_data.power+=26;
 			nRF24_payload[2].int32_data = sm_main_current_data.meter_delivery;
 			nRF24_payload[3].int32_data = sm_main_current_data.meter_purchase;
 			nRF24_payload[4].int32_data = sm_plant_current_data.meter_delivery;
