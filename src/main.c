@@ -116,7 +116,7 @@ int main(void) {
 	nRF24_SetRFChannel(90);
 
 	// Set data rate
-	nRF24_SetDataRate(nRF24_DR_2Mbps);
+	nRF24_SetDataRate(nRF24_DR_250kbps);
 
 	// Set CRC scheme
 	nRF24_SetCRCScheme(nRF24_CRC_2byte);
@@ -191,6 +191,7 @@ int main(void) {
 			otx = nRF24_GetRetransmitCounters();
 			otx_plos_cnt = (otx & nRF24_MASK_PLOS_CNT ) >> 4; // packets lost counter
 			otx_arc_cnt = (otx & nRF24_MASK_ARC_CNT ); // auto retransmissions counter
+			LED_STATUS_TOGGLE;
 			if (tx_res == nRF24_TX_SUCCESS) {
 				/*
 				 * OK
