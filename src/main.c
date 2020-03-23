@@ -146,7 +146,7 @@ int main(void) {
 			flags.refreshed_rotary = 0;
 		}
 
-		if (1) {
+		if (0) {
 			/*
 			 * write powervalue into history
 			 */
@@ -171,7 +171,7 @@ int main(void) {
 			 * From the newest value down to the period
 			 */
 			uint16_t loop_ctr = 0;
-			while (sum_of_time < (SECONDS_FOR_MEAN_VALUE * 1000)) {
+			while (sum_of_time < (300 * 1000)) {
 				if (time_history[idx_newest_value] != 0) {
 					loop_ctr++;
 				}
@@ -179,7 +179,7 @@ int main(void) {
 				 * add all values
 				 */
 				sum_of_time += time_history[idx_newest_value];
-				sum_of_power += (power_value_history[idx_newest_value]
+				sum_of_power += (power_value_history_main[idx_newest_value]
 						* (int32_t) time_history[idx_newest_value]);
 
 				/*
@@ -200,9 +200,9 @@ int main(void) {
 					break;
 				}
 			}
-			powervalue_mean = (int32_t) ((double) sum_of_power
+			powervalue_mean_main = (int32_t) ((double) sum_of_power
 					/ ((double) sum_of_time));
-			time_mean = (uint16_t) ((float) sum_of_time / (float) loop_ctr);
+//			time_mean = (uint16_t) ((float) sum_of_time / (float) loop_ctr);
 
 			/*
 			 * end of mean value calculation

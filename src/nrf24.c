@@ -609,7 +609,7 @@ void nrf24_init_rx() {
 	nRF24_Init();
 	nRF24_Check();
 	// Set RF channel
-	nRF24_SetRFChannel(40);
+	nRF24_SetRFChannel(90);
 
 	// Set data rate
 	nRF24_SetDataRate(nRF24_DR_2Mbps);
