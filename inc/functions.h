@@ -21,6 +21,8 @@ extern int32_t highest_prio;
 extern int32_t power_value_mean_main, power_value_mean_plant;
 extern int32_t powervalue_used_by_consumers;
 
+extern uint32_t meter_main_del,meter_main_pur,meter_plant_del;
+
 extern int32_t power_value_history_main[300];
 extern int32_t power_value_history_plant[300];
 extern uint16_t time_history[300];

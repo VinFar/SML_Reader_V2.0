@@ -199,7 +199,7 @@ void lcd_print_info() {
 
 		lcd_setcursor(1, 1);
 		lcd_print("PV:");
-		lcd_setcursor(2, 4);
+		lcd_setcursor(1, 4);
 		itoa((int32_t) powervalue_current_plant, tmp_string, 10);
 		strcat(tmp_string, "W");
 		lcd_print(tmp_string);
@@ -212,11 +212,11 @@ void lcd_print_info() {
 		lcd_print(tmp_string);
 
 		lcd_setcursor(3, 1);
-		lcd_print("MW Main:");
+		lcd_print("TX ctr:");
 		lcd_setcursor(3, 9);
 		itoa(powervalue_mean_main, tmp_string, 10);
 		lcd_setcursor(3, 9);
-		strcat(tmp_string, "W");
+//		strcat(tmp_string, "W");
 		lcd_print(tmp_string);
 
 		lcd_setcursor(4, 1);
@@ -230,21 +230,27 @@ void lcd_print_info() {
 		break;
 	case 1:						//Menue two
 		lcd_setcursor(1, 1);
-		lcd_print("Bezogen:");
-		itoa(eeprom_meter_purchase.data, tmp_string, 10);
-		lcd_print_value_unit(1, sizeof("Bezogen:"), tmp_string, "kWh");
-		lcd_setcursor(2, 1);
-		lcd_print("Eingespeist:");
-		itoa((int) eeprom_meter_delivery.data, tmp_string, 10);
-		lcd_print_value_unit(2, sizeof("Eingespeist:"), tmp_string, "kWh");
-		lcd_setcursor(3, 1);
-		lcd_print("Uptime:");
-		itoa((int) uptime_of_smartmeter, tmp_string, 10);
-		lcd_print_value_unit(3, sizeof("Uptime:"), tmp_string, "s");
-//		time_t timestamp = time(&eeprom_uptime.uint32);
-//		lcd_print_value_unit(4, 1, ctime(&timestamp), "");
+		lcd_print("PV:");
+		lcd_setcursor(1, 4);
+		itoa((int32_t) meter_plant_del, tmp_string, 10);
+		strcat(tmp_string, "kWh");
+		lcd_print(tmp_string);
 
-		//Print something
+		lcd_setcursor(2, 1);
+		lcd_print("MainDel:");
+		lcd_setcursor(2, 9);
+		itoa((int32_t) meter_main_del, tmp_string, 10);
+		strcat(tmp_string, "kWh");
+		lcd_print(tmp_string);
+
+		lcd_setcursor(3, 1);
+		lcd_print("MainPur:");
+		lcd_setcursor(3, 9);
+		itoa(meter_main_pur, tmp_string, 10);
+		lcd_setcursor(3, 9);
+		strcat(tmp_string, "W");
+		lcd_print(tmp_string);
+
 		break;
 	case 2:
 		lcd_setcursor(1, 1);
@@ -464,7 +470,6 @@ void on_push_reset_value(menu_t *instance) {
 			((eeprom_t*) (instance->items[menu_index].user_data));
 
 	memset(&eeprom_data->data, 0, eeprom_data->size);
-
 
 }
 

@@ -153,8 +153,6 @@ int main(void) {
 			power_value_history_main[idx_mean_value] = powervalue_current_main;
 			power_value_history_plant[idx_mean_value] = powervalue_current_plant;
 
-
-
 			/*
 			 * we have a history of 600 values, so catch overflow
 			 */
@@ -215,7 +213,11 @@ int main(void) {
 			pipe = nRF24_ReadPayload((uint8_t*)nrf24_rx_data, &nrf24_rx_size);
 			powervalue_current_main = nrf24_rx_data[0].int32_data;
 			powervalue_current_plant = nrf24_rx_data[1].int32_data;
+			meter_main_del = nrf24_rx_data[2].uint32_data;
+			meter_main_pur = nrf24_rx_data[3].uint32_data;
+			meter_plant_del = nrf24_rx_data[4].uint32_data;
 			powervalue_mean_main = nrf24_rx_data[5].uint32_data;
+
 
 
 			flags.refreshed_rotary = 1;

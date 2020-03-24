@@ -20,6 +20,8 @@ int32_t highest_prio;
 int32_t power_value_mean_main = 0, power_value_mean_plant = 0;
 int32_t powervalue_used_by_consumers=0;
 
+uint32_t meter_main_del,meter_main_pur,meter_plant_del;
+
 int32_t power_value_history_main[300];
 int32_t power_value_history_plant[300];
 
