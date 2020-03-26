@@ -85,7 +85,7 @@ time_main = datetime(time_main, 'convertfrom','posixtime');
 % time_main = time_main - time_main(1,1)-692;
 
 toc
-githsubplot(3,1,2)
+subplot(3,1,2)
 
 stairs(time_main(1,1:end-200),power_main(1,1:end-200))
 ylabel('Power in W');
