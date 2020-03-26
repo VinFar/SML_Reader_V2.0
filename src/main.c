@@ -76,7 +76,7 @@ uint8_t payload_length;
 nRF24_TXResult tx_res;
 
 data_union_t nrf24_rx_data[5];
-static const uint8_t nrf24_rx_size = NRF24_RX_SIZE;
+static uint8_t nrf24_rx_size = NRF24_RX_SIZE;
 
 static uint32_t idx_mean_value = 0;
 
