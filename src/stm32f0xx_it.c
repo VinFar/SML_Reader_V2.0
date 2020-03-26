@@ -180,3 +180,17 @@ void TIM14_IRQHandler() {
 	}
 	return;
 }
+
+uint32_t timer_ctr_for_lcd_light = 0;
+
+void TIM15_IRQHandler() {
+	if ((TIM15->SR & TIM_SR_UIF) == TIM_SR_UIF) {	//Interrupt every 25 ms
+		TIM15->SR &= ~TIM_SR_UIF;	//Reset update interrupt flag
+		if(timer_ctr_for_lcd_light++ > 1200){
+			/*
+			 * light off after 5 min
+			 */
+			lcd_light(0);
+		}
+	}
+}

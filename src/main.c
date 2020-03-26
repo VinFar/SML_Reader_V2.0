@@ -131,6 +131,8 @@ int main(void) {
 			}
 		}
 		if (flags.refreshed_push) {
+			timer_ctr_for_lcd_light=0;
+			lcd_light(1);
 			if (current_menu_ptr->items[menu_index].on_push == NULL) {
 
 			} else {
@@ -142,8 +144,10 @@ int main(void) {
 			flags.refreshed_push = 0;
 		}
 		if (flags.refreshed_rotary) {
+			timer_ctr_for_lcd_light=0;
 			current_menu_ptr->items[menu_index].on_rotate(current_menu_ptr);
 			flags.refreshed_rotary = 0;
+			lcd_light(1);
 		}
 
 		if (0) {
@@ -218,9 +222,7 @@ int main(void) {
 			meter_plant_del = nrf24_rx_data[4].uint32_data;
 			powervalue_mean_main = nrf24_rx_data[5].uint32_data;
 
-
-
-			flags.refreshed_rotary = 1;
+			current_menu_ptr->items[menu_index].on_rotate(current_menu_ptr);
 
 			// Clear all pending IRQ flags
 			nRF24_ClearIRQFlags();
@@ -277,6 +279,7 @@ static void prvSetupHardware(void) {
 	eeprom_erase_page(0);
 
 	Initial_Init();
+
 
 }
 

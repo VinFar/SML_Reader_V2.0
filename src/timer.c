@@ -135,22 +135,24 @@ void TIM14_Init() {
 
 }
 
+
 void TIM15_Init() {
 
-	__HAL_RCC_TIM15_CLK_ENABLE();
-
-	TIM15->ARR = 0xffff;//Auto reload register on 10s for checking correct data transmission
-	TIM15->PSC = 48000;			//1us counter
-//	TIM15->CR1 |= TIM_CR1_UDIS;
-//	TIM15->DIER |= TIM_DIER_UIE;
-//		TIM15->CR1 |= TIM_CR1_URS;
-
-//	TIM15->DIER |= TIM_DIER_CC1IE; //caputer interrupt 1 enable
-	TIM15->CNT = 0xffff;
-	TIM15->EGR |= TIM_EGR_UG;
-	TIM15_DISABLE;
+	__HAL_RCC_TIM15_CLK_ENABLE()
+	;
+	delay_us(10);
+	TIM15->CR1 |= TIM_CR1_URS;	//Only overflow generates an itnerrupt
+	TIM15->DIER |= TIM_DIER_UIE;	//Update interrupt enable
+	TIM15->PSC = 48;			//Prescaler at 108 for 1us tick
+	TIM15->ARR = 25000;//Auto reload register at 25000 for 25ms interrupt
 
 	NVIC_EnableIRQ(TIM15_IRQn);
-	return;
+	NVIC_SetPriority(TIM15_IRQn, 5);
+
+	TIM15->CNT = 0;
+	TIM15->CR1 |= TIM_CR1_CEN;
+
 
 }
+
+

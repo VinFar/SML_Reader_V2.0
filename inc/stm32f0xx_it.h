@@ -23,6 +23,8 @@ extern volatile uint8_t usart_tx_ctr;
 extern cmd_frame_t usart6_cmd_frame;
 extern ack_frame_t usart6_ack_frame;
 
+extern uint32_t timer_ctr_for_lcd_light;
+
 void NMI_Handler(void);
 void HardFault_Handler(void);
 void SVC_Handler(void);

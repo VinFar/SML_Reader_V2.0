@@ -51,7 +51,7 @@ void lcd_init(void) {
 	lcd_command(LCD_LINE_MODE | LCD_5X7);
 	lcd_command(LCD_DISPLAYON | LCD_CURSOROFF | LCD_BLINKINGOFF);
 
-	_delay_ms(2);
+//	_delay_ms(2);
 	lcd_command(LCD_INCREASE | LCD_DISPLAYSHIFTOFF);
 
 }
