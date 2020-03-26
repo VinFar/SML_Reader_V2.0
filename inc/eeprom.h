@@ -177,79 +177,8 @@ typedef struct {
 
 typedef eeprom_u8_t eeprom_t;
 
-#define EEPROM_PO_0_PAGE 0
-#define EEPROM_PO_0_BYTE 0
-
-#define EEPROM_PO_1_PAGE 0
-#define EEPROM_PO_1_BYTE 4
-
-#define EEPROM_PO_2_PAGE 0
-#define EEPROM_PO_2_BYTE 8
-
-#define EEPROM_PO_3_PAGE 1
-#define EEPROM_PO_3_BYTE 0
-
-#define EEPROM_PO_4_PAGE 1
-#define EEPROM_PO_4_BYTE 4
-
-#define EEPROM_PO_5_PAGE 1
-#define EEPROM_PO_5_BYTE 8
-
-#define EEPROM_PO_6_PAGE 2
-#define EEPROM_PO_6_BYTE 0
-
-#define EEPROM_POWERMAX_PAGE 2
-#define EEPROM_POWERMAX_BYTE 4
-
-#define EEPROM_POWERMIN_PAGE 2
-#define EEPROM_POWERMIN_BYTE 8
-
-#define EEPROM_TIMEMIN_PAGE 2
-#define EEPROM_TIMEMIN_BYTE 12
-
-#define EEPROM_TIMEMAX_PAGE 3
-#define EEPROM_TIMEMAX_BYTE 0
-
-#define EEPROM_MEANPOWER_24H_PAGE 3
-#define EEPROM_MEANPOWER_24H_BYTE 2
-
-#define EEPROM_MEANTIME_24H_PAGE 3
-#define EEPROM_MEANTIME_24H_BYTE 6
-
-#define EEPROM_MEANPOWER_7D_PAGE 3
-#define EEPROM_MEANPOWER_7D_BYTE 8
-
-#define EEPROM_MEANTIME_7D_PAGE 3
-#define EEPROM_MEANTIME_7D_BYTE 12
-
-#define EEPROM_MEANPOWER_30D_PAGE 4
-#define EEPROM_MEANPOWER_30D_BYTE 0
-
-#define EEPROM_MEANTIME_30D_PAGE 4
-#define EEPROM_MEANTIME_30D_BYTE 4
-
-#define EEPROM_MEANPOWER_1Y_PAGE 4
-#define EEPROM_MEANPOWER_1Y_BYTE 6
-
-#define EEPROM_MEANTIME_1Y_PAGE 4
-#define EEPROM_MEANTIME_1Y_BYTE 10
-
-#define EEPROM_CONSUMPTION_BALANCE_PAGE 5
-#define EEPROM_CONSUMPTION_BALANCE_BYTE 0
-
-#define EEPROM_CONSUMPTION_SYSTEM_PAGE 5
-#define EEPROM_CONSUMPTION_SYSTEM_BYTE 4
-
-#define EEPROM_CONSUMPTION_DELIVERY_PAGE 5
-#define EEPROM_CONSUMPTION_DELIVERY_BYTE 8
-
-#define EEPROM_CONSUMPTION_PURCHASE_PAGE 6
-#define EEPROM_CONSUMPTION_PURCHASE_BYTE 0
-
 extern eeprom_i32_t eeprom_powermax;
 extern eeprom_i32_t eeprom_powermin;
-extern eeprom_u16_t eeprom_timemax;
-extern eeprom_u16_t eeprom_timemin;
 extern eeprom_i32_t eeprom_meanpower24h;
 extern eeprom_i32_t eeprom_meanpower7d;
 extern eeprom_i32_t eeprom_meanpower30d;

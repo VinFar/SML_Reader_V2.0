@@ -249,7 +249,6 @@ static int8_t eeprom_poll_ack(int timeout) {
 		if (i2c1_start(EEPROM_ADDRESS, 0, I2C_READ) < 0) {
 			I2C1_RESET
 			;
-			flags.init_lcd = 0;
 			timeout--;
 			_delay_ms(1);
 			/*
@@ -528,138 +527,8 @@ static int8_t eeprom_read_data_addr(uint16_t address, uint8_t *data,
 	return 0;
 }
 
-
-eeprom_i32_t eeprom_powermax = { EEPROM_POWERMAX_PAGE, EEPROM_POWERMAX_BYTE, 4,
-		0 };
-eeprom_i32_t eeprom_powermin = { EEPROM_POWERMIN_PAGE, EEPROM_POWERMIN_BYTE, 4,
-		0 };
-eeprom_u16_t eeprom_timemax = { EEPROM_TIMEMAX_PAGE, EEPROM_TIMEMAX_BYTE, 2, 0 };
-eeprom_u16_t eeprom_timemin = { EEPROM_TIMEMIN_PAGE, EEPROM_TIMEMIN_BYTE, 2, 0 };
-eeprom_i32_t eeprom_meanpower24h = { EEPROM_MEANPOWER_24H_PAGE,
-EEPROM_MEANPOWER_24H_BYTE, 4, 0 };
-eeprom_i32_t eeprom_meanpower7d = { EEPROM_MEANPOWER_7D_PAGE,
-EEPROM_MEANPOWER_7D_BYTE, 4, 0 };
-eeprom_i32_t eeprom_meanpower30d = { EEPROM_MEANPOWER_30D_PAGE,
-EEPROM_MEANPOWER_30D_BYTE, 4, 0 };
-eeprom_i32_t eeprom_meanpower1y = { EEPROM_MEANPOWER_1Y_PAGE,
-EEPROM_MEANPOWER_1Y_BYTE, 4, 0 };
-
-eeprom_u16_t eeprom_meantime24h = { EEPROM_MEANTIME_24H_PAGE,
-EEPROM_MEANTIME_24H_BYTE, 2, 0 };
-eeprom_u16_t eeprom_meantime7d = { EEPROM_MEANTIME_7D_PAGE,
-EEPROM_MEANTIME_7D_BYTE, 2, 0 };
-eeprom_u16_t eeprom_meantime30d = { EEPROM_MEANTIME_30D_PAGE,
-EEPROM_MEANTIME_30D_BYTE, 2, 0 };
-eeprom_u16_t eeprom_meantime1y = { EEPROM_MEANTIME_1Y_PAGE,
-EEPROM_MEANTIME_1Y_BYTE, 2, 0 };
-
-eeprom_u32_t eeprom_meter_delivery = { EEPROM_CONSUMPTION_DELIVERY_PAGE,
-EEPROM_CONSUMPTION_DELIVERY_BYTE, 4, 0 };
-eeprom_u32_t eeprom_meter_purchase = { EEPROM_CONSUMPTION_PURCHASE_PAGE,
-EEPROM_CONSUMPTION_PURCHASE_BYTE, 4, 0 };
-eeprom_float_t eeprom_consumption_by_system = { EEPROM_CONSUMPTION_SYSTEM_PAGE,
-EEPROM_CONSUMPTION_SYSTEM_BYTE, 4, 0 };
-eeprom_float_t eeprom_consumption_balance = { EEPROM_CONSUMPTION_BALANCE_PAGE,
-EEPROM_CONSUMPTION_BALANCE_BYTE, 4, 0 };
-eeprom_u32_t eeprom_write_ctr = { eeprom_page_63, eeprom_byte_0, 4, 0 };
-
-eeprom_u32_t runtime_seconds;
-
 void eeprom_init_data() {
 
-	/*
-	 * init all eeprom data
-	 */
-	eeprom_read_data_struct(&eeprom_consumption_balance);
-	eeprom_read_data_struct(&eeprom_consumption_by_system);
-	eeprom_read_data_struct(&eeprom_meanpower1y);
-	eeprom_read_data_struct(&eeprom_meanpower24h);
-	eeprom_read_data_struct(&eeprom_meanpower30d);
-	eeprom_read_data_struct(&eeprom_meanpower7d);
-	eeprom_read_data_struct(&eeprom_meantime1y);
-	eeprom_read_data_struct(&eeprom_meantime24h);
-	eeprom_read_data_struct(&eeprom_meantime30d);
-	eeprom_read_data_struct(&eeprom_meantime7d);
-	eeprom_read_data_struct(&eeprom_meter_delivery);
-	eeprom_read_data_struct(&eeprom_meter_purchase);
-	eeprom_read_data_struct(&eeprom_powermax);
-	eeprom_read_data_struct(&eeprom_powermin);
-	eeprom_read_data_struct(&eeprom_timemax);
-	eeprom_read_data_struct(&eeprom_timemin);
-	eeprom_read_data_struct(&eeprom_write_ctr);
 
-
-	outlets[0].lock = 0;
-	outlets[0].state = 0;
-	outlets[0].PORT = PO_1_OUTPUT;
-	outlets[0].BANK = GPIOB;
-	outlets[0].prio = 1;	//
-	outlets[0].eeprom_byte = EEPROM_PO_0_BYTE;
-	outlets[0].eeprom_page = EEPROM_PO_0_PAGE;
-	eeprom_read_data(outlets[0].eeprom_page, outlets[0].eeprom_byte,
-			(uint8_t*) &outlets[0].union_value.value,
-			sizeof(outlets[0].union_value.value));
-	outlets[0].io_exp_output = 0;
-
-	outlets[1].lock = 0;
-	outlets[1].state = 0;
-	outlets[1].PORT = PO_2_OUTPUT;
-	outlets[1].BANK = GPIOB;
-	outlets[1].prio = 2;
-	outlets[1].eeprom_byte = EEPROM_PO_1_BYTE;
-	outlets[1].eeprom_page = EEPROM_PO_1_PAGE;
-	eeprom_read_data(outlets[1].eeprom_page, outlets[1].eeprom_byte,
-			(uint8_t*) &outlets[1].union_value.value,
-			sizeof(outlets[1].union_value.value));
-	outlets[1].io_exp_output = 0;
-
-	outlets[2].lock = 0;
-	outlets[2].state = 0;
-	outlets[2].PORT = PO_3_OUTPUT;
-	outlets[2].BANK = GPIOB;
-	outlets[2].prio = 3;
-	outlets[2].eeprom_byte = EEPROM_PO_2_BYTE;
-	outlets[2].eeprom_page = EEPROM_PO_2_PAGE;
-	eeprom_read_data(outlets[2].eeprom_page, outlets[2].eeprom_byte,
-			(uint8_t*) &outlets[2].union_value.value,
-			sizeof(outlets[2].union_value.value));
-	outlets[2].io_exp_output = 0;
-
-	outlets[3].lock = 0;
-	outlets[3].state = 0;
-	outlets[3].PORT = PO_4_OUTPUT;
-	outlets[3].BANK = GPIOB;
-	outlets[3].prio = 3;
-	outlets[3].eeprom_byte = EEPROM_PO_3_BYTE;
-	outlets[3].eeprom_page = EEPROM_PO_3_PAGE;
-	eeprom_read_data(outlets[3].eeprom_page, outlets[3].eeprom_byte,
-			(uint8_t*) &outlets[3].union_value.value,
-			sizeof(outlets[3].union_value.value));
-	outlets[3].io_exp_output = 0;
-
-	outlets[4].lock = 0;
-	outlets[4].state = 0;
-	outlets[4].PORT = PO_5_OUTPUT;
-	outlets[4].BANK = GPIOB;
-	outlets[4].prio = 3;
-	outlets[4].eeprom_byte = EEPROM_PO_4_BYTE;
-	outlets[4].eeprom_page = EEPROM_PO_4_PAGE;
-	eeprom_read_data(outlets[4].eeprom_page, outlets[4].eeprom_byte,
-			(uint8_t*) &outlets[4].union_value.value,
-			sizeof(outlets[4].union_value.value));
-	outlets[4].io_exp_output = 0;
-
-	outlets[5].lock = 0;
-	outlets[5].state = 0;
-	outlets[5].PORT = PO_6_OUTPUT;
-	outlets[5].BANK = GPIOB;
-	outlets[5].prio = 3;
-	outlets[5].eeprom_byte = EEPROM_PO_5_BYTE;
-	outlets[5].eeprom_page = EEPROM_PO_5_PAGE;
-	eeprom_read_data(outlets[5].eeprom_page, outlets[5].eeprom_byte,
-			(uint8_t*) &outlets[5].union_value.value,
-			sizeof(outlets[5].union_value.value));
-
-	outlets[5].io_exp_output = 0;
 
 }

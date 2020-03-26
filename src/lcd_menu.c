@@ -64,31 +64,12 @@ void call_menu_change_value(menu_t *instance) {
 	}
 	eeprom_write_data(outlet->eeprom_page, outlet->eeprom_byte,
 			(uint8_t*) &outlet->union_value.value, 4);
-	sort_outlets_by_value();
 
 	menu_index = 0;
 
 	return;
 }
 
-void on_push_start_stopp_usart(menu_t *instance) {
-
-	if (flags.sml_rx_on_off_flag) {
-		/*
-		 * switch off Smart Meter receive
-		 */
-//		SML_RX_OFF
-//		;
-		flags.sml_rx_on_off_flag = 0;
-		strcpy(Hauptmenu.items[1].string, (char*) "Stopped");
-	} else {
-		flags.sml_rx_on_off_flag = 1;
-//		SML_RX_ON
-//		;
-		strcpy(Hauptmenu.items[1].string, (char*) "Started");
-
-	}
-}
 
 void go_back_to_main_menu(menu_t *instance) {
 
@@ -192,6 +173,7 @@ void lcd_refresh_rotary() {
 void lcd_print_info() {
 
 	char tmp_string[20] = "";
+
 	lcd_clear();
 
 	switch (((menu_timer_index) % 5)) {				//Main manue
@@ -200,21 +182,21 @@ void lcd_print_info() {
 		lcd_setcursor(1, 1);
 		lcd_print("PV:");
 		lcd_setcursor(1, 4);
-		itoa((int32_t) powervalue_current_plant, tmp_string, 10);
+		itoa((int32_t) sm_power_plant_current, tmp_string, 10);
 		strcat(tmp_string, "W");
 		lcd_print(tmp_string);
 
 		lcd_setcursor(2, 1);
 		lcd_print("Main:");
 		lcd_setcursor(2, 6);
-		itoa((int32_t) powervalue_current_main, tmp_string, 10);
+		itoa((int32_t) sm_power_main_current, tmp_string, 10);
 		strcat(tmp_string, "W");
 		lcd_print(tmp_string);
 
 		lcd_setcursor(3, 1);
 		lcd_print("TX ctr:");
 		lcd_setcursor(3, 9);
-		itoa(powervalue_mean_main, tmp_string, 10);
+		itoa(sm_power_main_mean, tmp_string, 10);
 		lcd_setcursor(3, 9);
 //		strcat(tmp_string, "W");
 		lcd_print(tmp_string);
@@ -222,7 +204,7 @@ void lcd_print_info() {
 		lcd_setcursor(4, 1);
 		lcd_print("MW Plant:");
 		lcd_setcursor(4, 10);
-		itoa(powervalue_mean_plant, tmp_string, 10);
+		itoa(sm_power_plant_mean, tmp_string, 10);
 		lcd_setcursor(4, 10);
 		strcat(tmp_string, "W");
 		lcd_print(tmp_string);
@@ -286,18 +268,9 @@ void lcd_print_info() {
 		strcat(tmp_string, "ms");
 		lcd_print(tmp_string);
 		break;
-	case 4:
-		lcd_setcursor(1, 1);
-		lcd_print("Balance:");
-		lcd_setcursor(1, sizeof("Balance:"));
-		uint32_t tmp = (uint32_t) eeprom_consumption_balance.data;
-		itoa(tmp, tmp_string, 10);
-		strcat(tmp_string, "Wh");
-		lcd_print(tmp_string);
-		break;
 	default:
 		lcd_setcursor(1, 1);
-		lcd_print("should not happen! :(");
+		lcd_print("should not happen!:(");
 		//should not happen
 		break;
 

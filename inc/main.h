@@ -12,7 +12,6 @@
 
 extern uint32_t uptime_of_smartmeter;
 
-
 void Error_Handler(void);
 #define RCC_OSC32_IN_Pin GPIO_PIN_14
 #define RCC_OSC32_IN_GPIO_Port GPIOC
@@ -83,27 +82,21 @@ void Error_Handler(void);
 #define I2C1_SDA_Pin GPIO_PIN_7
 #define I2C1_SDA_GPIO_Port GPIOB
 
-
 volatile typedef struct {
-	unsigned new_main_sml_packet:1;
-	unsigned new_plant_sml_packet:1;
-	unsigned usart6_new_cmd:1;
-	unsigned usart6_rx_busy:1;
-	unsigned gateway:1;
-	unsigned init_lcd:1;
-	unsigned refreshed_rotary:1;
-	unsigned currently_in_menu:1;
-	unsigned set_power_min_max:1;
-	unsigned sml_rx_on_off_flag:1;
-	unsigned refreshed_push:1;
-	unsigned lcd_light_on_off:1;
-}flags_t;
+	unsigned refreshed_rotary :1;
+	unsigned currently_in_menu :1;
+	unsigned set_power_min_max :1;
+	unsigned refreshed_push :1;
+	unsigned lcd_light_on_off :1;
+	unsigned smu_connected :1;
+	unsigned nrf24_new_frame:1;
+} flags_t;
 
 flags_t flags;
 
 typedef struct uuid_struct {
 	const uint32_t *id[3];
-}STRUCT_PACKED uuid_t;
+} STRUCT_PACKED uuid_t;
 
 extern uuid_t uuid;
 
@@ -113,8 +106,6 @@ extern uint32_t flash_current_address_main_sml;
 extern uint32_t flash_current_address_plant_sml;
 extern smartmeter_data_t sm_main_current_data;
 extern smartmeter_data_t sm_plant_current_data;
-
-
 
 #include "stm32f0xx.h"
 

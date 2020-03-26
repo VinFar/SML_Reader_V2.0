@@ -7,7 +7,6 @@
 #include "usart.h"
 
 extern data_union_t nrf24_rx_data[5];
-extern uint8_t nrf24_rx_size;
 
 #ifndef nRF24_ADDR_REVERSE
 // How the TX/RX address should be transmitted to the transceiver
@@ -15,6 +14,17 @@ extern uint8_t nrf24_rx_size;
 //   1 - reverse - the last byte of the address transmitted first
 #define nRF24_ADDR_REVERSE         0
 #endif
+
+extern uint32_t nrf24_tx_ctr;
+
+#define NRF24_RX_SIZE 32
+
+enum {
+	NRF24_CMD_PING=0,
+	NRF24_SM_DATA,
+	NRF24_RTC_DATA,
+	NRF24_MAX_CMDS_ENUM
+};
 
 // Timeout counter (depends on the CPU speed)
 // Used for not stuck waiting for IRQ
@@ -253,5 +263,11 @@ void nRF24_ClearIRQFlags(void);
 
 void nRF24_WritePayload(uint8_t *pBuf, uint8_t length);
 nRF24_RXResult nRF24_ReadPayload(uint8_t *pBuf, uint8_t *length);
+
+typedef struct {
+	uint8_t size;
+	uint8_t cmd;
+	data_union_t data[(NRF24_RX_SIZE/4)];
+}__attribute__((packed)) nrf24_frame_t;
 
 #endif // __NRF24_H

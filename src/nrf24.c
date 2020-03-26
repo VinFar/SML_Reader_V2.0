@@ -14,6 +14,8 @@ nRF24_REG_RX_ADDR_P4,
 nRF24_REG_RX_ADDR_P5,
 nRF24_REG_TX_ADDR };
 
+uint32_t nrf24_tx_ctr=0;
+
 //
 // Reads a value of register
 // input:
@@ -623,7 +625,7 @@ void nrf24_init_rx() {
 	// Configure RX PIPE
 	static const uint8_t nRF24_ADDR[] = { 'E', 'S', 'B' };
 	nRF24_SetAddr(nRF24_PIPE0, nRF24_ADDR); // program address for pipe
-	nRF24_SetRXPipe(nRF24_PIPE0, nRF24_AA_ON, 24); // Auto-ACK: enabled, payload length: 10 bytes
+	nRF24_SetRXPipe(nRF24_PIPE0, nRF24_AA_ON, 32); // Auto-ACK: enabled, payload length: 10 bytes
 
 	// Set TX power for Auto-ACK (maximum, to ensure that transmitter will hear ACK reply)
 	nRF24_SetTXPower(nRF24_TXPWR_0dBm);

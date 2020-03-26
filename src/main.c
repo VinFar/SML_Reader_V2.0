@@ -76,9 +76,11 @@ uint8_t payload_length;
 nRF24_TXResult tx_res;
 
 data_union_t nrf24_rx_data[5];
-uint8_t nrf24_rx_size = 24;
+static const uint8_t nrf24_rx_size = NRF24_RX_SIZE;
 
 static uint32_t idx_mean_value = 0;
+
+static uint32_t idx_oldest_value = 0;
 
 uint32_t startup_timestamp = 0;
 uint32_t last_eeprom_timestamp = 0;
@@ -86,16 +88,16 @@ uint32_t last_eeprom_timestamp = 0;
 uint32_t uptime_of_smartmeter;
 static uint32_t runtime_of_system_sec;
 
-uint32_t i, j, k;
-
-// Buffer to store a payload of maximum width
-uint8_t nRF24_payload[32];
-
 // Pipe number
 nRF24_RXResult pipe;
 
 // Length of received payload
 uint8_t payload_length;
+
+nrf24_frame_t nrf24_frame;
+
+int8_t (*nrf24_frame_fct_ptr[MAX_ENUM_CMDS - 1])(nrf24_frame_t*,
+		void*) = {ping_cmd_handler,ping_sm_data_handler,ping_rtc_data_handler };
 
 /*
  * Version v0.1.0.2
@@ -114,24 +116,11 @@ int main(void) {
 	nrf24_init_rx();
 
 	while (1) {
-		if (flags.init_lcd) {
-			if (lcd_poll() < 0) {
-				/*
-				 * still can't reach display
-				 */
 
-			} else {
-				/*
-				 * display is connected again
-				 */
-				current_menu_ptr = &Hauptmenu;
-				menu_index = 0;
-				flags.init_lcd = 0;
-				lcd_init();
-			}
-		}
+		rtc_current_time_unix = rtc_get_unix_time(&sm_time, &sm_date);
+
 		if (flags.refreshed_push) {
-			timer_ctr_for_lcd_light=0;
+			timer_ctr_for_lcd_light = 0;
 			lcd_light(1);
 			if (current_menu_ptr->items[menu_index].on_push == NULL) {
 
@@ -143,68 +132,69 @@ int main(void) {
 			}
 			flags.refreshed_push = 0;
 		}
+
 		if (flags.refreshed_rotary) {
-			timer_ctr_for_lcd_light=0;
+			timer_ctr_for_lcd_light = 0;
 			current_menu_ptr->items[menu_index].on_rotate(current_menu_ptr);
 			flags.refreshed_rotary = 0;
 			lcd_light(1);
 		}
 
-		if (0) {
+		if (rtc_current_time_unix > rtc_old_time_unix && flags.smu_connected) {
+			rtc_old_time_unix = rtc_current_time_unix;
 			/*
 			 * write powervalue into history
 			 */
-			power_value_history_main[idx_mean_value] = powervalue_current_main;
-			power_value_history_plant[idx_mean_value] = powervalue_current_plant;
+			sm_power_hist[SM_MAIN_IDX_ARRAY][idx_mean_value] =
+					sm_power_main_current;
+			sm_power_hist[SM_PLANT_IDX_ARRAY][idx_mean_value] =
+					sm_power_plant_current;
 
 			/*
-			 * we have a history of 600 values, so catch overflow
+			 * we have a history of 300 values, so catch overflow
 			 */
 			uint16_t idx_newest_value = idx_mean_value;
-			if (idx_mean_value++
-					== (sizeof(time_history) / sizeof(time_history[0]))) {
+			if (idx_mean_value++ == ARRAY_LEN(sm_power_hist[0])) {
 				idx_mean_value = 0;
 			}
 
-			uint32_t sum_of_time = 0;
-			int64_t sum_of_power = 0;
+			int32_t sm_power_sum_main = 0;
+			int32_t sm_power_sum_plant = 0;
 			/*
 			 * we have to add all values that are inside the period specified by SECONDS_FOR_MEAN_VALUE
-			 * From the newest value down to the period
+			 * From the newest value down to the period, so we have to decrement the idx.
+			 * The user can configure the time period over which the mean value
+			 * will be calculated (time_for_meanvalue). So abort on reaching this value
 			 */
-			uint16_t loop_ctr = 0;
-			while (sum_of_time < (300 * 1000)) {
-				if (time_history[idx_newest_value] != 0) {
-					loop_ctr++;
-				}
+			for (uint32_t ctr = 0; ctr < time_for_meanvalue; ctr++) {
 				/*
 				 * add all values
 				 */
-				sum_of_time += time_history[idx_newest_value];
-				sum_of_power += (power_value_history_main[idx_newest_value]
-						* (int32_t) time_history[idx_newest_value]);
+				sm_power_sum_main +=
+						sm_power_hist[SM_MAIN_IDX_ARRAY][idx_newest_value];
+				sm_power_sum_plant +=
+						sm_power_hist[SM_PLANT_IDX_ARRAY][idx_newest_value];
 
 				/*
-				 * catch overflow of index
+				 * catch overflow of index and decrement idx
 				 */
 				if (idx_newest_value == 0) {
-					idx_newest_value = (sizeof(time_history)
-							/ sizeof(time_history[0])) - 1;
+					idx_newest_value = ARRAY_LEN(sm_power_hist[0]);
 				} else {
 					idx_newest_value--;
 				}
 				if (idx_newest_value == idx_mean_value) {
 					/*
 					 * at the beginning there will be not enough time stamps in the array
-					 * to reach the sum of SECONDS_FOR_MEAN_VALUE, so catch index on which we began.
+					 * to reach the sum of time_for_meanvalue, so catch index on which we began.
 					 * if this is the case take the maximum passed time and use this for the mean value
 					 */
 					break;
 				}
 			}
-			powervalue_mean_main = (int32_t) ((double) sum_of_power
-					/ ((double) sum_of_time));
-//			time_mean = (uint16_t) ((float) sum_of_time / (float) loop_ctr);
+			sm_power_main_mean = (int32_t) (sm_power_sum_main
+					/ (time_for_meanvalue));
+			sm_power_plant_mean = sm_power_sum_plant / time_for_meanvalue;
 
 			/*
 			 * end of mean value calculation
@@ -213,20 +203,30 @@ int main(void) {
 
 		if (nRF24_GetStatus_RXFIFO() != nRF24_STATUS_RXFIFO_EMPTY) {
 			// Get a payload from the transceiver
-			nrf24_rx_size=24;
-			pipe = nRF24_ReadPayload((uint8_t*)nrf24_rx_data, &nrf24_rx_size);
-			powervalue_current_main = nrf24_rx_data[0].int32_data;
-			powervalue_current_plant = nrf24_rx_data[1].int32_data;
-			meter_main_del = nrf24_rx_data[2].uint32_data;
-			meter_main_pur = nrf24_rx_data[3].uint32_data;
-			meter_plant_del = nrf24_rx_data[4].uint32_data;
-			powervalue_mean_main = nrf24_rx_data[5].uint32_data;
 
-			current_menu_ptr->items[menu_index].on_rotate(current_menu_ptr);
-
+			pipe = nRF24_ReadPayload((uint8_t*) &nrf24_frame, &nrf24_rx_size);
+			flags.nrf24_new_frame = 1;
 			// Clear all pending IRQ flags
 			nRF24_ClearIRQFlags();
+		}
+		if (flags.nrf24_new_frame) {
+			flags.nrf24_new_frame = 0;
+			if (nrf24_frame.size < NRF24_RX_SIZE) {
+				/*
+				 * size is ok
+				 */
+				if (nrf24_frame.cmd < NRF24_MAX_CMDS_ENUM) {
+					/*
+					 * cmd is ok
+					 */
 
+					/*
+					 * call the approbiate function
+					 */
+					nrf24_frame_fct_ptr[nrf24_frame.cmd](&nrf24_frame, NULL);
+
+				}
+			}
 		}
 	}
 }
@@ -280,7 +280,6 @@ static void prvSetupHardware(void) {
 
 	Initial_Init();
 
-
 }
 
 void Initial_Init() {
@@ -297,7 +296,6 @@ void Initial_Init() {
 	LED_OK_OFF;
 
 	TIM3->CNT = 0x00ff;
-	flags.sml_rx_on_off_flag = 0;
 	flags.lcd_light_on_off = 1;
 
 	P_CONFIG = 1;
@@ -308,8 +306,6 @@ void Initial_Init() {
 		outlets_prio_ptr[i] = (uint32_t*) &outlets[i];
 		outlets_value_ptr[i] = (uint32_t*) &outlets[i];
 	}
-
-	sort_outlets_by_value();
 
 	/*
 	 * init the menu structs
@@ -395,11 +391,9 @@ void Initial_Init() {
 	 */
 	memset(men, 0, sizeof(men));
 	strcpy(men, "Power:");
-	itoa(eeprom_powermax.data, tmp_str, 10);
 	strcat(men, tmp_str);
 	strcat(men, "W");
 	menu_init_text(&maxima_items[1], men);
-	menu_add_userdata(&maxima_menu.items[1], &eeprom_powermax);
 	menu_fct_for_delayed_push(&maxima_menu.items[1], &on_push_reset_value);
 
 	/*
@@ -407,50 +401,38 @@ void Initial_Init() {
 	 */
 	memset(men, 0, sizeof(men));
 	strcpy(men, "Power:");
-	itoa(eeprom_powermin.data, tmp_str, 10);
 	strcat(men, tmp_str);
 	strcat(men, "W");
 	menu_init_text(&minima_items[1], men);
-	menu_add_userdata(&minima_menu.items[1], &eeprom_powermin);
 	menu_fct_for_delayed_push(&minima_menu.items[1], &on_push_reset_value);
 
 	/*
 	 * 24h mean value of power
 	 * Todo: new menu_printf function, check if this works
 	 */
-	menu_printf(&mean_24h_items[1], "Power: %i W", eeprom_meanpower24h.data);
-	menu_add_userdata(&mean_24h_menu.items[1], &eeprom_meanpower24h);
 	menu_fct_for_delayed_push(&minima_menu.items[1], &on_push_reset_value);
 
 	/*
 	 * mean power over 7 days
 	 */
-	menu_printf(&mean_7d_items[1], "Power: %i W", eeprom_meanpower7d.data);
 
 	/*
 	 * maximum time between two data packets ever recorded
 	 */
-	menu_printf(&maxima_items[2], "Time: %d ms",
-			(uint32_t) eeprom_timemax.data);
-	menu_add_userdata(&maxima_menu.items[2], &eeprom_timemax);
 	menu_fct_for_delayed_push(&maxima_menu.items[2], &on_push_reset_value);
 
 	memset(men, 0, sizeof(men));
 	strcpy(men, "Time:");
-	itoa(eeprom_timemin.data, tmp_str, 10);
 	strcat(men, tmp_str);
 	strcat(men, "ms");
 	menu_init_text(&minima_items[2], men);
-	menu_add_userdata(&minima_menu.items[2], &eeprom_timemin);
 	menu_fct_for_delayed_push(&minima_menu.items[2], &on_push_reset_value);
 
 	menu_init_text(&changing_value.items[0], "");
 	menu_init_text(&changing_value.items[1], "");
 
 	menu_fct_for_push(&changing_value.items[0], &call_menu_change_value);
-	menu_fct_for_push(&Hauptmenu.items[1], &on_push_start_stopp_usart);
 
-	flags.sml_rx_on_off_flag = 1;
 	current_menu_ptr = &Hauptmenu;
 	flags.currently_in_menu = 1;
 	flags.refreshed_push = 1;

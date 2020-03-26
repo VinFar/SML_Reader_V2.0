@@ -10,26 +10,26 @@
 
 #include "main.h"
 #include "lcd_menu.h"
+#include "nrf24.h"
+
+#define SM_MAIN_IDX_ARRAY 0
+#define SM_PLANT_IDX_ARRAY 1
+
+#define SM_MAIN_SIZE_ARRAY 300
 
 extern int32_t old_Powervalue;
 extern int32_t tmp_PWR;
 
-extern int32_t powervalue_current_main, powervalue_mean_main;
-extern int32_t powervalue_current_plant, powervalue_mean_plant;
-extern int32_t total_consumption_main, total_consumption_plant;
+extern int32_t sm_power_main_current, sm_power_main_mean;
+extern int32_t sm_power_plant_current, sm_power_plant_mean;
+extern int32_t sm_consumption_main_del,sm_consumption_main_pur, sm_consumption_plant;
 extern int32_t highest_prio;
-extern int32_t power_value_mean_main, power_value_mean_plant;
 extern int32_t powervalue_used_by_consumers;
 
 extern uint32_t meter_main_del,meter_main_pur,meter_plant_del;
 
-extern int32_t power_value_history_main[300];
-extern int32_t power_value_history_plant[300];
-extern uint16_t time_history[300];
-extern uint16_t time_mean;
-extern uint16_t milli_seconds_passsed;
-extern uint16_t seconds_for_meanvalue;
-extern uint32_t seconds_passed;
+extern int32_t sm_power_hist[2][SM_MAIN_SIZE_ARRAY];
+extern uint16_t time_for_meanvalue;
 extern uint8_t P_CONFIG;
 extern int32_t menu_timer_index;
 
@@ -75,6 +75,10 @@ void sort_outlets_by_prio();
 void sort_outlets_by_value();
 void set_max_min_power(int32_t power);
 void set_max_min_time(uint16_t time);
-//void outlet_on_off(menu_t *instance);
+
+int8_t ping_cmd_handler(nrf24_frame_t *frame, void *userData);
+int8_t ping_sm_data_handler(nrf24_frame_t *frame, void *userData);
+int8_t ping_rtc_data_handler(nrf24_frame_t *frame, void *userData);
+
 
 #endif /* FUNCTIONS_H_ */
