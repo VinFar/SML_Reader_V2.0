@@ -86,6 +86,7 @@ nRF24_RXResult pipe;
 uint8_t payload_length;
 
 nRF24_TXResult tx_res;
+nrf24_frame_t nrf24_frame;
 
 int main(void) {
 
@@ -185,12 +186,18 @@ int main(void) {
 			 * transmit data every 1 second
 			 */
 
-			nRF24_payload[0].int32_data = sm_main_current_data.power;
-			nRF24_payload[1].int32_data = sm_plant_current_data.power;
-			nRF24_payload[2].int32_data = sm_main_current_data.meter_delivery;
-			nRF24_payload[3].int32_data = sm_main_current_data.meter_purchase;
-			nRF24_payload[4].int32_data = sm_plant_current_data.meter_delivery;
-			nRF24_payload[5].int32_data++;
+			nrf24_frame.data[0].int32_data = sm_main_current_data.power;
+			nrf24_frame.data[1].int32_data = sm_plant_current_data.power;
+			nrf24_frame.data[2].int32_data =
+					sm_main_current_data.meter_delivery;
+			nrf24_frame.data[3].int32_data =
+					sm_main_current_data.meter_purchase;
+			nrf24_frame.data[4].int32_data =
+					sm_plant_current_data.meter_delivery;
+			nrf24_frame.data[5].int32_data++;
+
+			nrf24_frame.cmd = NRF24_SM_DATA;
+			nrf24_frame.size = 6 * 4 + 2;
 
 			tx_res = nRF24_TransmitPacket((uint8_t*) nRF24_payload,
 					nrf24_tx_size);

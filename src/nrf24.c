@@ -611,7 +611,7 @@ void nrf24_init_tx() {
 	nRF24_SetRFChannel(40);
 
 	// Set data rate
-	nRF24_SetDataRate(nRF24_DR_2Mbps);
+	nRF24_SetDataRate(nRF24_DR_250kbps);
 
 	// Set CRC scheme
 	nRF24_SetCRCScheme(nRF24_CRC_2byte);

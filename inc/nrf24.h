@@ -14,6 +14,21 @@
 #define nRF24_ADDR_REVERSE         0
 #endif
 
+#define NRF24_RX_SIZE 32
+
+enum {
+	NRF24_CMD_PING=0,
+	NRF24_SM_DATA,
+	NRF24_RTC_DATA,
+	NRF24_MAX_CMDS_ENUM
+};
+
+typedef struct {
+	uint8_t size;
+	uint8_t cmd;
+	data_union_t data[(NRF24_RX_SIZE/4)];
+}__attribute__((packed)) nrf24_frame_t;
+
 // Timeout counter (depends on the CPU speed)
 // Used for not stuck waiting for IRQ
 #define nRF24_WAIT_TIMEOUT         (uint32_t)0x000FFFFF
