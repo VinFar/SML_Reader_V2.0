@@ -199,7 +199,7 @@ int main(void) {
 			nrf24_frame.cmd = NRF24_SM_DATA;
 			nrf24_frame.size = 6 * 4 + 2;
 
-			tx_res = nRF24_TransmitPacket((uint8_t*) nRF24_payload,
+			tx_res = nRF24_TransmitPacket((uint8_t*) &nrf24_frame,
 					nrf24_tx_size);
 			otx = nRF24_GetRetransmitCounters();
 			otx_plos_cnt = (otx & nRF24_MASK_PLOS_CNT ) >> 4; // packets lost counter
