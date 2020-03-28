@@ -41,10 +41,10 @@ time_plant = datetime(time_plant, 'convertfrom','posixtime');
 % time_plant = time_plant - time_plant(1,1);
 
 subplot(3,1,1)
-stairs(time_plant(1,1:end-200),power_plant(1,1:end-200))
+stairs(time_plant(1,1:end),power_plant(1,1:end))
 yyaxis right
-plot(time_plant(1,1:end-200),meter_plant(1,1:end-200));
-xlim([time_plant(1,1), time_plant(1,end-200)])
+plot(time_plant(1,1:end),meter_plant(1,1:end));
+xlim([time_plant(1,1), time_plant(1,end)])
 grid on
 grid minor
 title('Power of PV Plant');
@@ -87,13 +87,13 @@ time_main = datetime(time_main, 'convertfrom','posixtime');
 toc
 subplot(3,1,2)
 
-stairs(time_main(1,1:end-200),power_main(1,1:end-200))
+stairs(time_main(1,1:end),power_main(1,1:end))
 ylabel('Power in W');
-xlim([time_main(1,1), time_main(1,end-200)])
+xlim([time_main(1,1), time_main(1,end)])
 yyaxis right
 % stairs(time_main(1,1:end-200),meter_p_main(1,1:end-200))
 hold on
-stairs(time_main(1,1:end-200),meter_d_main(1,1:end-200))
+stairs(time_main(1,1:end),meter_d_main(1,1:end))
 ylabel('Energy in kWh');
 grid on
 grid minor
@@ -104,8 +104,8 @@ xtickformat('dd.MM.yyyy HH:mm:ss')
 power_diff = -(power_main - power_plant);
 
 subplot(3,1,3)
-stairs(time_main(1,1:end-200),power_diff(1,1:end-200))
-xlim([time_main(1,1), time_main(1,end-200)])
+stairs(time_main(1,1:end),power_diff(1,1:end))
+xlim([time_main(1,1), time_main(1,end)])
 
 grid on
 grid minor
