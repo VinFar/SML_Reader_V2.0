@@ -196,7 +196,7 @@ void lcd_print_info() {
 		lcd_setcursor(3, 1);
 		lcd_print("TX ctr:");
 		lcd_setcursor(3, 9);
-		itoa(sm_power_main_mean, tmp_string, 10);
+		itoa(nrf24_tx_ctr, tmp_string, 10);
 		lcd_setcursor(3, 9);
 //		strcat(tmp_string, "W");
 		lcd_print(tmp_string);
@@ -214,21 +214,21 @@ void lcd_print_info() {
 		lcd_setcursor(1, 1);
 		lcd_print("PV:");
 		lcd_setcursor(1, 4);
-		itoa((int32_t) meter_plant_del, tmp_string, 10);
+		itoa((int32_t) sm_consumption_plant, tmp_string, 10);
 		strcat(tmp_string, "kWh");
 		lcd_print(tmp_string);
 
 		lcd_setcursor(2, 1);
 		lcd_print("MainDel:");
 		lcd_setcursor(2, 9);
-		itoa((int32_t) meter_main_del, tmp_string, 10);
+		itoa((int32_t) sm_consumption_main_del, tmp_string, 10);
 		strcat(tmp_string, "kWh");
 		lcd_print(tmp_string);
 
 		lcd_setcursor(3, 1);
 		lcd_print("MainPur:");
 		lcd_setcursor(3, 9);
-		itoa(meter_main_pur, tmp_string, 10);
+		itoa(sm_consumption_main_pur, tmp_string, 10);
 		lcd_setcursor(3, 9);
 		strcat(tmp_string, "W");
 		lcd_print(tmp_string);

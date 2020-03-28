@@ -116,7 +116,7 @@ int8_t ping_sm_data_handler(nrf24_frame_t *frame, void *userData) {
 	sm_consumption_main_pur = frame->data[3].int32_data;
 	sm_consumption_plant = frame->data[4].int32_data;
 	nrf24_tx_ctr = frame->data[5].int32_data;
-	flags.refreshed_rotary=1;
+	current_menu_ptr->items[menu_index].on_rotate(current_menu_ptr);
 	return 0;
 
 }
