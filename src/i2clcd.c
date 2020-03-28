@@ -214,8 +214,7 @@ uint8_t lcd_printlc(uint8_t line, uint8_t col, char *string) {
 		lcd_putchar(*string++);
 		col++;
 		if (col > LCD_COLS) {
-			col = 1;
-			lcd_setcursor(line, col);
+			return true;
 		}
 	}
 	return true;

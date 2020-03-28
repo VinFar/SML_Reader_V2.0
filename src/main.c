@@ -122,20 +122,33 @@ int main(void) {
 		if (flags.refreshed_push) {
 			timer_ctr_for_lcd_light = 0;
 			lcd_light(1);
-			if (current_menu_ptr->items[menu_index].on_push == NULL) {
-
-			} else {
-
-				current_menu_ptr->items[menu_index].on_push(current_menu_ptr);
+			if (current_menu_ptr == &menu_changing_value) {
+				current_menu_ptr->items[0].on_push(current_menu_ptr);
 				flags.refreshed_rotary = 1;
+			} else {
+				if (current_menu_ptr->items[menu_timer_index].on_push == NULL) {
 
+				} else {
+
+					current_menu_ptr->items[menu_timer_index].on_push(
+							current_menu_ptr);
+					flags.refreshed_rotary = 1;
+
+				}
 			}
 			flags.refreshed_push = 0;
 		}
 
 		if (flags.refreshed_rotary) {
 			timer_ctr_for_lcd_light = 0;
-			current_menu_ptr->items[menu_index].on_rotate(current_menu_ptr);
+			if (current_menu_ptr == &menu_changing_value) {
+				menu_timer_index = current_menu_ptr->items[1].on_rotate(
+						current_menu_ptr, menu_timer_index);
+			} else {
+				menu_timer_index =
+						current_menu_ptr->items[menu_timer_index].on_rotate(
+								current_menu_ptr, menu_timer_index);
+			}
 			flags.refreshed_rotary = 0;
 			lcd_light(1);
 		}
@@ -201,14 +214,14 @@ int main(void) {
 			 */
 		}
 
-		if (nRF24_GetStatus_RXFIFO() != nRF24_STATUS_RXFIFO_EMPTY) {
-			// Get a payload from the transceiver
-
-			pipe = nRF24_ReadPayload((uint8_t*) &nrf24_frame, &nrf24_rx_size);
-			flags.nrf24_new_frame = 1;
-			// Clear all pending IRQ flags
-			nRF24_ClearIRQFlags();
-		}
+//		if (nRF24_GetStatus_RXFIFO() != nRF24_STATUS_RXFIFO_EMPTY) {
+//			// Get a payload from the transceiver
+//
+//			pipe = nRF24_ReadPayload((uint8_t*) &nrf24_frame, &nrf24_rx_size);
+//			flags.nrf24_new_frame = 1;
+//			// Clear all pending IRQ flags
+//			nRF24_ClearIRQFlags();
+//		}
 		if (flags.nrf24_new_frame) {
 			flags.nrf24_new_frame = 0;
 			if (nrf24_frame.size < NRF24_RX_SIZE) {
@@ -302,136 +315,75 @@ void Initial_Init() {
 
 	eeprom_init_data();
 
-	for (int i = 0; i < NUMBER_OF_OUTLETS; i++) {
-		outlets_prio_ptr[i] = (uint32_t*) &outlets[i];
-		outlets_value_ptr[i] = (uint32_t*) &outlets[i];
-	}
-
 	/*
 	 * init the menu structs
 	 */
-	menu_init_struct(&Hauptmenu, Hauptmenu_items,
-			SIZE_OF_MENU(Hauptmenu_items));
-	menu_init_struct(&infomenu, infomenu_items, SIZE_OF_MENU(infomenu_items));
-
-	/*
-	 * universal menu for changing a value with the rotary encoder
-	 */
-	menu_init_struct(&changing_value, changing_value_item,
-			SIZE_OF_MENU(changing_value_item));
-
-	/*
-	 * Minima and maxima menus fo time and power
-	 */
-	menu_init_struct(&maxima_menu, maxima_items, SIZE_OF_MENU(maxima_items));
-	menu_init_struct(&minima_menu, minima_items, SIZE_OF_MENU(minima_items));
-	menu_init_struct(&used_energy_menu, used_energy_items,
-			SIZE_OF_MENU(used_energy_items));
-	menu_init_struct(&mean_24h_menu, mean_24h_items,
-			SIZE_OF_MENU(mean_24h_items));
-	menu_init_struct(&mean_7d_menu, mean_7d_items, SIZE_OF_MENU(mean_7d_items));
-	menu_init_struct(&mean_30d_menu, mean_30d_items,
-			SIZE_OF_MENU(mean_30d_items));
-	menu_init_struct(&mean_1y_menu, mean_1y_items, SIZE_OF_MENU(mean_1y_items));
+	menu_init(&Hauptmenu, Hauptmenu_items, SIZE_OF_MENU(Hauptmenu_items));
+	menu_init(&menu_system_info, infomenu_items, SIZE_OF_MENU(infomenu_items));
+	menu_init(&system_settings, system_settings_items, 5);
+	menu_init(&menu_changing_value, menu_changing_value_item,
+			SIZE_OF_MENU(menu_changing_value_item));
 
 	/*
 	 * add the corresponding submenus
 	 */
-	menu_add_submenu(&Hauptmenu, &infomenu, 2);
+	menu_add_submenu(&Hauptmenu, &menu_system_info, 2);
+	menu_add_submenu(&Hauptmenu, &system_settings, 4);
+	menu_add_submenu(&system_settings, &menu_changing_value, 1);
+	menu_add_submenu(&system_settings, &menu_changing_value, 2);
 
-	menu_add_submenu(&infomenu, &maxima_menu, 1);
-	menu_add_submenu(&infomenu, &minima_menu, 2);
-	menu_add_submenu(&infomenu, &used_energy_menu, 3);
-	menu_add_submenu(&infomenu, &mean_24h_menu, 4);
-	menu_add_submenu(&infomenu, &mean_7d_menu, 5);
-	menu_add_submenu(&infomenu, &mean_30d_menu, 6);
-	menu_add_submenu(&infomenu, &mean_1y_menu, 7);
-
-	/*
-	 * This menu is used to change the values of the different outlets
-	 */
-	changing_value.items[0].on_rotate = &on_rotary_change_value;
-	changing_value.items[1].on_rotate = &on_rotary_change_value;
-
-	changing_value.items[0].on_push = &call_menu_change_value;
-	changing_value.items[1].on_push = &call_menu_change_value;
-
-	uint8_t *tmp = 0;
-	changing_value.user_data = (void*) tmp;
+	menu_add_userdata(&system_settings_items[1], &time_for_lcd_light);
+	menu_add_userdata(&system_settings_items[2], &time_for_meanvalue);
 
 	/*
 	 * Init text of of main menu
 	 */
-	menu_init_text(&Hauptmenu.items[1], "Started");
-	menu_init_text(&Hauptmenu.items[2], (char*) "Systeminfo");
-	menu_init_text(&Hauptmenu.items[3], (char*) "Steckdoseneinst.");
-	menu_init_text(&Hauptmenu.items[4], (char*) "Tarifeinst.");
+	menu_printf(&Hauptmenu_items[1], "Started");
+	menu_printf(&Hauptmenu_items[2], "Systeminfo");
+	menu_printf(&Hauptmenu_items[3], "Steckdoseneinst.");
+	menu_printf(&Hauptmenu_items[4], "Systemeinst.");
+
+	/*
+	 * system settings menu
+	 */
+
+	menu_printf(&system_settings.items[1], "LCD Auto Off: %d",
+			time_for_lcd_light);
+
+	menu_printf(&system_settings.items[2], "Sek. fuer MW: %d",
+			time_for_meanvalue);
+
+	menu_init_text(&system_settings.items[3], "Akku:");
+
+	/*
+	 * universal menu for changing a value with the rotary encoder
+	 */
+	menu_init(&menu_changing_value, menu_changing_value_item,
+			SIZE_OF_MENU(menu_changing_value_item));
+
+	menu_changing_value.items[0].on_rotate = &on_rotary_change_value;
+	menu_changing_value.items[1].on_rotate = &on_rotary_change_value;
+
+	menu_changing_value.items[0].on_push = &call_menu_change_value;
+	menu_changing_value.items[1].on_push = &call_menu_change_value;
+
+	menu_changing_value.user_data = NULL;
 
 	/*
 	 * Initiation of infomenu
 	 */
-	menu_init_text(&infomenu.items[1], "Maxima");
-	menu_init_text(&infomenu.items[2], "Minima");
-	menu_init_text(&infomenu.items[3], "genutzte Leist.");
-	menu_init_text(&infomenu.items[4], "24h Mittel");
-	menu_init_text(&infomenu.items[5], "7d Mittel");
-	menu_init_text(&infomenu.items[6], "30d Mittel");
-	menu_init_text(&infomenu.items[7], "1y Mittel");
+	menu_init_text(&menu_system_info.items[1], "Max:");
+	menu_init_text(&menu_system_info.items[2], "Min:");
+	menu_init_text(&menu_system_info.items[3], "genutzte Leist.");
+	menu_init_text(&menu_system_info.items[4], "24h Mittel");
+	menu_init_text(&menu_system_info.items[5], "7d Mittel");
+	menu_init_text(&menu_system_info.items[6], "30d Mittel");
+	menu_init_text(&menu_system_info.items[7], "1y Mittel");
 
-	/*
-	 * Initiation of the info menus
-	 */
-	int32_t max_value = 0;
+	menu_init_text(&menu_changing_value.items[0], "");
+	menu_init_text(&menu_changing_value.items[1], "");
 
-	char tmp_str[20];
-	char men[20];
-
-	/*
-	 * maximum power value of all time
-	 */
-	memset(men, 0, sizeof(men));
-	strcpy(men, "Power:");
-	strcat(men, tmp_str);
-	strcat(men, "W");
-	menu_init_text(&maxima_items[1], men);
-	menu_fct_for_delayed_push(&maxima_menu.items[1], &on_push_reset_value);
-
-	/*
-	 * minimum value of all time
-	 */
-	memset(men, 0, sizeof(men));
-	strcpy(men, "Power:");
-	strcat(men, tmp_str);
-	strcat(men, "W");
-	menu_init_text(&minima_items[1], men);
-	menu_fct_for_delayed_push(&minima_menu.items[1], &on_push_reset_value);
-
-	/*
-	 * 24h mean value of power
-	 * Todo: new menu_printf function, check if this works
-	 */
-	menu_fct_for_delayed_push(&minima_menu.items[1], &on_push_reset_value);
-
-	/*
-	 * mean power over 7 days
-	 */
-
-	/*
-	 * maximum time between two data packets ever recorded
-	 */
-	menu_fct_for_delayed_push(&maxima_menu.items[2], &on_push_reset_value);
-
-	memset(men, 0, sizeof(men));
-	strcpy(men, "Time:");
-	strcat(men, tmp_str);
-	strcat(men, "ms");
-	menu_init_text(&minima_items[2], men);
-	menu_fct_for_delayed_push(&minima_menu.items[2], &on_push_reset_value);
-
-	menu_init_text(&changing_value.items[0], "");
-	menu_init_text(&changing_value.items[1], "");
-
-	menu_fct_for_push(&changing_value.items[0], &call_menu_change_value);
+	menu_fct_for_push(&menu_changing_value.items[0], &call_menu_change_value);
 
 	current_menu_ptr = &Hauptmenu;
 	flags.currently_in_menu = 1;
@@ -442,7 +394,7 @@ void Initial_Init() {
 void outlet_on_off(menu_t *instance) {
 
 	outlets_t *outlet;
-	outlet = (outlets_t*) instance->items[menu_index].user_data;
+	outlet = (outlets_t*) instance->items[menu_timer_index].user_data;
 	;
 	if (outlet == NULL) {
 		/*

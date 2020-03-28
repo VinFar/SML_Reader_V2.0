@@ -23,9 +23,10 @@ int32_t powervalue_used_by_consumers = 0;
 uint32_t meter_main_del, meter_main_pur, meter_plant_del;
 
 int32_t sm_power_hist[2][SM_MAIN_SIZE_ARRAY];
-uint16_t time_for_meanvalue;
+uint16_t time_for_meanvalue=300;
 
-int32_t menu_timer_index = 1000000;
+
+
 
 uint8_t P_CONFIG;
 
@@ -67,15 +68,7 @@ void set_max_min_power(int32_t power) {
 		 */
 		eeprom_write_data_struct(&eeprom_powermax);
 
-		/*
-		 * set new text in powermax submenu
-		 */
-		memset(men, 0, sizeof(men));
-		strcpy(men, "Power:");
-		itoa(eeprom_powermax.data, tmp_str, 10);
-		strcat(men, tmp_str);
-		strcat(men, "W");
-		menu_init_text(&maxima_items[1], men);
+
 		flags.refreshed_rotary = 1;
 
 	} else if (power < eeprom_powermin.data) {
@@ -92,12 +85,7 @@ void set_max_min_power(int32_t power) {
 		/*
 		 * set new text in powermin submenu
 		 */
-		memset(men, 0, sizeof(men));
-		strcpy(men, "Power:");
-		itoa(eeprom_powermin.data, tmp_str, 10);
-		strcat(men, tmp_str);
-		strcat(men, "W");
-		menu_init_text(&minima_items[1], men);
+
 		flags.refreshed_rotary = 1;
 
 	}
@@ -116,7 +104,7 @@ int8_t ping_sm_data_handler(nrf24_frame_t *frame, void *userData) {
 	sm_consumption_main_pur = frame->data[3].int32_data;
 	sm_consumption_plant = frame->data[4].int32_data;
 	nrf24_tx_ctr = frame->data[5].int32_data;
-	current_menu_ptr->items[menu_index].on_rotate(current_menu_ptr);
+	current_menu_ptr->items[menu_timer_index].on_rotate(current_menu_ptr,menu_timer_index);
 	return 0;
 
 }

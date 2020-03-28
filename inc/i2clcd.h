@@ -177,7 +177,7 @@ double PreiskWhEK, PreiskWhVK, PreiskWhEVsmall, PreiskWhEVbig, MonatlGrundpreis;
 void _delay_ms(uint32_t value);
 void lcd_print_info();
 void lcd_refresh_push();
-void lcd_refresh_rotary();
+uint32_t lcd_refresh_rotary(menu_t *ptr,int32_t index);
 void lcd_print_on_off(int pos_line, int pos_row, unsigned flag);
 void lcd_print_items();
 void lcd_print_checkbox(int pos_line, int pos_row, unsigned flag);

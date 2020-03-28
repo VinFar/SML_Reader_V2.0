@@ -117,14 +117,14 @@ void gpio_init(void) {
 
 	GPIO_InitStruct.Pin = ROTARY_A_Pin;
 	GPIO_InitStruct.Alternate = GPIO_AF1_TIM3;
-	GPIO_InitStruct.Mode = GPIO_MODE_IT_FALLING;
+	GPIO_InitStruct.Mode = GPIO_MODE_IT_FALLING | GPIO_MODE_AF_PP;
 	GPIO_InitStruct.Pull = GPIO_NOPULL;
 	HAL_GPIO_Init(ROTARY_A_GPIO_Port, &GPIO_InitStruct);
 	NVIC_EnableIRQ(EXTI4_15_IRQn);
 
 	GPIO_InitStruct.Pin = ROTARY_B_Pin;
 	GPIO_InitStruct.Alternate = GPIO_AF1_TIM3;
-	GPIO_InitStruct.Mode = 0;
+	GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
 	GPIO_InitStruct.Pull = GPIO_NOPULL;
 	HAL_GPIO_Init(ROTARY_B_GPIO_Port, &GPIO_InitStruct);
 

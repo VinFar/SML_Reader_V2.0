@@ -78,7 +78,7 @@ void TIM3_Init() {
 
 //	SYSCFG->EXTICR[1] |= SYSCFG_EXTICR2_EXTI7_PC;	//Map PC7 on EXTI 2 line
 //	SYSCFG->EXTICR[1] |= SYSCFG_EXTICR2_EXTI6_PC;	//Map PC6 on EXTI2 Line
-	EXTI->IMR |= EXTI_IMR_MR2 | EXTI_IMR_MR1;		//Don't mask TI1 and TI2
+	EXTI->IMR |= EXTI_IMR_MR6 | EXTI_IMR_MR7;		//Don't mask TI1 and TI2
 
 	TIM3->SMCR |= TIM_SMCR_SMS_0 ;//Configure both inputs are active on both rising and falling edges
 	TIM3->CCMR1 |= TIM_CCMR1_CC1S_0 ; //Configure TI1FP1 on TI1 (CC1S = 01), configure TI1FP2 on TI2 (CC2S = 01)
@@ -155,4 +155,18 @@ void TIM15_Init() {
 
 }
 
+void TIM17_Init() {
+
+	__HAL_RCC_TIM17_CLK_ENABLE()
+	;
+	delay_us(10);
+	TIM17->PSC = 48000;			//Prescaler at 108 for 1us tick
+	TIM17->ARR = 0xffff;//Auto reload register at 25000 for 25ms interrupt
+
+	TIM17->EGR |= TIM_EGR_UG;
+
+	TIM17->CNT = 0xffff;
+
+
+}
 

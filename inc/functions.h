@@ -31,7 +31,8 @@ extern uint32_t meter_main_del,meter_main_pur,meter_plant_del;
 extern int32_t sm_power_hist[2][SM_MAIN_SIZE_ARRAY];
 extern uint16_t time_for_meanvalue;
 extern uint8_t P_CONFIG;
-extern int32_t menu_timer_index;
+
+
 
 typedef struct outlets {
 	union {

@@ -16,305 +16,15 @@
 
 uint32_t old_ctr_cnt;
 
-int32_t menu_index = 0;
+int32_t menu_timer_index = 0;
 
 menu_t *current_menu_ptr = &Hauptmenu;
 
-void call_menu(menu_t *instance) {
+int8_t menu_add_submenu(menu_t *prev, menu_t *sub, uint8_t index_item) {
 
-	flags.refreshed_rotary = 1;
-	current_menu_ptr = current_menu_ptr->items[menu_index].menu_ptr;
-	menu_index = 0;
-
-	return;
-}
-
-void call_menu_steckdoseneinstellunge(menu_t *instance) {
-
-	flags.refreshed_rotary = 1;
-	current_menu_ptr = current_menu_ptr->items[menu_index].menu_ptr;
-	current_menu_ptr->items[0].user_data =
-			instance->items[menu_index].user_data;
-	menu_index = 0;
-
-	return;
-}
-
-void call_menu_change_value(menu_t *instance) {
-
-	flags.refreshed_rotary = 1;
-	TIM15_DISABLE;
-	TIM15->CNT = 0xffff;
-	outlets_t *outlet =
-			((outlets_t*) current_menu_ptr->items[menu_index].user_data);
-
-	current_menu_ptr = current_menu_ptr->items[menu_index].menu_ptr;
-
-	int32_t old_power_value = 0;
-	eeprom_read_data(outlet->eeprom_page, outlet->eeprom_byte,
-			(uint8_t*) &old_power_value, 4);
-
-	/*
-	 * if the value has changed we have to set correct value for the consumer
-	 * power value
-	 */
-	if (outlet->state == 1) {
-		powervalue_used_by_consumers -= old_power_value;
-		powervalue_used_by_consumers += outlet->union_value.value;
+	if (sub->items == NULL || prev->items == NULL) {
+		return -1;
 	}
-	eeprom_write_data(outlet->eeprom_page, outlet->eeprom_byte,
-			(uint8_t*) &outlet->union_value.value, 4);
-
-	menu_index = 0;
-
-	return;
-}
-
-
-void go_back_to_main_menu(menu_t *instance) {
-
-	flags.refreshed_rotary = 1;
-	flags.currently_in_menu = ~flags.currently_in_menu;
-	current_menu_ptr = &Hauptmenu;
-	menu_index = 0;
-	return;
-
-}
-
-void lcd_printint(int32_t data) {
-
-	char tmp[32] = "";
-	itoa(data, tmp, sizeof(tmp));
-	lcd_print(tmp);
-
-	return;
-}
-
-void lcd_printarrow(int line) {
-
-	if (line > 4) {
-		line = 4;
-	}
-	if (line < 1) {
-		line = 1;
-	}
-
-	lcd_setcursor(old_arrow_line, 1);
-	lcd_putchar(' ');
-	lcd_setcursor(line, 1);
-	lcd_putchar('>');
-	old_arrow_line = line;
-	return;
-
-}
-
-void lcd_refresh_push() {
-	if (flags.currently_in_menu) {
-		/*
-		 * we are in the menu
-		 */
-		if (current_menu_ptr->items[menu_index].on_push == NULL) {
-			/*
-			 * no function pointer, so abort
-			 */
-			return;
-		} else {
-			current_menu_ptr->items[menu_index].on_push(
-					current_menu_ptr->items[menu_index].user_data);
-		}
-	} else {
-		flags.currently_in_menu = 1;
-	}
-	flags.refreshed_rotary = 1;
-	old_ctr_cnt = menu_timer_index;
-	return;
-}
-
-void lcd_refresh_rotary() {
-	int32_t ctr_cnt = menu_timer_index;
-	if (flags.currently_in_menu) {
-		/*
-		 * we have entered the menu
-		 */
-		if (old_ctr_cnt > ctr_cnt) {
-			menu_index++;
-		} else {
-			menu_index--;
-
-		}
-		old_ctr_cnt = ctr_cnt;
-
-		if (menu_index > current_menu_ptr->size - 1) {
-			menu_index = current_menu_ptr->size - 1;
-		} else if (menu_index < 0) {
-			menu_index = 0;
-		}
-
-		uint8_t page = menu_index / 4; //current page. of the menu
-		uint8_t page_index = menu_index % 4; // index in the current pagee
-
-		lcd_clear();
-
-		for (uint8_t i = 4 * page; i < 4 * page + 4; i++) {
-			if (i > current_menu_ptr->size - 1) {
-				break;
-			}
-			lcd_setcursor(i - 4 * page + 1, 2);
-			lcd_print(current_menu_ptr->items[i].string);
-		}
-		lcd_setcursor(page_index + 1, 1);
-		lcd_putchar('>');
-	} else {
-		lcd_print_info();
-	}
-	return;
-}
-
-void lcd_print_info() {
-
-	char tmp_string[20] = "";
-
-	lcd_clear();
-
-	switch (((menu_timer_index) % 5)) {				//Main manue
-	case 0:
-
-		lcd_setcursor(1, 1);
-		lcd_print("PV:");
-		lcd_setcursor(1, 4);
-		itoa((int32_t) sm_power_plant_current, tmp_string, 10);
-		strcat(tmp_string, "W");
-		lcd_print(tmp_string);
-
-		lcd_setcursor(2, 1);
-		lcd_print("Main:");
-		lcd_setcursor(2, 6);
-		itoa((int32_t) sm_power_main_current, tmp_string, 10);
-		strcat(tmp_string, "W");
-		lcd_print(tmp_string);
-
-		lcd_setcursor(3, 1);
-		lcd_print("TX ctr:");
-		lcd_setcursor(3, 9);
-		itoa(nrf24_tx_ctr, tmp_string, 10);
-		lcd_setcursor(3, 9);
-//		strcat(tmp_string, "W");
-		lcd_print(tmp_string);
-
-		lcd_setcursor(4, 1);
-		lcd_print("MW Plant:");
-		lcd_setcursor(4, 10);
-		itoa(sm_power_plant_mean, tmp_string, 10);
-		lcd_setcursor(4, 10);
-		strcat(tmp_string, "W");
-		lcd_print(tmp_string);
-
-		break;
-	case 1:						//Menue two
-		lcd_setcursor(1, 1);
-		lcd_print("PV:");
-		lcd_setcursor(1, 4);
-		itoa((int32_t) sm_consumption_plant, tmp_string, 10);
-		strcat(tmp_string, "kWh");
-		lcd_print(tmp_string);
-
-		lcd_setcursor(2, 1);
-		lcd_print("MainDel:");
-		lcd_setcursor(2, 9);
-		itoa((int32_t) sm_consumption_main_del, tmp_string, 10);
-		strcat(tmp_string, "kWh");
-		lcd_print(tmp_string);
-
-		lcd_setcursor(3, 1);
-		lcd_print("MainPur:");
-		lcd_setcursor(3, 9);
-		itoa(sm_consumption_main_pur, tmp_string, 10);
-		lcd_setcursor(3, 9);
-		strcat(tmp_string, "W");
-		lcd_print(tmp_string);
-
-		break;
-	case 2:
-		lcd_setcursor(1, 1);
-		lcd_print("1:");
-		lcd_print_on_off(1, 4, outlets[0].state);
-
-		lcd_setcursor(2, 1);
-		lcd_print("2:");
-		lcd_print_on_off(2, 4, outlets[1].state);
-
-		lcd_setcursor(3, 1);
-		lcd_print("3:");
-		lcd_print_on_off(3, 4, outlets[2].state);
-
-		lcd_setcursor(1, 9);
-		lcd_print("4:");
-		lcd_print_on_off(1, 12, outlets[3].state);
-
-		lcd_setcursor(2, 9);
-		lcd_print("5:");
-		lcd_print_on_off(2, 12, outlets[4].state);
-
-		lcd_setcursor(3, 9);
-		lcd_print("6:");
-		lcd_print_on_off(3, 12, outlets[5].state);
-
-		break;
-	case 3:
-		lcd_setcursor(1, 1);
-		lcd_print("mean time:");
-		lcd_setcursor(1, 11);
-		itoa((int) 0, tmp_string, 10);
-		strcat(tmp_string, "ms");
-		lcd_print(tmp_string);
-		break;
-	default:
-		lcd_setcursor(1, 1);
-		lcd_print("should not happen!:(");
-		//should not happen
-		break;
-
-		break;
-	}
-
-	return;
-}
-
-void lcd_print_checkbox(int pos_line, int pos_row, unsigned flag) {
-
-	lcd_setcursor(pos_line, pos_row);
-	if (flag) {
-		lcd_putchar(CHECKBOX);
-	} else {
-		lcd_putchar(' ');
-	}
-
-}
-
-void lcd_print_value_unit(int pos_line, int pos_row, char *value, char *unit) {
-
-	for (char i = pos_row; i <= 20; i++) {		//flush line
-		lcd_setcursor(pos_line, i);
-		lcd_putchar(' ');
-	}
-	lcd_setcursor(pos_line, pos_row);
-	lcd_print(value);
-	lcd_print(unit);
-
-}
-
-void lcd_print_on_off(int pos_line, int pos_row, unsigned flag) {
-
-	lcd_setcursor(pos_line, pos_row);
-	if (flag) {
-		lcd_print("ein");
-	} else {
-		lcd_print("aus");
-	}
-
-}
-
-void menu_add_submenu(menu_t *prev, menu_t *sub, uint8_t index_item) {
 
 	/*
 	 * set the correct submenu for item with the index 'index_item'
@@ -327,10 +37,11 @@ void menu_add_submenu(menu_t *prev, menu_t *sub, uint8_t index_item) {
 	 */
 	sub->items[0].menu_ptr = prev;
 	sub->items[0].on_push = &call_menu;
+	return 0;
 
 }
 
-void menu_init_struct(menu_t *instance, item_t *items, uint8_t nbr_of_items) {
+void menu_init(menu_t *instance, item_t *items, uint8_t nbr_of_items) {
 
 	/*
 	 * init item struct with zero
@@ -382,10 +93,21 @@ void menu_init_text(item_t *item, char text[]) {
 }
 
 void menu_printf(item_t *item, const char *fmt, ...) {
+
 	va_list va;
 	va_start(va, fmt);
 	vsiprintf(item->string, fmt, va);
 	va_end(va);
+	uint8_t len = strlen(item->string);
+	if (item->on_push != NULL) {
+		/*
+		 * menu has a submenu so at arrow
+		 */
+		for (; len < LCD_COLS - 2; len++) {
+			strcat(item->string, " ");
+		}
+		strcat(item->string, ">");
+	}
 }
 
 void menu_fct_for_push(item_t *item, void (*ptr)(menu_t *instance)) {
@@ -404,43 +126,284 @@ void menu_add_userdata(item_t *item, void *ptr_to_data) {
 	item->user_data = ptr_to_data;
 }
 
-void on_rotary_change_value(menu_t *instance) {
+void call_menu(menu_t *instance) {
 
-	outlets_t *outlet = ((outlets_t*) instance->items[menu_index].user_data);
+	flags.refreshed_rotary = 1;
+	current_menu_ptr = current_menu_ptr->items[menu_timer_index].menu_ptr;
+	if (current_menu_ptr != &menu_changing_value) {
+		/*
+		 * We don't want to reset the menu index when we are enterend the menu for
+		 * changing a value of an item.
+		 * This is because the changing value menu needs to now from which
+		 * item (indexed by menu indes) it is called, in order to
+		 * be able to change its value.
+		 * If it would be reset to 0 that menu could not now the
+		 * item from which it is called.
+		 */
+		menu_timer_index = 0;
+	}
+
+	return;
+}
+
+void call_menu_steckdoseneinstellunge(menu_t *instance) {
+
+	flags.refreshed_rotary = 1;
+	current_menu_ptr = current_menu_ptr->items[menu_timer_index].menu_ptr;
+	current_menu_ptr->items[0].user_data =
+			instance->items[menu_timer_index].user_data;
+	menu_timer_index = 0;
+
+	return;
+}
+
+void call_menu_change_value(menu_t *instance) {
+
+	flags.refreshed_rotary = 1;
+	TIM17_DISABLE;
+	TIM15->CNT = 0xffff;
+
+	current_menu_ptr = current_menu_ptr->items[0].menu_ptr;
+
+	menu_timer_index = 0;
+
+	return;
+}
+
+void go_back_to_main_menu(menu_t *instance) {
+
+	flags.refreshed_rotary = 1;
+	flags.currently_in_menu = ~flags.currently_in_menu;
+	current_menu_ptr = &Hauptmenu;
+	menu_timer_index = 0;
+	return;
+
+}
+
+void lcd_printint(int32_t data) {
+
+	char tmp[32] = "";
+	itoa(data, tmp, sizeof(tmp));
+	lcd_print(tmp);
+
+	return;
+}
+
+void lcd_printarrow(int line) {
+
+	if (line > 4) {
+		line = 4;
+	}
+	if (line < 1) {
+		line = 1;
+	}
+
+	lcd_setcursor(old_arrow_line, 1);
+	lcd_putchar(' ');
+	lcd_setcursor(line, 1);
+	lcd_putchar('>');
+	old_arrow_line = line;
+	return;
+
+}
+
+void lcd_refresh_push() {
+	if (flags.currently_in_menu) {
+		/*
+		 * we are in the menu
+		 */
+		if (current_menu_ptr->items[menu_timer_index].on_push == NULL) {
+			/*
+			 * no function pointer, so abort
+			 */
+			return;
+		} else {
+			current_menu_ptr->items[menu_timer_index].on_push(
+					current_menu_ptr->items[menu_timer_index].user_data);
+		}
+	} else {
+		flags.currently_in_menu = 1;
+	}
+	flags.refreshed_rotary = 1;
+	old_ctr_cnt = menu_timer_index;
+	return;
+}
+
+uint32_t lcd_refresh_rotary(menu_t *ptr, int32_t index) {
+	int32_t ctr_cnt = menu_timer_index;
+	if (flags.currently_in_menu) {
+		/*
+		 * we have entered the menu
+		 */
+//		index = menu_timer_index
+		old_ctr_cnt = ctr_cnt;
+
+		if (index > ptr->size - 1) {
+			index = ptr->size - 1;
+		} else if (index < 0) {
+			index = 0;
+		}
+
+		uint8_t page = index / 4; //current page. of the menu
+		uint8_t page_index = index % 4; // index in the current pagee
+
+		lcd_clear();
+
+		for (uint8_t i = 4 * page; i < 4 * page + 4; i++) {
+			if (i > ptr->size - 1) {
+				break;
+			}
+			lcd_printlc(i - 4 * page + 1, 2, ptr->items[i].string);
+		}
+		lcd_setcursor(page_index + 1, 1);
+		lcd_putchar('>');
+	} else {
+		lcd_print_info();
+	}
+	return index;
+}
+
+void lcd_print_info() {
+
+	char tmp_string[20] = "";
+
 	lcd_clear();
 
-	float jog_value = TIM15->CNT; //Calculate difference
+	switch (((menu_timer_index) % 2)) {				//Main manue
+	case 0:
+
+		lcd_setcursor(1, 1);
+		lcd_print("PV:");
+		lcd_setcursor(1, 4);
+		itoa((int32_t) sm_power_plant_current, tmp_string, 10);
+		strcat(tmp_string, "W");
+		lcd_print(tmp_string);
+
+		lcd_setcursor(2, 1);
+		lcd_print("Main:");
+		lcd_setcursor(2, 6);
+		itoa((int32_t) sm_power_main_current, tmp_string, 10);
+		strcat(tmp_string, "W");
+		lcd_print(tmp_string);
+
+		lcd_setcursor(3, 1);
+		lcd_print("TX ctr:");
+		lcd_setcursor(3, 9);
+		itoa(nrf24_tx_ctr, tmp_string, 10);
+		lcd_setcursor(3, 9);
+		lcd_print(tmp_string);
+
+		lcd_setcursor(4, 1);
+		lcd_print("MW Plant:");
+		lcd_setcursor(4, 10);
+		itoa(sm_power_plant_mean, tmp_string, 10);
+		lcd_setcursor(4, 10);
+		strcat(tmp_string, "W");
+		lcd_print(tmp_string);
+
+		break;
+	case 1:						//Menue two
+		lcd_setcursor(1, 1);
+		lcd_print("PV:");
+		lcd_setcursor(1, 4);
+		itoa((int32_t) sm_consumption_plant, tmp_string, 10);
+		strcat(tmp_string, "kWh");
+		lcd_print(tmp_string);
+
+		lcd_setcursor(2, 1);
+		lcd_print("MainDel:");
+		lcd_setcursor(2, 9);
+		itoa((int32_t) sm_consumption_main_del, tmp_string, 10);
+		strcat(tmp_string, "kWh");
+		lcd_print(tmp_string);
+
+		lcd_setcursor(3, 1);
+		lcd_print("MainPur:");
+		lcd_setcursor(3, 9);
+		itoa(sm_consumption_main_pur, tmp_string, 10);
+		lcd_setcursor(3, 9);
+		strcat(tmp_string, "W");
+		lcd_print(tmp_string);
+
+		break;
+	default:
+		lcd_setcursor(1, 1);
+		lcd_print("should not happen!:(");
+		//should not happen
+		break;
+
+		break;
+	}
+
+	return;
+}
+
+void lcd_print_value_unit(int pos_line, int pos_row, char *value, char *unit) {
+
+	for (char i = pos_row; i <= 20; i++) {		//flush line
+		lcd_setcursor(pos_line, i);
+		lcd_putchar(' ');
+	}
+	lcd_setcursor(pos_line, pos_row);
+	lcd_print(value);
+	lcd_print(unit);
+
+}
+
+uint32_t on_rotary_change_value(menu_t *instance, uint32_t index) {
+
+	if (instance == NULL) {
+		return index;
+	}
+	instance = instance->items[0].menu_ptr;
+	if (instance->items[index].user_data == NULL) {
+		return index;
+	}
+
+	char needle[10] = { 0 };
+	uint32_t data = *(uint32_t*) instance->items[index].user_data;
+
+	itoa(data, needle, 10);
+	char *needle_found = strstr(instance->items[index].string, needle);
+	if(needle_found == NULL){
+		return index;
+	}
+	uint8_t pos = needle_found - instance->items[index].string;
+
+	float jog_value = (float)TIM17->CNT; //Calculate difference
 	jog_value = (1000 / jog_value) + 1;
 
 	jog_value = 10;
 
-	TIM15->CNT = 0;
-	TIM15_ENABLE;
+	TIM17->CNT = 0;
+	TIM17_ENABLE;
 
-	if (TIM3->CR1 & TIM_CR1_DIR) {
-		outlet->union_value.value += (uint32_t) jog_value;
-		if (outlet->union_value.value > 3680) {
-			outlet->union_value.value = 3680;
-		}
+	if (flags.rotary_direction) {
+		data += (uint32_t) jog_value;
+
 	} else {
-		outlet->union_value.value -= (uint32_t) jog_value;
-		if (outlet->union_value.value < 0) {
-			outlet->union_value.value = 0;
-		}
+		data -= (uint32_t) jog_value;
 	}
-	char value_string[20] = { 0 };
-	itoa(outlet->union_value.value, value_string, 10);
-	lcd_print_value_unit(2, 2, value_string, (char*) "W");
+	*((uint32_t*)instance->items[index].user_data) = data;
+	itoa(data, needle, 10);
+
+	for (uint8_t i = 0;
+			needle[i] != '\0' && instance->items[index].string[pos] != '\0';
+			i++,pos++) {
+		instance->items[index].string[pos] = needle[i];
+	}
+	instance->items[0].on_rotate(instance, menu_timer_index);
+	return index;
 
 }
 
 void on_push_reset_value(menu_t *instance) {
 
-	if (instance->items[menu_index].user_data == NULL) {
+	if (instance->items[menu_timer_index].user_data == NULL) {
 		return;
 	}
 	eeprom_t *eeprom_data =
-			((eeprom_t*) (instance->items[menu_index].user_data));
+			((eeprom_t*) (instance->items[menu_timer_index].user_data));
 
 	memset(&eeprom_data->data, 0, eeprom_data->size);
 
@@ -448,10 +411,10 @@ void on_push_reset_value(menu_t *instance) {
 
 void on_push_reset_system(menu_t *instance) {
 
-	NVIC_SystemReset();
+//	NVIC_SystemReset();
 }
 
-static lcd_fwrite(int file, char *ptr, int len) {
+static int lcd_fwrite(int file, char *ptr, int len) {
 	int DataIdx;
 
 	for (DataIdx = 0; DataIdx < len; DataIdx++) {

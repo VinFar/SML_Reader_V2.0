@@ -4,11 +4,13 @@
 #include "usart.h"
 #include "lcd_menu.h"
 
-
 void NMI_Handler(void) {
 }
 
 void HardFault_Handler(void) {
+	lcd_clear();
+	lcd_printlc(1, 1, "HardFaultHandler!");
+	lcd_printlc(2, 1, "Shoud not happen:(");
 	while (1) {
 	}
 }
@@ -58,11 +60,31 @@ void EXTI4_15_IRQHandler() {
 	if (( EXTI->PR & EXTI_PR_PR6)) {	//Interrupt from rotating rotary encoder
 
 		flags.refreshed_rotary = 1;
+
+		/*
+		 * When we are currently in the menu for changing a value
+		 * we don't want to change the menu_index, because this
+		 * would lead to indexinf out of the items array.
+		 * So just don't touch this index, when we are the
+		 * changing value menu
+		 */
 		if (ROTARY_B_GPIO_Port->IDR & ROTARY_B_Pin) {
-			menu_timer_index++;
+			if (current_menu_ptr != &menu_changing_value) {
+
+				if (++menu_timer_index > current_menu_ptr->size - 1) {
+					menu_timer_index = current_menu_ptr->size - 1;
+				}
+
+			}
+			flags.rotary_direction = 1;
 
 		} else {
-			menu_timer_index--;
+			if (current_menu_ptr != &menu_changing_value) {
+				if (--menu_timer_index < 0) {
+					menu_timer_index = 0;
+				}
+			}
+			flags.rotary_direction = 0;
 		}
 
 		EXTI->PR |= EXTI_PR_PR6;	//Reset Interrupt Flag
@@ -126,11 +148,11 @@ void TIM14_IRQHandler() {
 		/*
 		 * user requested a system reset
 		 */
-		if (current_menu_ptr->items[menu_index].on_push_delayed == NULL) {
+		if (current_menu_ptr->items[menu_timer_index].on_push_delayed == NULL) {
 
 		} else {
 
-			current_menu_ptr->items[menu_index].on_push_delayed(
+			current_menu_ptr->items[menu_timer_index].on_push_delayed(
 					current_menu_ptr);
 		}
 
@@ -141,11 +163,12 @@ void TIM14_IRQHandler() {
 }
 
 uint32_t timer_ctr_for_lcd_light = 0;
+uint32_t time_for_lcd_light = 30;
 
 void TIM15_IRQHandler() {
 	if ((TIM15->SR & TIM_SR_UIF) == TIM_SR_UIF) {	//Interrupt every 25 ms
 		TIM15->SR &= ~TIM_SR_UIF;	//Reset update interrupt flag
-		if(timer_ctr_for_lcd_light++ > 1200){
+		if (timer_ctr_for_lcd_light++ > time_for_lcd_light * 40) {
 			/*
 			 * light off after 5 min
 			 */

@@ -90,6 +90,7 @@ volatile typedef struct {
 	unsigned lcd_light_on_off :1;
 	unsigned smu_connected :1;
 	unsigned nrf24_new_frame:1;
+	unsigned rotary_direction:1;
 } flags_t;
 
 flags_t flags;
