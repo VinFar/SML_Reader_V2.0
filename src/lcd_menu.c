@@ -41,7 +41,7 @@ int8_t menu_add_submenu(menu_t *prev, menu_t *sub, uint8_t index_item) {
 
 }
 
-void menu_init(menu_t *instance, item_t *items, uint8_t nbr_of_items) {
+void menu_init_menu(menu_t *instance, item_t *items, uint8_t nbr_of_items) {
 
 	/*
 	 * init item struct with zero
@@ -76,6 +76,30 @@ void menu_init(menu_t *instance, item_t *items, uint8_t nbr_of_items) {
 	instance->items[0].on_push = &go_back_to_main_menu;
 
 	strcpy(instance->items[0].string, (char*) "Zurueck");
+
+}
+
+void menu_init(menu_t *main_menu, item_t *main_menu_items, uint8_t size) {
+	menu_init_menu(main_menu, main_menu_items, size);
+
+	menu_init_menu(&menu_changing_value, menu_changing_value_item,
+			SIZE_OF_MENU(menu_changing_value_item));
+	/*
+	 * universal menu for changing a value with the rotary encoder
+	 */
+	menu_init_menu(&menu_changing_value, menu_changing_value_item,
+			SIZE_OF_MENU(menu_changing_value_item));
+
+	menu_changing_value.items[0].on_rotate = &on_rotary_change_value;
+	menu_changing_value.items[1].on_rotate = &on_rotary_change_value;
+
+	menu_changing_value.items[0].on_push = &call_menu_change_value;
+	menu_changing_value.items[1].on_push = &call_menu_change_value;
+
+	menu_changing_value.user_data = NULL;
+	menu_init_text(&menu_changing_value.items[0], "");
+	menu_init_text(&menu_changing_value.items[1], "");
+	menu_fct_for_push(&menu_changing_value.items[0], &call_menu_change_value);
 
 }
 
@@ -124,6 +148,25 @@ void menu_fct_for_rotary(item_t *item, void (*ptr)()) {
 
 void menu_add_userdata(item_t *item, void *ptr_to_data) {
 	item->user_data = ptr_to_data;
+}
+
+void menu_printf_add_itemvalue(item_t *item, void *ptr_to_data, const char *fmt,
+		...) {
+	va_list va;
+	va_start(va, fmt);
+	vsiprintf(item->string, fmt, va);
+	va_end(va);
+	uint8_t len = strlen(item->string);
+	if (item->on_push != NULL) {
+		/*
+		 * menu has a submenu so add arrow
+		 */
+		for (; len < LCD_COLS - 2; len++) {
+			strcat(item->string, " ");
+		}
+		strcat(item->string, ">");
+	}
+	menu_add_userdata(item, ptr_to_data);
 }
 
 void call_menu(menu_t *instance) {
@@ -352,6 +395,19 @@ void lcd_print_value_unit(int pos_line, int pos_row, char *value, char *unit) {
 
 uint32_t on_rotary_change_value(menu_t *instance, uint32_t index) {
 
+	/*
+	 * A value of an item an be changed over this function.
+	 * It is called from the item that wants its value changed and
+	 * passes the current menu pointer, which is obviously the
+	 * 'menu_changing_value', but also the current index of the calling
+	 * item.
+	 * The displayed items are not changed, but the value of the selected item.
+	 * It is necessary to that the value that has to be changed is present
+	 * in the displayed string (exact value), because it searches the position
+	 * of this value and replaced it by the new value.
+	 * ToDo: change this method by a better one, without using additional RAM
+	 */
+
 	if (instance == NULL) {
 		return index;
 	}
@@ -365,12 +421,12 @@ uint32_t on_rotary_change_value(menu_t *instance, uint32_t index) {
 
 	itoa(data, needle, 10);
 	char *needle_found = strstr(instance->items[index].string, needle);
-	if(needle_found == NULL){
+	if (needle_found == NULL) {
 		return index;
 	}
 	uint8_t pos = needle_found - instance->items[index].string;
 
-	float jog_value = (float)TIM17->CNT; //Calculate difference
+	float jog_value = (float) TIM17->CNT; //Calculate difference
 	jog_value = (1000 / jog_value) + 1;
 
 	jog_value = 10;
@@ -384,12 +440,12 @@ uint32_t on_rotary_change_value(menu_t *instance, uint32_t index) {
 	} else {
 		data -= (uint32_t) jog_value;
 	}
-	*((uint32_t*)instance->items[index].user_data) = data;
+	*((uint32_t*) instance->items[index].user_data) = data;
 	itoa(data, needle, 10);
 
 	for (uint8_t i = 0;
 			needle[i] != '\0' && instance->items[index].string[pos] != '\0';
-			i++,pos++) {
+			i++, pos++) {
 		instance->items[index].string[pos] = needle[i];
 	}
 	instance->items[0].on_rotate(instance, menu_timer_index);

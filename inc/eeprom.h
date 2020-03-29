@@ -12,18 +12,21 @@
 #define EEPROM_MAX_PAGE 64
 #define EEPROM_MAX_BYTE 16
 
-#define INIT_EEPROM_STRUCT(addr,inst) {addr,sizeof(inst),&(inst)}
+#define EEPROM_INIT_STRUCT(addr,inst) {addr,sizeof(inst),&(inst)}
 
-int8_t eeprom_read_serial_numer(uint8_t *serial, uint8_t nbr);
+static int8_t eeprom_write_data_addr(uint8_t address, uint8_t *data, uint16_t size);
+static int8_t eeprom_read_serial_numer(uint8_t *serial, uint8_t nbr);
+static int8_t eeprom_read_page(uint8_t page, uint8_t *data);
+static int8_t eeprom_poll_ack_for_read(int timeout);
+static int8_t eeprom_poll_ack_for_write(int timeout);
+int8_t eeprom_erase_page(uint8_t page);
 int8_t eeprom_write_data_struct(void *data);
 int8_t eeprom_read_data_struct(void *data);
-void eeprom_init_data();
-int8_t eeprom_erase_page(uint8_t page);
-void eeprom_init_data();
-int8_t eeprom_read_data(uint8_t page, uint8_t byte, uint8_t *data, uint8_t size);
-int8_t eeprom_write_data(uint8_t page, uint8_t byte, uint8_t *data,
-		uint8_t size);
-
+int8_t eeprom_init_data();
+static int8_t eeprom_write_page(uint8_t page, uint8_t *data);
+static int8_t eeprom_read_data_addr(uint8_t address, uint8_t *data, uint16_t size);
+int8_t eeprom_write_data(void *data);
+int8_t eeprom_read_data(void *data);
 
 #define EEPROM_OVERWRITE 1
 
@@ -122,58 +125,60 @@ enum eeprom_bytes {
 
 };
 
-#define EEPROM_PAGES (eeprom_max_page-1)
+#define EEPROM_PAGES 64
+#define EEPROM_BYTES 16
 
-#define EEPROM_BYTES (eeprom_max_byte-1)
+#define EEPROM_INIT_STRUCT(addr,inst) {addr,sizeof(inst),&(inst)}
 
-typedef struct {
-	const uint8_t page;
-	const uint8_t byte;
-	const uint8_t size;
-	int8_t data;
-} STRUCT_PACKED eeprom_i8_t;
+enum eeprom_addresses {
+	eeprom_addr_powermax_main = 0,
+	eeprom_addr_powermin_main = eeprom_addr_powermax_main + 4,
+	eeprom_addr_powermax_plant = eeprom_addr_powermin_main+4,
+	eeprom_addr_meanpower24h = eeprom_addr_powermax_plant + 4,
+	eeprom_addr_meanpower7d = eeprom_addr_meanpower24h + 4,
+	eeprom_addr_meanpower30d = eeprom_addr_meanpower7d + 4,
+	eeprom_addr_meanpower1y = eeprom_addr_meanpower30d + 4,
+};
 
-typedef struct {
-	const uint8_t page;
-	const uint8_t byte;
-	const uint8_t size;
-	uint8_t data;
-}STRUCT_PACKED  eeprom_u8_t;
-
-typedef struct {
-	const uint8_t page;
-	const uint8_t byte;
-	const uint8_t size;
-	int32_t data;
-}STRUCT_PACKED eeprom_i32_t;
-
-typedef struct {
-	const uint8_t page;
-	const uint8_t byte;
-	const uint8_t size;
-	uint32_t data;
-}STRUCT_PACKED eeprom_u32_t;
+union eeprom_union_data {
+	float float_data;
+	uint32_t uint32_data;
+	int32_t int32_data;
+	uint16_t uint16_data[2];
+	int16_t int16_data[2];
+	uint8_t uint8_data[4];
+	int8_t int8_data[4];
+};
 
 typedef struct {
-	const uint8_t page;
-	const uint8_t byte;
+	const uint8_t address;
 	const uint8_t size;
-	uint16_t data;
-}STRUCT_PACKED eeprom_u16_t;
+	int8_t *data;
+} eeprom_i8_t;
 
 typedef struct {
-	const uint8_t page;
-	const uint8_t byte;
+	const uint8_t address;
 	const uint8_t size;
-	int16_t data;
-}STRUCT_PACKED eeprom_i16_t;
+	uint8_t *data;
+} eeprom_u8_t;
 
 typedef struct {
-	const uint8_t page;
-	const uint8_t byte;
+	const uint8_t address;
 	const uint8_t size;
-	float data;
-}STRUCT_PACKED eeprom_float_t;
+	const int32_t *data;
+} eeprom_i32_t;
+
+typedef struct {
+	const uint8_t address;
+	const uint8_t size;
+	const uint32_t *data;
+} eeprom_u32_t;
+
+typedef struct {
+	const uint8_t address;
+	const uint8_t size;
+	const float *data;
+} eeprom_float_t;
 
 typedef eeprom_u8_t eeprom_t;
 
@@ -183,20 +188,5 @@ extern eeprom_i32_t eeprom_meanpower24h;
 extern eeprom_i32_t eeprom_meanpower7d;
 extern eeprom_i32_t eeprom_meanpower30d;
 extern eeprom_i32_t eeprom_meanpower1y;
-
-extern eeprom_u16_t eeprom_meantime24h;
-extern eeprom_u16_t eeprom_meantime7d;
-extern eeprom_u16_t eeprom_meantime30d;
-extern eeprom_u16_t eeprom_meantime1y;
-
-extern eeprom_u32_t eeprom_meter_delivery;
-extern eeprom_u32_t eeprom_meter_purchase;
-extern eeprom_float_t eeprom_consumption_by_system;
-extern eeprom_float_t eeprom_consumption_balance;
-
-extern eeprom_u32_t eeprom_write_ctr;
-
-
-
 
 #endif /* EEPROM_H_ */

@@ -25,6 +25,9 @@ extern int32_t sm_power_plant_current, sm_power_plant_mean;
 extern int32_t sm_consumption_main_del,sm_consumption_main_pur, sm_consumption_plant;
 extern int32_t highest_prio;
 extern int32_t powervalue_used_by_consumers;
+extern int32_t power_value_main_max,power_value_main_min;
+extern int32_t power_value_pant_max;
+
 
 extern uint32_t meter_main_del,meter_main_pur,meter_plant_del;
 

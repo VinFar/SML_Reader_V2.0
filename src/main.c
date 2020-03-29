@@ -114,14 +114,14 @@ int main(void) {
 			&sm_date);
 
 	nrf24_init_rx();
-
+	lcd_light(1);
 	while (1) {
 
 		rtc_current_time_unix = rtc_get_unix_time(&sm_time, &sm_date);
 
 		if (flags.refreshed_push) {
 			timer_ctr_for_lcd_light = 0;
-			lcd_light(1);
+
 			if (current_menu_ptr == &menu_changing_value) {
 				current_menu_ptr->items[0].on_push(current_menu_ptr);
 				flags.refreshed_rotary = 1;
@@ -136,11 +136,13 @@ int main(void) {
 
 				}
 			}
+
 			flags.refreshed_push = 0;
 		}
 
 		if (flags.refreshed_rotary) {
 			timer_ctr_for_lcd_light = 0;
+			lcd_light(1);
 			if (current_menu_ptr == &menu_changing_value) {
 				menu_timer_index = current_menu_ptr->items[1].on_rotate(
 						current_menu_ptr, menu_timer_index);
@@ -150,8 +152,9 @@ int main(void) {
 								current_menu_ptr, menu_timer_index);
 			}
 			flags.refreshed_rotary = 0;
-			lcd_light(1);
 		}
+
+		lcd_light(1);
 
 		if (rtc_current_time_unix > rtc_old_time_unix && flags.smu_connected) {
 			rtc_old_time_unix = rtc_current_time_unix;
@@ -212,6 +215,7 @@ int main(void) {
 			/*
 			 * end of mean value calculation
 			 */
+
 		}
 
 //		if (nRF24_GetStatus_RXFIFO() != nRF24_STATUS_RXFIFO_EMPTY) {
@@ -289,7 +293,7 @@ static void prvSetupHardware(void) {
 	TIM14_Init(); //used for resetting values and the system
 	TIM15_Init();
 
-	eeprom_erase_page(0);
+	eeprom_init_data();
 
 	Initial_Init();
 
@@ -315,13 +319,15 @@ void Initial_Init() {
 
 	eeprom_init_data();
 
+	menu_init(&Hauptmenu, Hauptmenu_items, SIZE_OF_MENU(Hauptmenu_items));
+
 	/*
 	 * init the menu structs
 	 */
-	menu_init(&Hauptmenu, Hauptmenu_items, SIZE_OF_MENU(Hauptmenu_items));
-	menu_init(&menu_system_info, infomenu_items, SIZE_OF_MENU(infomenu_items));
-	menu_init(&system_settings, system_settings_items, 5);
-	menu_init(&menu_changing_value, menu_changing_value_item,
+	menu_init_menu(&menu_system_info, infomenu_items,
+			SIZE_OF_MENU(infomenu_items));
+	menu_init_menu(&system_settings, system_settings_items, 5);
+	menu_init_menu(&menu_changing_value, menu_changing_value_item,
 			SIZE_OF_MENU(menu_changing_value_item));
 
 	/*
@@ -346,7 +352,6 @@ void Initial_Init() {
 	/*
 	 * system settings menu
 	 */
-
 	menu_printf(&system_settings.items[1], "LCD Auto Off: %d",
 			time_for_lcd_light);
 
@@ -354,20 +359,6 @@ void Initial_Init() {
 			time_for_meanvalue);
 
 	menu_init_text(&system_settings.items[3], "Akku:");
-
-	/*
-	 * universal menu for changing a value with the rotary encoder
-	 */
-	menu_init(&menu_changing_value, menu_changing_value_item,
-			SIZE_OF_MENU(menu_changing_value_item));
-
-	menu_changing_value.items[0].on_rotate = &on_rotary_change_value;
-	menu_changing_value.items[1].on_rotate = &on_rotary_change_value;
-
-	menu_changing_value.items[0].on_push = &call_menu_change_value;
-	menu_changing_value.items[1].on_push = &call_menu_change_value;
-
-	menu_changing_value.user_data = NULL;
 
 	/*
 	 * Initiation of infomenu
@@ -379,11 +370,6 @@ void Initial_Init() {
 	menu_init_text(&menu_system_info.items[5], "7d Mittel");
 	menu_init_text(&menu_system_info.items[6], "30d Mittel");
 	menu_init_text(&menu_system_info.items[7], "1y Mittel");
-
-	menu_init_text(&menu_changing_value.items[0], "");
-	menu_init_text(&menu_changing_value.items[1], "");
-
-	menu_fct_for_push(&menu_changing_value.items[0], &call_menu_change_value);
 
 	current_menu_ptr = &Hauptmenu;
 	flags.currently_in_menu = 1;

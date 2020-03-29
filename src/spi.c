@@ -147,7 +147,7 @@ void spi_transmit_receive(uint8_t *outpp, uint8_t *inpp, uint32_t count) {
 
 			}
 		} else {
-			(*(uint8_t *) inp++) = *(__IO uint8_t *) &SPI1->DR;
+ 			(*(uint8_t *) inp++) = *(__IO uint8_t *) &SPI1->DR;
 			count--;
 		}
 	}

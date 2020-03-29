@@ -5,7 +5,7 @@
 #include "main.h"
 #include "i2c.h"
 
-static uint8_t lightOn = 0;
+uint8_t lightOn = 0;
 extern double PreiskWhEK, PreiskWhVK, PreiskWhEVsmall, PreiskWhEVbig,
 		MonatlGrundpreis;
 

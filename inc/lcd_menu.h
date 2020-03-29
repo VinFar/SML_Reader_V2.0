@@ -50,7 +50,7 @@ extern menu_t *current_menu_ptr;
 
 int8_t menu_add_submenu(menu_t *prev, menu_t *sub, uint8_t index_item);
 void menu_add_prevmenu(menu_t *main, menu_t *prev);
-void menu_init(menu_t *instance, item_t *items, uint8_t nbr_of_items);
+void menu_init_menu(menu_t *instance, item_t *items, uint8_t nbr_of_items);
 void menu_init_text(item_t *item, char text[]);
 void menu_fct_for_rotary(item_t *item, void (*ptr)());
 void menu_add_userdata(item_t *item, void *ptr_to_data);
@@ -60,6 +60,8 @@ uint32_t on_rotary_change_value(menu_t *instance, uint32_t index);
 void on_push_reset_value(menu_t *instance);
 void on_push_reset_system(menu_t *instance);
 void menu_printf(item_t *item, const char *fmt, ...);
+void menu_printf_add_itemvalue(item_t *item, void *ptr_to_data, const char *fmt, ...);
+void menu_init(menu_t *main_menu, item_t *main_menu_items,uint8_t size);
 /*
  * Main menu
  */
@@ -83,7 +85,6 @@ item_t infomenu_items[8];
  */
 menu_t system_settings;
 item_t system_settings_items[8];
-
 
 #define SIZE_OF_MENU_STRUCT ((int32_t)(sizeof(menu_struct)))
 

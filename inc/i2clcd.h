@@ -18,6 +18,7 @@ extern uint8_t value_item_counter;
 extern uint8_t old_arrow_line;
 extern char tmp, ctr2, ctr1;
 
+extern uint8_t lightOn;
 
 
 #define LCD_I2C_DEVICE		0x3F	    /**< Change this to the address of your expander */
