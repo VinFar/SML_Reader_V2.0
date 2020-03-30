@@ -13,6 +13,7 @@
 #include <stdio.h>
 #include <stdarg.h>
 #include "i2clcd.h"
+#include "rtc.h"
 
 uint32_t old_ctr_cnt;
 
@@ -99,7 +100,6 @@ void menu_init(menu_t *main_menu, item_t *main_menu_items, uint8_t size) {
 	menu_changing_value.user_data = NULL;
 	menu_init_text(&menu_changing_value.items[0], "");
 	menu_init_text(&menu_changing_value.items[1], "");
-	menu_fct_for_push(&menu_changing_value.items[0], &call_menu_change_value);
 
 }
 
@@ -117,6 +117,13 @@ void menu_init_text(item_t *item, char text[]) {
 }
 
 void menu_printf(item_t *item, const char *fmt, ...) {
+
+	for (int i = 0; fmt[i] != '\0'; i++) {
+		if (fmt[i] == '%') {
+			item->idx_for_value = i;
+			break;
+		}
+	}
 
 	va_list va;
 	va_start(va, fmt);
@@ -152,6 +159,9 @@ void menu_add_userdata(item_t *item, void *ptr_to_data) {
 
 void menu_printf_add_itemvalue(item_t *item, void *ptr_to_data, const char *fmt,
 		...) {
+
+
+
 	va_list va;
 	va_start(va, fmt);
 	vsiprintf(item->string, fmt, va);
@@ -312,7 +322,7 @@ void lcd_print_info() {
 
 	lcd_clear();
 
-	switch (((menu_timer_index) % 2)) {				//Main manue
+	switch (((menu_timer_index) % 3)) {				//Main manue
 	case 0:
 
 		lcd_setcursor(1, 1);
@@ -369,6 +379,14 @@ void lcd_print_info() {
 		lcd_print(tmp_string);
 
 		break;
+	case 2:
+		lcd_printlc(1, 4, "Time");
+		lcd_setcursor(2, 2);
+		char str[20];
+		snprintf(str,20,"%02d.%02d.%02d %02d:%02d:%02d", sm_date.Date, sm_date.Month,
+				sm_date.Year, sm_time.Hours, sm_time.Minutes, sm_time.Seconds);
+		lcd_printlc(2, 1, str);
+		break;
 	default:
 		lcd_setcursor(1, 1);
 		lcd_print("should not happen!:(");
@@ -416,15 +434,7 @@ uint32_t on_rotary_change_value(menu_t *instance, uint32_t index) {
 		return index;
 	}
 
-	char needle[10] = { 0 };
 	uint32_t data = *(uint32_t*) instance->items[index].user_data;
-
-	itoa(data, needle, 10);
-	char *needle_found = strstr(instance->items[index].string, needle);
-	if (needle_found == NULL) {
-		return index;
-	}
-	uint8_t pos = needle_found - instance->items[index].string;
 
 	float jog_value = (float) TIM17->CNT; //Calculate difference
 	jog_value = (1000 / jog_value) + 1;
@@ -441,12 +451,15 @@ uint32_t on_rotary_change_value(menu_t *instance, uint32_t index) {
 		data -= (uint32_t) jog_value;
 	}
 	*((uint32_t*) instance->items[index].user_data) = data;
+	char needle[10];
 	itoa(data, needle, 10);
 
 	for (uint8_t i = 0;
-			needle[i] != '\0' && instance->items[index].string[pos] != '\0';
-			i++, pos++) {
-		instance->items[index].string[pos] = needle[i];
+			needle[i] != '\0'
+					&& instance->items[index].string[instance->items[index].idx_for_value
+							+ i] != '\0'; i++) {
+		instance->items[index].string[instance->items[index].idx_for_value + i] =
+				needle[i];
 	}
 	instance->items[0].on_rotate(instance, menu_timer_index);
 	return index;

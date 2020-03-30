@@ -116,14 +116,16 @@ int main(void) {
 	nrf24_init_rx();
 	lcd_light(1);
 	while (1) {
-
+		RTC_GetTime(RTC_Format_BIN, &sm_time);
+		RTC_GetDate(RTC_Format_BIN, &sm_date);
 		rtc_current_time_unix = rtc_get_unix_time(&sm_time, &sm_date);
 
 		if (flags.refreshed_push) {
 			timer_ctr_for_lcd_light = 0;
 
 			if (current_menu_ptr == &menu_changing_value) {
-				current_menu_ptr->items[0].on_push(current_menu_ptr);
+				current_menu_ptr = current_menu_ptr->items[0].menu_ptr;
+
 				flags.refreshed_rotary = 1;
 			} else {
 				if (current_menu_ptr->items[menu_timer_index].on_push == NULL) {
@@ -140,7 +142,8 @@ int main(void) {
 			flags.refreshed_push = 0;
 		}
 
-		if (flags.refreshed_rotary) {
+		if (flags.refreshed_rotary || (rtc_current_time_unix > rtc_old_time_unix && flags.currently_in_menu == 0)) {
+			rtc_old_time_unix = rtc_current_time_unix;
 			timer_ctr_for_lcd_light = 0;
 			lcd_light(1);
 			if (current_menu_ptr == &menu_changing_value) {
@@ -327,8 +330,6 @@ void Initial_Init() {
 	menu_init_menu(&menu_system_info, infomenu_items,
 			SIZE_OF_MENU(infomenu_items));
 	menu_init_menu(&system_settings, system_settings_items, 5);
-	menu_init_menu(&menu_changing_value, menu_changing_value_item,
-			SIZE_OF_MENU(menu_changing_value_item));
 
 	/*
 	 * add the corresponding submenus
