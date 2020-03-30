@@ -7,6 +7,7 @@ This Repo is about a system for reading out the upcoming electrical [SmartMeter]
 - Reading out, storing and evaluating the data that is put out by the SmartMeter
   - Two SmartMeters can be read out simultaneously
   - Data can be stored on a built in storage and read out at any time over USB
+  - An implementation for SD-Cards is in development
 - Displaying the live data on a wireless display and storing some statistical informations
 - Switching consumers like a water heater or consumers that can be switched easily
 - Charging an EV with a power adapted to the current PV plant (if one exists)
