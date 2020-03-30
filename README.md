@@ -75,10 +75,10 @@ This Unit is the central unit of the entire system and is responsible for the fo
 
 <img src="MainUnitKiCadRendering.png" width="500"/>
 
-The *Circuit*, Layout and Gerber files can be found here.
+The Circuit, Layout and Gerber files can be found here.
 
 <details>
-  **<summary>Click to show details</summary>**
+  <summary>**Click to show details**</summary>
 
 ## Analog ciruitry
 The signal that is coming from the ReadHead is basically just the amplified output of the photodiode, that must be processed to get a reliable UART Signal, that can be directly detected by the internal UART Hardware. With this architecture the trigger voltage for the comparator can be taken from the DAC or Vref. With the DAC it is possible to automatically detect and adapt the correct trigger voltage in order to cover a wide variety of use cases.<br/>The analog circuit was developed to also make it possible to detect the rotating disc of old [Ferraris Meters](https://de.wikipedia.org/wiki/Ferraris-Z%C3%A4hler), due to the fact that these are used in old houses.<br/>ToDo: This has to be evaluated yet.
