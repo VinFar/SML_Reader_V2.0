@@ -42,7 +42,7 @@ struct item_struct {
 	menu_t *menu_ptr;
 	void (*on_push)(menu_t *instance);
 	void (*on_push_delayed)(menu_t *instance);
-	uint8_t (*on_rotate)(menu_t *instance, uint8_t index);
+	uint32_t (*on_rotate)(menu_t *instance, uint8_t index);
 	void *user_data;
 };
 
@@ -53,11 +53,11 @@ int8_t menu_add_submenu(menu_t *prev, menu_t *sub, uint8_t index_item);
 void menu_add_prevmenu(menu_t *main, menu_t *prev);
 void menu_init_menu(menu_t *instance, item_t *items, uint8_t nbr_of_items);
 void menu_init_text(item_t *item, char text[]);
-void menu_fct_for_rotary(item_t *item, void (*ptr)());
+void menu_fct_on_rotate(item_t *item, void (*ptr)());
 void menu_add_userdata(item_t *item, void *ptr_to_data);
-void menu_fct_for_push(item_t *item, void (*ptr)());
-void menu_fct_for_delayed_push(item_t *item, void (*ptr)(menu_t *instance));
-uint32_t on_rotary_change_value(menu_t *instance, uint32_t index);
+void menu_fct_on_push(item_t *item, void (*ptr)());
+void menu_fct_on_delayed_push(item_t *item, void (*ptr)(menu_t *instance));
+uint32_t on_rotate_change_value(menu_t *instance, uint32_t index);
 void on_push_reset_value(menu_t *instance);
 void on_push_reset_system(menu_t *instance);
 void menu_printf(item_t *item, const char *fmt, ...);
@@ -91,10 +91,10 @@ item_t system_settings_items[8];
 #define SIZE_OF_MENU_STRUCT ((int32_t)(sizeof(menu_struct)))
 
 void on_push_start_stopp_usart(menu_t *instance);
-void call_menu(menu_t *instance);
+void on_push(menu_t *instance);
 void call_menu_change_value(menu_t *instance);
 void call_menu_steckdoseneinstellunge(menu_t *instance);
 void on_push_prevmenu(menu_t *instance);
-void go_back_to_main_menu(menu_t *instance);
+void on_push_go_back(menu_t *instance);
 
 #endif /* LCD_MENU_H_ */

@@ -17,7 +17,7 @@ char *string_ptr;
 int8_t lcd_poll() {
 	uint8_t value = 0;
 
-	if (i2c1_start(0x3F, 1, I2C_READ) < 0) {
+	if (i2c1_start(0x27, 1, I2C_READ) < 0) {
 		return -1;
 	}
 
@@ -112,15 +112,6 @@ void lcd_write(uint8_t value) {
 }
 
 //-	Read data from i2c
-
-uint8_t lcd_read_i2c(void) {
-	uint8_t lcddata = 0x00;
-
-	i2c1_start_wait(LCD_I2C_DEVICE + I2C_READ);
-	i2c1_readNack(&lcddata);
-	i2c1_stop();
-	return lcddata;
-}
 
 //-	Read data from display over i2c (lower nibble contains LCD data)
 
@@ -339,5 +330,163 @@ uint8_t lcd_busy(void) {
 	}
 }
 
-uint8_t dummy;
+void lcd_printint(int32_t data) {
 
+	char tmp[32] = "";
+	itoa(data, tmp, sizeof(tmp));
+	lcd_print(tmp);
+
+	return;
+}
+
+void lcd_printarrow(int line) {
+
+	if (line > 4) {
+		line = 4;
+	}
+	if (line < 1) {
+		line = 1;
+	}
+
+	lcd_setcursor(old_arrow_line, 1);
+	lcd_putchar(' ');
+	lcd_setcursor(line, 1);
+	lcd_putchar('>');
+	old_arrow_line = line;
+	return;
+
+}
+
+void lcd_print_value_unit(int pos_line, int pos_row, char *value, char *unit) {
+
+	for (char i = pos_row; i <= 20; i++) {		//flush line
+		lcd_setcursor(pos_line, i);
+		lcd_putchar(' ');
+	}
+	lcd_setcursor(pos_line, pos_row);
+	lcd_print(value);
+	lcd_print(unit);
+
+}
+
+static int lcd_fwrite(int file, char *ptr, int len) {
+	int DataIdx;
+
+	for (DataIdx = 0; DataIdx < len; DataIdx++) {
+		lcd_putchar(*ptr++);
+	}
+	return len;
+}
+
+int8_t lcd_printf(const char *fmt, ...) {
+	int length = 0;
+	va_list va;
+	va_start(va, fmt);
+	length = ts_formatlength(fmt, va);
+	va_end(va);
+	{
+		char buf[length];
+		va_start(va, fmt);
+		length = ts_formatstring(buf, fmt, va);
+		length = lcd_fwrite(1, buf, length);
+		va_end(va);
+	}
+	return length;
+}
+
+void lcd_create_char(uint8_t location, uint8_t charmap[]) {
+	location &= 0x7; // we only have 8 locations 0-7
+	lcd_command(LCD_SETCGRAMADDR | (location << 3));
+	for (int i=0; i<8; i++) {
+		lcd_write(charmap[i]);
+	}
+}
+
+uint8_t verticalLine[8] = {
+  0b00100,
+  0b00100,
+  0b00100,
+  0b00100,
+  0b00100,
+  0b00100,
+  0b00100,
+  0b00100
+};
+
+uint8_t char2[8] = {
+  0b00000,
+  0b00000,
+  0b00000,
+  0b11100,
+  0b00100,
+  0b00100,
+  0b00100,
+  0b00100
+};
+
+uint8_t char1[8] = {
+  0b00000,
+  0b00000,
+  0b00000,
+  0b00111,
+  0b00100,
+  0b00100,
+  0b00100,
+  0b00100
+};
+
+uint8_t char3[8] = {
+  0b00100,
+  0b00100,
+  0b00100,
+  0b00111,
+  0b00000,
+  0b00000,
+  0b00000,
+  0b00000
+};
+
+uint8_t char4[8] = {
+  0b00100,
+  0b00100,
+  0b00100,
+  0b11100,
+  0b00000,
+  0b00000,
+  0b00000,
+  0b00000
+};
+
+
+void lcd_print_frame()
+{
+  lcd_setcursor(1,0);
+  lcd_print("------------------");
+  lcd_setcursor(1,3);
+  lcd_print("------------------");
+  lcd_setcursor(0,1);
+  lcd_write((0));
+  lcd_setcursor(0,2);
+  lcd_write((0));
+  lcd_setcursor(19,1);
+  lcd_write((0));
+  lcd_setcursor(19,2);
+  lcd_write((0));
+  lcd_setcursor(0,0);
+  lcd_write((1));
+  lcd_setcursor(19,0);
+  lcd_write((2));
+  lcd_setcursor(0,3);
+  lcd_write((3));
+  lcd_setcursor(19,3);
+  lcd_write((4));
+}
+
+void create_custom_characters()
+{
+  lcd_create_char(0, verticalLine);
+  lcd_create_char(1, char1);
+  lcd_create_char(2, char2);
+  lcd_create_char(3, char3);
+  lcd_create_char(4, char4);
+}

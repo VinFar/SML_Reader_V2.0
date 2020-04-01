@@ -113,7 +113,7 @@ int main(void) {
 	rtc_current_time_unix = rtc_old_time_unix = rtc_get_unix_time(&sm_time,
 			&sm_date);
 
-	nrf24_init_rx();
+//	nrf24_init_rx();
 	lcd_light(1);
 	while (1) {
 		RTC_GetTime(RTC_Format_BIN, &sm_time);
@@ -143,6 +143,25 @@ int main(void) {
 		}
 
 		if (flags.refreshed_rotary || (rtc_current_time_unix > rtc_old_time_unix && flags.currently_in_menu == 0)) {
+//			lcd_command(LCD_CLEAR);
+//				_delay_ms(15);		 	//-	Wait for more than 15ms after VDD rises to 4.5V
+				lcd_write(CMD_D1 | CMD_D0);	//-	Set interface to 8-bit
+				_delay_ms(5);			    //-	Wait for more than 4.1ms
+				lcd_write(CMD_D1 | CMD_D0);	//-	Set interface to 8-bit
+				_delay_ms(2);		        //-	Wait for more than 100us
+				lcd_write(CMD_D1 | CMD_D0);	//-	Set interface to 8-bit
+				lcd_write(CMD_D1);		    //-	Set interface to 4-bit
+				lcd_write(LCD_CURSOROFF);
+				lcd_write(LCD_BLINKINGOFF);
+
+				//- From now on in 4-bit-Mode
+				lcd_command(LCD_LINE_MODE | LCD_5X7);
+				lcd_command(LCD_DISPLAYON | LCD_CURSOROFF | LCD_BLINKINGOFF);
+
+			//	_delay_ms(2);
+				lcd_command(LCD_INCREASE | LCD_DISPLAYSHIFTOFF);
+
+
 			rtc_old_time_unix = rtc_current_time_unix;
 			timer_ctr_for_lcd_light = 0;
 			lcd_light(1);
@@ -283,7 +302,7 @@ static void prvSetupHardware(void) {
 	/*
 	 * communication for NRF24 Wireless Chip and FLASH IC
 	 */
-	spi1_init();
+//	spi1_init();
 
 	usart6_init();
 
@@ -306,7 +325,7 @@ void Initial_Init() {
 
 	lcd_init();
 	for (int i = 0; i < 4 * 20; i++) {
-		lcd_putchar(BLOCK);	//Test Display
+		lcd_putchar(TOPLINE);	//Test Display
 		_delay_ms(5);
 	}
 	_delay_ms(800);
@@ -375,6 +394,7 @@ void Initial_Init() {
 	current_menu_ptr = &Hauptmenu;
 	flags.currently_in_menu = 1;
 	flags.refreshed_push = 1;
+	create_custom_characters();
 	return;
 }
 

@@ -55,6 +55,7 @@ void TIM2_IRQHandler() {
  * Up and Downcounting with the Encoder is implemented by Timer 3
  *
  */
+static menu_idx_isr=0;
 void EXTI4_15_IRQHandler() {
 
 	if (( EXTI->PR & EXTI_PR_PR6)) {	//Interrupt from rotating rotary encoder

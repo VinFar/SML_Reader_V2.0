@@ -31,13 +31,13 @@ int8_t menu_add_submenu(menu_t *prev, menu_t *sub, uint8_t index_item) {
 	 * set the correct submenu for item with the index 'index_item'
 	 */
 	prev->items[index_item].menu_ptr = sub;
-	prev->items[index_item].on_push = &call_menu;
+	prev->items[index_item].on_push = &on_push;
 
 	/*
 	 * init the back button of the submenu with the previus menu
 	 */
 	sub->items[0].menu_ptr = prev;
-	sub->items[0].on_push = &call_menu;
+	sub->items[0].on_push = &on_push;
 	return 0;
 
 }
@@ -68,13 +68,13 @@ void menu_init_menu(menu_t *instance, item_t *items, uint8_t nbr_of_items) {
 		strcpy(instance->items[i].string, men);
 		instance->items[i].on_push = NULL;
 		instance->items[i].on_push_delayed = &on_push_reset_system;
-		instance->items[i].on_rotate = &lcd_refresh_rotary;
+		instance->items[i].on_rotate = &on_rotate_refresh_lcd;
 	}
-	instance->items[0].on_rotate = &lcd_refresh_rotary;
+	instance->items[0].on_rotate = &on_rotate_refresh_lcd;
 	/*
 	 * init the back item to call the main menu
 	 */
-	instance->items[0].on_push = &go_back_to_main_menu;
+	instance->items[0].on_push = &on_push_go_back;
 
 	strcpy(instance->items[0].string, (char*) "Zurueck");
 
@@ -91,11 +91,11 @@ void menu_init(menu_t *main_menu, item_t *main_menu_items, uint8_t size) {
 	menu_init_menu(&menu_changing_value, menu_changing_value_item,
 			SIZE_OF_MENU(menu_changing_value_item));
 
-	menu_changing_value.items[0].on_rotate = &on_rotary_change_value;
-	menu_changing_value.items[1].on_rotate = &on_rotary_change_value;
+	menu_changing_value.items[0].on_rotate = &on_rotate_change_value;
+	menu_changing_value.items[1].on_rotate = &on_rotate_change_value;
 
-	menu_changing_value.items[0].on_push = &call_menu_change_value;
-	menu_changing_value.items[1].on_push = &call_menu_change_value;
+	menu_changing_value.items[0].on_push = &on_push;
+	menu_changing_value.items[1].on_push = &on_push;
 
 	menu_changing_value.user_data = NULL;
 	menu_init_text(&menu_changing_value.items[0], "");
@@ -141,15 +141,15 @@ void menu_printf(item_t *item, const char *fmt, ...) {
 	}
 }
 
-void menu_fct_for_push(item_t *item, void (*ptr)(menu_t *instance)) {
+void menu_fct_on_push(item_t *item, void (*ptr)(menu_t *instance)) {
 	item->on_push = ptr;
 }
 
-void menu_fct_for_delayed_push(item_t *item, void (*ptr)(menu_t *instance)) {
+void menu_fct_on_delayed_push(item_t *item, void (*ptr)(menu_t *instance)) {
 	item->on_push_delayed = ptr;
 }
 
-void menu_fct_for_rotary(item_t *item, void (*ptr)()) {
+void menu_fct_on_rotate(item_t *item, void (*ptr)()) {
 	item->on_rotate = ptr;
 }
 
@@ -159,8 +159,6 @@ void menu_add_userdata(item_t *item, void *ptr_to_data) {
 
 void menu_printf_add_itemvalue(item_t *item, void *ptr_to_data, const char *fmt,
 		...) {
-
-
 
 	va_list va;
 	va_start(va, fmt);
@@ -179,144 +177,7 @@ void menu_printf_add_itemvalue(item_t *item, void *ptr_to_data, const char *fmt,
 	menu_add_userdata(item, ptr_to_data);
 }
 
-void call_menu(menu_t *instance) {
-
-	flags.refreshed_rotary = 1;
-	current_menu_ptr = current_menu_ptr->items[menu_timer_index].menu_ptr;
-	if (current_menu_ptr != &menu_changing_value) {
-		/*
-		 * We don't want to reset the menu index when we are enterend the menu for
-		 * changing a value of an item.
-		 * This is because the changing value menu needs to now from which
-		 * item (indexed by menu indes) it is called, in order to
-		 * be able to change its value.
-		 * If it would be reset to 0 that menu could not now the
-		 * item from which it is called.
-		 */
-		menu_timer_index = 0;
-	}
-
-	return;
-}
-
-void call_menu_steckdoseneinstellunge(menu_t *instance) {
-
-	flags.refreshed_rotary = 1;
-	current_menu_ptr = current_menu_ptr->items[menu_timer_index].menu_ptr;
-	current_menu_ptr->items[0].user_data =
-			instance->items[menu_timer_index].user_data;
-	menu_timer_index = 0;
-
-	return;
-}
-
-void call_menu_change_value(menu_t *instance) {
-
-	flags.refreshed_rotary = 1;
-	TIM17_DISABLE;
-	TIM15->CNT = 0xffff;
-
-	current_menu_ptr = current_menu_ptr->items[0].menu_ptr;
-
-	menu_timer_index = 0;
-
-	return;
-}
-
-void go_back_to_main_menu(menu_t *instance) {
-
-	flags.refreshed_rotary = 1;
-	flags.currently_in_menu = ~flags.currently_in_menu;
-	current_menu_ptr = &Hauptmenu;
-	menu_timer_index = 0;
-	return;
-
-}
-
-void lcd_printint(int32_t data) {
-
-	char tmp[32] = "";
-	itoa(data, tmp, sizeof(tmp));
-	lcd_print(tmp);
-
-	return;
-}
-
-void lcd_printarrow(int line) {
-
-	if (line > 4) {
-		line = 4;
-	}
-	if (line < 1) {
-		line = 1;
-	}
-
-	lcd_setcursor(old_arrow_line, 1);
-	lcd_putchar(' ');
-	lcd_setcursor(line, 1);
-	lcd_putchar('>');
-	old_arrow_line = line;
-	return;
-
-}
-
-void lcd_refresh_push() {
-	if (flags.currently_in_menu) {
-		/*
-		 * we are in the menu
-		 */
-		if (current_menu_ptr->items[menu_timer_index].on_push == NULL) {
-			/*
-			 * no function pointer, so abort
-			 */
-			return;
-		} else {
-			current_menu_ptr->items[menu_timer_index].on_push(
-					current_menu_ptr->items[menu_timer_index].user_data);
-		}
-	} else {
-		flags.currently_in_menu = 1;
-	}
-	flags.refreshed_rotary = 1;
-	old_ctr_cnt = menu_timer_index;
-	return;
-}
-
-uint32_t lcd_refresh_rotary(menu_t *ptr, int32_t index) {
-	int32_t ctr_cnt = menu_timer_index;
-	if (flags.currently_in_menu) {
-		/*
-		 * we have entered the menu
-		 */
-//		index = menu_timer_index
-		old_ctr_cnt = ctr_cnt;
-
-		if (index > ptr->size - 1) {
-			index = ptr->size - 1;
-		} else if (index < 0) {
-			index = 0;
-		}
-
-		uint8_t page = index / 4; //current page. of the menu
-		uint8_t page_index = index % 4; // index in the current pagee
-
-		lcd_clear();
-
-		for (uint8_t i = 4 * page; i < 4 * page + 4; i++) {
-			if (i > ptr->size - 1) {
-				break;
-			}
-			lcd_printlc(i - 4 * page + 1, 2, ptr->items[i].string);
-		}
-		lcd_setcursor(page_index + 1, 1);
-		lcd_putchar('>');
-	} else {
-		lcd_print_info();
-	}
-	return index;
-}
-
-void lcd_print_info() {
+void menu_info_print() {
 
 	char tmp_string[20] = "";
 
@@ -380,12 +241,22 @@ void lcd_print_info() {
 
 		break;
 	case 2:
-		lcd_printlc(1, 4, "Time");
-		lcd_setcursor(2, 2);
-		char str[20];
-		snprintf(str,20,"%02d.%02d.%02d %02d:%02d:%02d", sm_date.Date, sm_date.Month,
-				sm_date.Year, sm_time.Hours, sm_time.Minutes, sm_time.Seconds);
-		lcd_printlc(2, 1, str);
+		NOP
+		char str[21] = { { TOPLINE } };
+		memset(str, TOPLINE, 20);
+		lcd_printlc(1, 1, str);
+//		lcd_printlc(2, 20, "|");
+//		lcd_printlc(3, 20, "|");
+//		lcd_printlc(2, 1, "|");
+//		lcd_printlc(3, 1, "|");
+		snprintf(str, 20, "%02d.%02d.%02d", sm_date.Date, sm_date.Month,
+				sm_date.Year);
+		lcd_printlc(2, 7, str);
+		snprintf(str, 20, "%02d:%02d:%02d", sm_time.Hours, sm_time.Minutes,
+				sm_time.Seconds);
+		lcd_printlc(3, 7, str);
+		memset(str, TOPLINE, 20);
+		lcd_printlc(4, 1, str);
 		break;
 	default:
 		lcd_setcursor(1, 1);
@@ -399,19 +270,68 @@ void lcd_print_info() {
 	return;
 }
 
-void lcd_print_value_unit(int pos_line, int pos_row, char *value, char *unit) {
+void on_push(menu_t *instance) {
 
-	for (char i = pos_row; i <= 20; i++) {		//flush line
-		lcd_setcursor(pos_line, i);
-		lcd_putchar(' ');
+	flags.refreshed_rotary = 1;
+	current_menu_ptr = current_menu_ptr->items[menu_timer_index].menu_ptr;
+	if (current_menu_ptr != &menu_changing_value) {
+		/*
+		 * We don't want to reset the menu index when we are enterend the menu for
+		 * changing a value of an item.
+		 * This is because the changing value menu needs to now from which
+		 * item (indexed by menu indes) it is called, in order to
+		 * be able to change its value.
+		 * If it would be reset to 0 that menu could not now the
+		 * item from which it is called.
+		 */
+		menu_timer_index = 0;
 	}
-	lcd_setcursor(pos_line, pos_row);
-	lcd_print(value);
-	lcd_print(unit);
+
+	return;
+}
+
+void on_push_go_back(menu_t *instance) {
+
+	flags.refreshed_rotary = 1;
+	flags.currently_in_menu = ~flags.currently_in_menu;
+	current_menu_ptr = &Hauptmenu;
+	menu_timer_index = 0;
+	return;
 
 }
 
-uint32_t on_rotary_change_value(menu_t *instance, uint32_t index) {
+uint32_t on_rotate_refresh_lcd(menu_t *ptr, int32_t index) {
+	if (flags.currently_in_menu) {
+		/*
+		 * we have entered the menu
+		 */
+
+		if (index > ptr->size - 1) {
+			index = ptr->size - 1;
+		} else if (index < 0) {
+			index = 0;
+		}
+
+		uint8_t page = index / 4; //current page. of the menu
+		uint8_t page_index = index % 4; // index in the current pagee
+
+		lcd_clear();
+
+		for (uint8_t i = 4 * page; i < 4 * page + 4; i++) {
+			if (i > ptr->size - 1) {
+				break;
+			}
+			lcd_printlc(i - 4 * page + 1, 2, ptr->items[i].string);
+		}
+		lcd_setcursor(page_index + 1, 1);
+		lcd_putchar('>');
+	} else {
+		menu_info_print();
+	}
+	return index;
+}
+
+uint32_t on_rotate_change_value(menu_t *instance, uint32_t index) {
 
 	/*
 	 * A value of an item an be changed over this function.
@@ -483,27 +403,3 @@ void on_push_reset_system(menu_t *instance) {
 //	NVIC_SystemReset();
 }
 
-static int lcd_fwrite(int file, char *ptr, int len) {
-	int DataIdx;
-
-	for (DataIdx = 0; DataIdx < len; DataIdx++) {
-		lcd_putchar(*ptr++);
-	}
-	return len;
-}
-
-int8_t lcd_printf(const char *fmt, ...) {
-	int length = 0;
-	va_list va;
-	va_start(va, fmt);
-	length = ts_formatlength(fmt, va);
-	va_end(va);
-	{
-		char buf[length];
-		va_start(va, fmt);
-		length = ts_formatstring(buf, fmt, va);
-		length = lcd_fwrite(1, buf, length);
-		va_end(va);
-	}
-	return length;
-}

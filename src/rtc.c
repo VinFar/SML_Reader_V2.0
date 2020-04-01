@@ -21,9 +21,7 @@ void rtc_init() {
 	RTC->ISR |= RTC_ISR_INIT;
 	while ((RTC->ISR & RTC_ISR_INITF) == 0)
 		;
-	RTC->DR = 2<<RTC_DR_YT_Pos | 1<<RTC_DR_MU_Pos | 1<<RTC_DR_DU_Pos;
 
-	RTC->TR |= 1<<RTC_TR_HT_Pos | 2<<RTC_TR_HU_Pos;
 
 	/*
 	 * load time and date

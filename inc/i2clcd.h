@@ -21,7 +21,7 @@ extern char tmp, ctr2, ctr1;
 extern uint8_t lightOn;
 
 
-#define LCD_I2C_DEVICE		0x3F	    /**< Change this to the address of your expander */
+#define LCD_I2C_DEVICE		0x27	    /**< Change this to the address of your expander */
 #define LCD_LINES			4	        /**< Enter the number of lines of your display here */
 #define LCD_COLS			20	        /**< Enter the number of columns of your display here */
 #define LCD_LINE_MODE       LCD_4LINE   /**< Enter line mode your display here */
@@ -30,9 +30,11 @@ extern uint8_t lightOn;
 #define LCD_LINE2			0x40	    /**< Change this to the address for line 2 on your display */
 #define LCD_LINE3			0x14	    /**< Change this to the address for line 3 on your display */
 #define LCD_LINE4			0x54	    /**< Change this to the address for line 4 on your display */
+#define LCD_SETCGRAMADDR	0x40
 
 #define BLOCK 				0xFF
 #define CHECKBOX			"<"
+#define TOPLINE				0b00101101
 /*@}*/
 
 #if LCD_LINES > 4
@@ -157,28 +159,14 @@ extern uint8_t lightOn;
 
 #define LCD_LIGHT_OFF		LCD_LIGHT_N       // low active
 #define LCD_LIGHT_ON		0x00
-/*@}*/
-
-//-------------------------------------------------------------------------------------------------------------------
-/*@}*/
-
-//-FUNCTIONS---------------------------------------------------------------------------------------------------------
-/** \defgroup FUNCTIONS_INTERNAL INTERNAL FUNCTIONS */
-/*@{*/
-
-double PreiskWhEK, PreiskWhVK, PreiskWhEVsmall, PreiskWhEVbig, MonatlGrundpreis;
-
-
-
 
 /*
  *
  * TODO: write documentation
  */
 void _delay_ms(uint32_t value);
-void lcd_print_info();
-void lcd_refresh_push();
-uint32_t lcd_refresh_rotary(menu_t *ptr,int32_t index);
+void menu_info_print();
+uint32_t on_rotate_refresh_lcd(menu_t *ptr,int32_t index);
 void lcd_print_on_off(int pos_line, int pos_row, unsigned flag);
 void lcd_print_items();
 void lcd_print_checkbox(int pos_line, int pos_row, unsigned flag);
