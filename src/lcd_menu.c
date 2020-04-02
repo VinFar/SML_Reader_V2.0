@@ -183,7 +183,7 @@ void menu_info_print() {
 
 	lcd_clear();
 
-	switch (((menu_timer_index) % 3)) {				//Main manue
+	switch (((menu_idx_isr) % 3)) {				//Main manue
 	case 0:
 
 		lcd_setcursor(1, 1);
@@ -243,20 +243,13 @@ void menu_info_print() {
 	case 2:
 		NOP
 		char str[21] = { { TOPLINE } };
-		memset(str, TOPLINE, 20);
-		lcd_printlc(1, 1, str);
-//		lcd_printlc(2, 20, "|");
-//		lcd_printlc(3, 20, "|");
-//		lcd_printlc(2, 1, "|");
-//		lcd_printlc(3, 1, "|");
+		lcd_print_frame();
 		snprintf(str, 20, "%02d.%02d.%02d", sm_date.Date, sm_date.Month,
 				sm_date.Year);
 		lcd_printlc(2, 7, str);
 		snprintf(str, 20, "%02d:%02d:%02d", sm_time.Hours, sm_time.Minutes,
 				sm_time.Seconds);
 		lcd_printlc(3, 7, str);
-		memset(str, TOPLINE, 20);
-		lcd_printlc(4, 1, str);
 		break;
 	default:
 		lcd_setcursor(1, 1);
@@ -400,6 +393,6 @@ void on_push_reset_value(menu_t *instance) {
 
 void on_push_reset_system(menu_t *instance) {
 
-//	NVIC_SystemReset();
+	NVIC_SystemReset();
 }
 

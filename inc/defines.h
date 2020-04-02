@@ -93,53 +93,6 @@ typedef struct {
 #define PO_2_PRIO 1
 #define PO_3_PRIO 2
 
-#define TOGGLE_LED_OK GPIOA->ODR ^= LED_OK
-#define TOGGLE_LED_ERROR GPIOA->ODR ^= LED_ERROR
-#define TOGGLE_LED_FAULT GPIOA->ODR ^= LED_FAULT
 
-#define LED_OK_OFF GPIOA->ODR &= ~LED_OK
-#define LED_ERROR_OFF GPIOA->ODR &= ~LED_ERROR; \
-		io_exp_set_output(IO_EXP_ERROR_LED, 0)
-
-#define LED_FAULT_OFF GPIOA->ODR &= ~LED_FAULT
-
-#define LED_OK_ON GPIOA->ODR |= LED_OK
-#define LED_ERROR_ON GPIOA->ODR |= LED_ERROR; \
-					io_exp_set_output(IO_EXP_ERROR_LED, 1)
-
-
-
-#define LED_FAULT_ON GPIOA->ODR |= LED_FAULT
-
-/*
- *
- * Define your Fee for Selling one kWh Energy in cents e.g. 25
- *
- */
-#define SELL_COST 28.74
-#define CONSUME_FEE_U30 12.36
-#define CONSUME_FEE_O30	16.74
-#define PRICE 21.18
-#define BASIC_CHARGE 782
-
-/*
- * Define the Baudrate of your Smart Meter
- * Normally this is 9600 Baud
- */
-#define SMART_METER_BAUDRATE 9600
-
-/*
- *
- * Define for Speed of USART2
- *
- */
-#define USART2_SPEED 115200
-
-/*
- *
- * Define the maximum Power of your Solar Plant
- *
- */
-#define SOLARPOWER 10000
 
 #endif /* DEFINES_H_ */

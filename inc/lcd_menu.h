@@ -48,6 +48,7 @@ struct item_struct {
 
 extern int32_t menu_timer_index;
 extern menu_t *current_menu_ptr;
+extern uint32_t menu_idx_isr;
 
 int8_t menu_add_submenu(menu_t *prev, menu_t *sub, uint8_t index_item);
 void menu_add_prevmenu(menu_t *main, menu_t *prev);

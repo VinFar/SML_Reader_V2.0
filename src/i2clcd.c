@@ -4,6 +4,7 @@
 #include "stdbool.h"
 #include "main.h"
 #include "i2c.h"
+#include "delay.h"
 
 uint8_t lightOn = 0;
 extern double PreiskWhEK, PreiskWhVK, PreiskWhEVsmall, PreiskWhEVbig,
@@ -85,6 +86,16 @@ void lcd_write_i2c(uint8_t value) {
 
 }
 
+
+static void lcd_pulseEnable(uint8_t data){
+	lcd_write_i2c(data | LCD_E);	// En high
+	delay_us(10);		// enable pulse must be >450ns
+
+	lcd_write_i2c(data & ~LCD_E);	// En low
+	delay_us(100);		// commands need > 37us to settle
+}
+
+
 //-	Write nibble to display with pulse of enable bit
 // map pinout between PCF8574 and LCD
 
@@ -104,16 +115,17 @@ void lcd_write(uint8_t value) {
 		data_out |= LCD_RS;
 	if (value & CMD_RW)
 		data_out |= LCD_RW;
-	if (!lightOn)
+	if (lightOn)
 		data_out |= LCD_LIGHT_N;
 
-	lcd_write_i2c(data_out | LCD_E);		//-	Set new data and enable to high
-	lcd_write_i2c(data_out);	            //-	Set enable to low
+	lcd_write_i2c(data_out);		//-	Set new data and enable to high
+	lcd_pulseEnable(data_out);
+
+
 }
 
-//-	Read data from i2c
 
-//-	Read data from display over i2c (lower nibble contains LCD data)
+
 
 uint8_t lcd_read(uint8_t mode) {
 	uint8_t lcddata, data;
@@ -124,7 +136,7 @@ uint8_t lcd_read(uint8_t mode) {
 		lcddata = (LCD_E | LCD_RW | LCD_D4 | LCD_D5 | LCD_D6 | LCD_D7);
 	}
 
-	if (!lightOn)
+	if (lightOn)
 		lcddata |= LCD_LIGHT_N;
 	lcd_write_i2c(lcddata);
 	lcddata = lcd_read_i2c();
@@ -141,7 +153,7 @@ uint8_t lcd_read(uint8_t mode) {
 		data |= CMD_D3;
 
 	lcddata = 0;
-	if (!lightOn)
+	if (lightOn)
 		lcddata |= LCD_LIGHT_N;
 	lcd_write_i2c(lcddata);
 
@@ -307,13 +319,8 @@ uint8_t lcd_getlc(uint8_t *line, uint8_t *col) {
 // turn light on/off
 
 void lcd_light(uint8_t light) {
-
-	if (!light) {
-		lightOn = 1;
+	if (light) {
 		lcd_write_i2c(LCD_LIGHT_ON);
-	} else {
-		lightOn = 0;
-		lcd_write_i2c(LCD_LIGHT_OFF);
 	}
 }
 
@@ -397,96 +404,53 @@ int8_t lcd_printf(const char *fmt, ...) {
 void lcd_create_char(uint8_t location, uint8_t charmap[]) {
 	location &= 0x7; // we only have 8 locations 0-7
 	lcd_command(LCD_SETCGRAMADDR | (location << 3));
-	for (int i=0; i<8; i++) {
-		lcd_write(charmap[i]);
+	for (int i = 0; i < 8; i++) {
+		lcd_putchar(charmap[i]);
 	}
 }
 
-uint8_t verticalLine[8] = {
-  0b00100,
-  0b00100,
-  0b00100,
-  0b00100,
-  0b00100,
-  0b00100,
-  0b00100,
-  0b00100
-};
+uint8_t verticalLine[8] = { 0b00100, 0b00100, 0b00100, 0b00100, 0b00100,
+		0b00100, 0b00100, 0b00100 };
 
-uint8_t char2[8] = {
-  0b00000,
-  0b00000,
-  0b00000,
-  0b11100,
-  0b00100,
-  0b00100,
-  0b00100,
-  0b00100
-};
+uint8_t char2[8] = { 0b00000, 0b00000, 0b00000, 0b11100, 0b00100, 0b00100,
+		0b00100, 0b00100 };
 
-uint8_t char1[8] = {
-  0b00000,
-  0b00000,
-  0b00000,
-  0b00111,
-  0b00100,
-  0b00100,
-  0b00100,
-  0b00100
-};
+uint8_t char1[8] = { 0b00000, 0b00000, 0b00000, 0b00111, 0b00100, 0b00100,
+		0b00100, 0b00100 };
 
-uint8_t char3[8] = {
-  0b00100,
-  0b00100,
-  0b00100,
-  0b00111,
-  0b00000,
-  0b00000,
-  0b00000,
-  0b00000
-};
+uint8_t char3[8] = { 0b00100, 0b00100, 0b00100, 0b00111, 0b00000, 0b00000,
+		0b00000, 0b00000 };
 
-uint8_t char4[8] = {
-  0b00100,
-  0b00100,
-  0b00100,
-  0b11100,
-  0b00000,
-  0b00000,
-  0b00000,
-  0b00000
-};
+uint8_t char4[8] = { 0b00100, 0b00100, 0b00100, 0b11100, 0b00000, 0b00000,
+		0b00000, 0b00000 };
 
-
-void lcd_print_frame()
-{
-  lcd_setcursor(1,0);
-  lcd_print("------------------");
-  lcd_setcursor(1,3);
-  lcd_print("------------------");
-  lcd_setcursor(0,1);
-  lcd_write((0));
-  lcd_setcursor(0,2);
-  lcd_write((0));
-  lcd_setcursor(19,1);
-  lcd_write((0));
-  lcd_setcursor(19,2);
-  lcd_write((0));
-  lcd_setcursor(0,0);
-  lcd_write((1));
-  lcd_setcursor(19,0);
-  lcd_write((2));
-  lcd_setcursor(0,3);
-  lcd_write((3));
-  lcd_setcursor(19,3);
-  lcd_write((4));
+void lcd_print_frame() {
+	lcd_setcursor(1, 2);
+	lcd_print("------------------");
+	lcd_setcursor(4, 2);
+	lcd_print("------------------");
+	lcd_setcursor(2, 1);
+	lcd_putchar((0));
+	lcd_setcursor(3, 1);
+	lcd_putchar((0));
+	lcd_setcursor(2, 20);
+	lcd_putchar((0));
+	lcd_setcursor(3, 20);
+	lcd_putchar((0));
+	lcd_setcursor(1, 1);
+	lcd_putchar((1));
+	lcd_setcursor(1, 20);
+	lcd_putchar((2));
+	lcd_setcursor(4, 1);
+	lcd_putchar((3));
+	lcd_setcursor(4, 20);
+	lcd_putchar((4));
 }
 
-void create_custom_characters()
-{
-  lcd_create_char(0, verticalLine);
-  lcd_create_char(1, char1);
-  lcd_create_char(2, char2);
-  lcd_create_char(3, char3);
-  lcd_create_char(4, char4);
+void create_custom_characters() {
+	lcd_create_char(0, verticalLine);
+	lcd_create_char(1, char1);
+	lcd_create_char(2, char2);
+	lcd_create_char(3, char3);
+	lcd_create_char(4, char4);
 }

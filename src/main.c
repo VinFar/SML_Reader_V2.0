@@ -113,58 +113,54 @@ int main(void) {
 	rtc_current_time_unix = rtc_old_time_unix = rtc_get_unix_time(&sm_time,
 			&sm_date);
 
-//	nrf24_init_rx();
-	lcd_light(1);
+	nrf24_init_rx();
+	lightOn = 1;
+	lcd_light(lightOn);
 	while (1) {
 		RTC_GetTime(RTC_Format_BIN, &sm_time);
 		RTC_GetDate(RTC_Format_BIN, &sm_date);
 		rtc_current_time_unix = rtc_get_unix_time(&sm_time, &sm_date);
 
 		if (flags.refreshed_push) {
-			timer_ctr_for_lcd_light = 0;
 
 			if (current_menu_ptr == &menu_changing_value) {
+				/*
+				 * if we are in the chaning value menu we have to keep the
+				 * index always on the 'go_back' item to go out
+				 * of the changing value menu in case of push
+				 */
 				current_menu_ptr = current_menu_ptr->items[0].menu_ptr;
 
 				flags.refreshed_rotary = 1;
 			} else {
-				if (current_menu_ptr->items[menu_timer_index].on_push == NULL) {
-
-				} else {
-
-					current_menu_ptr->items[menu_timer_index].on_push(
-							current_menu_ptr);
+				if (flags.currently_in_menu == 0) {
+					current_menu_ptr->items[0].on_push(current_menu_ptr);
 					flags.refreshed_rotary = 1;
+				} else {
+					if (current_menu_ptr->items[menu_timer_index].on_push
+							== NULL) {
+						/*
+						 * prevent NULL pointer dereferencing
+						 */
+					} else {
 
+						current_menu_ptr->items[menu_timer_index].on_push(
+								current_menu_ptr);
+						flags.refreshed_rotary = 1;
+
+					}
 				}
 			}
 
 			flags.refreshed_push = 0;
 		}
 
-		if (flags.refreshed_rotary || (rtc_current_time_unix > rtc_old_time_unix && flags.currently_in_menu == 0)) {
-//			lcd_command(LCD_CLEAR);
-//				_delay_ms(15);		 	//-	Wait for more than 15ms after VDD rises to 4.5V
-				lcd_write(CMD_D1 | CMD_D0);	//-	Set interface to 8-bit
-				_delay_ms(5);			    //-	Wait for more than 4.1ms
-				lcd_write(CMD_D1 | CMD_D0);	//-	Set interface to 8-bit
-				_delay_ms(2);		        //-	Wait for more than 100us
-				lcd_write(CMD_D1 | CMD_D0);	//-	Set interface to 8-bit
-				lcd_write(CMD_D1);		    //-	Set interface to 4-bit
-				lcd_write(LCD_CURSOROFF);
-				lcd_write(LCD_BLINKINGOFF);
-
-				//- From now on in 4-bit-Mode
-				lcd_command(LCD_LINE_MODE | LCD_5X7);
-				lcd_command(LCD_DISPLAYON | LCD_CURSOROFF | LCD_BLINKINGOFF);
-
-			//	_delay_ms(2);
-				lcd_command(LCD_INCREASE | LCD_DISPLAYSHIFTOFF);
-
+		if (flags.refreshed_rotary
+				|| (rtc_current_time_unix > rtc_old_time_unix
+						&& flags.currently_in_menu == 0)) {
 
 			rtc_old_time_unix = rtc_current_time_unix;
-			timer_ctr_for_lcd_light = 0;
-			lcd_light(1);
+
 			if (current_menu_ptr == &menu_changing_value) {
 				menu_timer_index = current_menu_ptr->items[1].on_rotate(
 						current_menu_ptr, menu_timer_index);
@@ -175,8 +171,6 @@ int main(void) {
 			}
 			flags.refreshed_rotary = 0;
 		}
-
-		lcd_light(1);
 
 		if (rtc_current_time_unix > rtc_old_time_unix && flags.smu_connected) {
 			rtc_old_time_unix = rtc_current_time_unix;
@@ -240,14 +234,14 @@ int main(void) {
 
 		}
 
-//		if (nRF24_GetStatus_RXFIFO() != nRF24_STATUS_RXFIFO_EMPTY) {
-//			// Get a payload from the transceiver
-//
-//			pipe = nRF24_ReadPayload((uint8_t*) &nrf24_frame, &nrf24_rx_size);
-//			flags.nrf24_new_frame = 1;
-//			// Clear all pending IRQ flags
-//			nRF24_ClearIRQFlags();
-//		}
+		if (nRF24_GetStatus_RXFIFO() != nRF24_STATUS_RXFIFO_EMPTY) {
+			// Get a payload from the transceiver
+
+			pipe = nRF24_ReadPayload((uint8_t*) &nrf24_frame, &nrf24_rx_size);
+			flags.nrf24_new_frame = 1;
+			// Clear all pending IRQ flags
+			nRF24_ClearIRQFlags();
+		}
 		if (flags.nrf24_new_frame) {
 			flags.nrf24_new_frame = 0;
 			if (nrf24_frame.size < NRF24_RX_SIZE) {
@@ -290,9 +284,14 @@ static void prvSetupHardware(void) {
 
 	SystemClock_Config();
 
+	/*
+	 * timer for delay function
+	 */
 	timer16_init();
 
 	gpio_init();
+	LED_OK_ON;
+	LED_ERROR_ON;
 
 	/*
 	 * communication for DAC, EEPROM and Display
@@ -302,37 +301,33 @@ static void prvSetupHardware(void) {
 	/*
 	 * communication for NRF24 Wireless Chip and FLASH IC
 	 */
-//	spi1_init();
+	spi1_init();
+//	usart6_init();
 
-	usart6_init();
-
-	crc_init();
+//	crc_init();
 
 	rtc_init();
 
-	TIM3_Init(); //timer for rotary encoder
-	TIM6_Init(); //1khz counter for millisecond count
+//	TIM3_Init(); //timer for rotary encoder
+//	TIM6_Init(); //1khz counter for millisecond count
 	TIM14_Init(); //used for resetting values and the system
+
+	/*
+	 * 40Hz interrupt for several timing features
+	 */
 	TIM15_Init();
 
 	eeprom_init_data();
 
 	Initial_Init();
+	LED_ERROR_OFF;
+	LED_OK_OFF;
 
 }
 
 void Initial_Init() {
-
+	lightOn = 1;
 	lcd_init();
-	for (int i = 0; i < 4 * 20; i++) {
-		lcd_putchar(TOPLINE);	//Test Display
-		_delay_ms(5);
-	}
-	_delay_ms(800);
-	lcd_command(0x01);			//Clear Display
-	LED_ERROR_OFF;
-	LED_FAULT_OFF;
-	LED_OK_OFF;
 
 	TIM3->CNT = 0x00ff;
 	flags.lcd_light_on_off = 1;
