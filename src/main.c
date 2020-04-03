@@ -118,9 +118,7 @@ int main(void) {
 	lightOn = 1;
 	lcd_light(lightOn);
 	while (1) {
-		RTC_GetTime(RTC_Format_BIN, &sm_time);
-		RTC_GetDate(RTC_Format_BIN, &sm_date);
-		rtc_current_time_unix = rtc_get_unix_time(&sm_time, &sm_date);
+
 		if (lightOn == 0) {
 			TIM15_DISABLE;
 			NVIC_DisableIRQ(TIM15_IRQn);
@@ -358,7 +356,7 @@ void Initial_Init() {
 	TIM3->CNT = 0x00ff;
 	flags.lcd_light_on_off = 1;
 
-	P_CONFIG = 1;
+
 
 	eeprom_init_data();
 
@@ -411,6 +409,8 @@ void Initial_Init() {
 	menu_init_text(&menu_system_info.items[5], "7d Mittel");
 	menu_init_text(&menu_system_info.items[6], "30d Mittel");
 	menu_init_text(&menu_system_info.items[7], "1y Mittel");
+	menu_init_text(&menu_system_info.items[9], "Free Main:");
+
 
 	current_menu_ptr = &Hauptmenu;
 	flags.currently_in_menu = 1;

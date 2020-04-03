@@ -12,6 +12,10 @@ static const uint16_t week_day[] = { 0x4263, 0xA8BD, 0x42BF, 0x4370, 0xABBF, 0xA
 extern RTC_TimeTypeDef sm_time;
 extern RTC_DateTypeDef sm_date;
 
+extern uint32_t rtc_current_time_unix;
+extern uint32_t rtc_old_time_unix;
+
+
 #define RTC_Format_BIN                    ((uint32_t)0x000000000)
 #define RTC_Format_BCD                    ((uint32_t)0x000000001)
 

@@ -81,7 +81,7 @@ item_t menu_changing_value_item[2];
  * Infomenu
  */
 menu_t menu_system_info;
-item_t infomenu_items[8];
+item_t infomenu_items[10];
 
 /*
  * system settings

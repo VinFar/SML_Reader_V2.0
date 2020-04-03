@@ -44,6 +44,22 @@ void rtc_init() {
 	RTC->WPR = 0xFE;
 	RTC->WPR = 0x64;
 
+	RTC->CR &= ~RTC_CR_WUTE;
+	while((RTC->ISR & RTC_ISR_WUTWF) == 0);
+	/*
+	 * 1Hz Wakeup clock
+	 */
+	RTC->CR |= 0b000 << RTC_CR_WUCKSEL_Pos;
+	/*
+	 * interrupt every 1 second
+	 */
+	RTC->WUTR = 1;
+	RTC->CR |= RTC_CR_WUTE;
+	RTC->CR |= RTC_CR_WUTIE;
+
+	NVIC_EnableIRQ(RTC_IRQn);
+
+
 }
 
 // Convert Date/Time structures to epoch time

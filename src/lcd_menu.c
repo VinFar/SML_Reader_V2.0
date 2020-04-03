@@ -125,6 +125,8 @@ void menu_printf(item_t *item, const char *fmt, ...) {
 		}
 	}
 
+//	item->user_data = (void*)
+
 	va_list va;
 	va_start(va, fmt);
 	vsiprintf(item->string, fmt, va);

@@ -101,12 +101,6 @@ typedef struct uuid_struct {
 
 extern uuid_t uuid;
 
-extern uint8_t sm_idx_for_main_cache_data;
-extern uint8_t sm_idx_for_plant_cache_data;
-extern uint32_t flash_current_address_main_sml;
-extern uint32_t flash_current_address_plant_sml;
-extern smartmeter_data_t sm_main_current_data;
-extern smartmeter_data_t sm_plant_current_data;
 
 #include "stm32f0xx.h"
 

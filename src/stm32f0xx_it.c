@@ -4,6 +4,7 @@
 #include "usart.h"
 #include "lcd_menu.h"
 #include "i2clcd.h"
+#include "rtc.h"
 
 void NMI_Handler(void) {
 }
@@ -56,10 +57,10 @@ void TIM2_IRQHandler() {
  * Up and Downcounting with the Encoder is implemented by Timer 3
  *
  */
-uint32_t menu_idx_isr=10000;
+uint32_t menu_idx_isr = 10000;
 void EXTI4_15_IRQHandler() {
 	timer_ctr_for_lcd_light = 0;
-	lightOn=1;
+	lightOn = 1;
 	if (( EXTI->PR & EXTI_PR_PR6)) {	//Interrupt from rotating rotary encoder
 
 		flags.refreshed_rotary = 1;
@@ -170,8 +171,8 @@ void TIM14_IRQHandler() {
 
 uint32_t timer_ctr_for_lcd_light = 0;
 uint32_t time_for_lcd_light = 120;
-uint32_t timer_ctr_for_nrf24_timeout=0;
-
+uint32_t timer_ctr_for_nrf24_timeout = 0;
+static uint32_t timer_ctr_for_rtc_calc = 38;
 void TIM15_IRQHandler() {
 	if ((TIM15->SR & TIM_SR_UIF) == TIM_SR_UIF) {	//Interrupt every 25 ms
 		TIM15->SR &= ~TIM_SR_UIF;	//Reset update interrupt flag
@@ -179,13 +180,24 @@ void TIM15_IRQHandler() {
 			/*
 			 * light off after 5 min
 			 */
-			lightOn=0;
+			lightOn = 0;
 			lcd_light(lightOn);
 		}
-		if(timer_ctr_for_nrf24_timeout++ > 5*40){
+		if (timer_ctr_for_nrf24_timeout++ > 5 * 40) {
 			/*
 			 * TImeout of NRF24 communication: no data packet for more than 5 seconds
 			 */
 		}
+		if (timer_ctr_for_rtc_calc++ > 35) {
+			timer_ctr_for_rtc_calc = 0;
+			RTC_GetTime(RTC_Format_BIN, &sm_time);
+			RTC_GetDate(RTC_Format_BIN, &sm_date);
+			rtc_current_time_unix = rtc_get_unix_time(&sm_time, &sm_date);
+		}
 	}
+}
+
+void RTC_IRQHandler() {
+
+	NOP
 }
