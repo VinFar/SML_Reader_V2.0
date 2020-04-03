@@ -152,7 +152,7 @@ void TIM14_IRQHandler() {
 		TIM14->CNT = 0;
 		TIM14->CR1 &= ~TIM_CR1_CEN;
 		/*
-		 * user requested a system reset
+		 * user requested a  reset
 		 */
 		if (current_menu_ptr->items[menu_timer_index].on_push_delayed == NULL) {
 
@@ -169,7 +169,7 @@ void TIM14_IRQHandler() {
 }
 
 uint32_t timer_ctr_for_lcd_light = 0;
-uint32_t time_for_lcd_light = 30;
+uint32_t time_for_lcd_light = 120;
 uint32_t timer_ctr_for_nrf24_timeout=0;
 
 void TIM15_IRQHandler() {

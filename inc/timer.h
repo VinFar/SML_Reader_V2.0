@@ -6,6 +6,10 @@
 #define TIM17_DISABLE TIM17->CR1 &= ~TIM_CR1_CEN
 #define TIM17_ENABLE TIM17->CR1 |= TIM_CR1_CEN
 
+#define TIM15_DISABLE (TIM15->CR1 &= ~TIM_CR1_CEN)
+#define TIM15_ENABLE (TIM15->CR1 |= TIM_CR1_CEN)
+
+
 void timer16_init();
 void TIM_Init();
 void TIM2_Init();

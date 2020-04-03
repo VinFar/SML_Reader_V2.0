@@ -23,6 +23,7 @@
 #include "lcd_menu.h"
 #include "i2clcd.h"
 #include "i2c.h"
+#include "timer.h"
 
 /* Priorities at which the tasks are created.  The event semaphore task is
  given the maximum priority of ( configMAX_PRIORITIES - 1 ) to ensure it runs as
@@ -78,9 +79,9 @@ nRF24_TXResult tx_res;
 data_union_t nrf24_rx_data[5];
 static uint8_t nrf24_rx_size = NRF24_RX_SIZE;
 
-static uint32_t idx_mean_value = 0;
+static uint32_t sm_power_hist_idx_write = 0;
 
-static uint32_t idx_oldest_value = 0;
+static uint32_t sm_power_hist_idx_oldest_value = 0;
 
 uint32_t startup_timestamp = 0;
 uint32_t last_eeprom_timestamp = 0;
@@ -120,6 +121,17 @@ int main(void) {
 		RTC_GetTime(RTC_Format_BIN, &sm_time);
 		RTC_GetDate(RTC_Format_BIN, &sm_date);
 		rtc_current_time_unix = rtc_get_unix_time(&sm_time, &sm_date);
+		if (lightOn == 0) {
+			TIM15_DISABLE;
+			NVIC_DisableIRQ(TIM15_IRQn);
+			LED_OK_ON;
+
+			__WFI();
+
+			LED_OK_OFF;
+			NVIC_EnableIRQ(TIM15_IRQn);
+			TIM15_ENABLE;
+		}
 
 		if (flags.refreshed_push) {
 
@@ -155,9 +167,7 @@ int main(void) {
 			flags.refreshed_push = 0;
 		}
 
-		if (flags.refreshed_rotary
-				|| (rtc_current_time_unix > rtc_old_time_unix
-						&& flags.currently_in_menu == 0)) {
+		if (flags.refreshed_rotary) {
 
 			rtc_old_time_unix = rtc_current_time_unix;
 
@@ -172,22 +182,33 @@ int main(void) {
 			flags.refreshed_rotary = 0;
 		}
 
-		if (rtc_current_time_unix > rtc_old_time_unix && flags.smu_connected) {
+		if (rtc_current_time_unix > rtc_old_time_unix) {
+			if (flags.currently_in_menu == 0 && (menu_idx_isr % 3) == 2) {
+				flags.refreshed_rotary = 1;
+			}
 			rtc_old_time_unix = rtc_current_time_unix;
 			/*
 			 * write powervalue into history
 			 */
-			sm_power_hist[SM_MAIN_IDX_ARRAY][idx_mean_value] =
+			sm_power_hist[SM_MAIN_IDX_ARRAY][sm_power_hist_idx_write] =
 					sm_power_main_current;
-			sm_power_hist[SM_PLANT_IDX_ARRAY][idx_mean_value] =
+			sm_power_hist[SM_PLANT_IDX_ARRAY][sm_power_hist_idx_write] =
 					sm_power_plant_current;
 
 			/*
 			 * we have a history of 300 values, so catch overflow
 			 */
-			uint16_t idx_newest_value = idx_mean_value;
-			if (idx_mean_value++ == ARRAY_LEN(sm_power_hist[0])) {
-				idx_mean_value = 0;
+			uint16_t idx_newest_value = sm_power_hist_idx_write;
+			if (sm_power_hist_idx_write++ == ARRAY_LEN(sm_power_hist[0])) {
+				sm_power_hist_idx_write = 0;
+			}
+
+			if (sm_power_hist_idx_oldest_value == sm_power_hist_idx_write) {
+				sm_power_hist_idx_oldest_value++;
+				if (sm_power_hist_idx_oldest_value
+						== ARRAY_LEN(sm_power_hist[0])) {
+					sm_power_hist_idx_oldest_value = 0;
+				}
 			}
 
 			int32_t sm_power_sum_main = 0;
@@ -198,24 +219,25 @@ int main(void) {
 			 * The user can configure the time period over which the mean value
 			 * will be calculated (time_for_meanvalue). So abort on reaching this value
 			 */
-			for (uint32_t ctr = 0; ctr < time_for_meanvalue; ctr++) {
+			int16_t idx_read = sm_power_hist_idx_write - 1;
+			if (idx_read < 0) {
+				idx_read = 0;
+			}
+			uint32_t ctr;
+			for (ctr = 0; ctr < time_for_meanvalue; ctr++) {
+
 				/*
 				 * add all values
 				 */
-				sm_power_sum_main +=
-						sm_power_hist[SM_MAIN_IDX_ARRAY][idx_newest_value];
+				sm_power_sum_main += sm_power_hist[SM_MAIN_IDX_ARRAY][idx_read];
 				sm_power_sum_plant +=
-						sm_power_hist[SM_PLANT_IDX_ARRAY][idx_newest_value];
+						sm_power_hist[SM_PLANT_IDX_ARRAY][idx_read];
 
 				/*
 				 * catch overflow of index and decrement idx
 				 */
-				if (idx_newest_value == 0) {
-					idx_newest_value = ARRAY_LEN(sm_power_hist[0]);
-				} else {
-					idx_newest_value--;
-				}
-				if (idx_newest_value == idx_mean_value) {
+
+				if (idx_read == sm_power_hist_idx_oldest_value) {
 					/*
 					 * at the beginning there will be not enough time stamps in the array
 					 * to reach the sum of time_for_meanvalue, so catch index on which we began.
@@ -223,10 +245,14 @@ int main(void) {
 					 */
 					break;
 				}
+				idx_read--;
+				if (idx_read < 0) {
+					idx_read = 0;
+				}
 			}
-			sm_power_main_mean = (int32_t) (sm_power_sum_main
-					/ (time_for_meanvalue));
-			sm_power_plant_mean = sm_power_sum_plant / time_for_meanvalue;
+			sm_power_main_mean =
+					(int32_t) (sm_power_sum_main / (int32_t) (ctr));
+			sm_power_plant_mean = sm_power_sum_plant / (int32_t) (ctr);
 
 			/*
 			 * end of mean value calculation

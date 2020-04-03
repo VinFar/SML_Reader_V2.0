@@ -18,7 +18,7 @@ char *string_ptr;
 int8_t lcd_poll() {
 	uint8_t value = 0;
 
-	if (i2c1_start(0x27, 1, I2C_READ) < 0) {
+	if (i2c1_start(0x3f, 1, I2C_READ) < 0) {
 		return -1;
 	}
 
@@ -67,7 +67,7 @@ void lcd_clear() {
 
 void lcd_write_i2c(uint8_t value) {
 
-	if (i2c1_start(0x27, 1, I2C_WRITE) < 0) {
+	if (i2c1_start(0x3f, 1, I2C_WRITE) < 0) {
 		I2C1_RESET
 		;
 		return -1;
@@ -86,15 +86,13 @@ void lcd_write_i2c(uint8_t value) {
 
 }
 
-
-static void lcd_pulseEnable(uint8_t data){
+static void lcd_pulseEnable(uint8_t data) {
 	lcd_write_i2c(data | LCD_E);	// En high
-	delay_us(10);		// enable pulse must be >450ns
+	delay_us(1);		// enable pulse must be >450ns
 
 	lcd_write_i2c(data & ~LCD_E);	// En low
-	delay_us(100);		// commands need > 37us to settle
+	delay_us(40);		// commands need > 37us to settle
 }
-
 
 //-	Write nibble to display with pulse of enable bit
 // map pinout between PCF8574 and LCD
@@ -121,11 +119,7 @@ void lcd_write(uint8_t value) {
 	lcd_write_i2c(data_out);		//-	Set new data and enable to high
 	lcd_pulseEnable(data_out);
 
-
 }
-
-
-
 
 uint8_t lcd_read(uint8_t mode) {
 	uint8_t lcddata, data;
