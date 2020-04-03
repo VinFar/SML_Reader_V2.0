@@ -43,6 +43,8 @@ void rtc_init() {
 	RTC->WPR = 0xFE;
 	RTC->WPR = 0x64;
 
+	NVIC_EnableIRQ(RTC_IRQn);
+
 }
 
 // Convert Date/Time structures to epoch time

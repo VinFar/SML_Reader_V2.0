@@ -102,3 +102,14 @@ void HardFault_Handler(void) {
 	}
 }
 
+void TIM15_IRQHandler() {
+	if ((TIM15->SR & TIM_SR_UIF) == TIM_SR_UIF) {	//Interrupt every 25 ms
+		TIM15->SR &= ~TIM_SR_UIF;	//Reset update interrupt flag
+
+
+	}
+}
+
+void RTC_IRQHandler(){
+
+}
