@@ -14,20 +14,30 @@
 #define nRF24_ADDR_REVERSE         0
 #endif
 
-#define NRF24_RX_SIZE 32
+#define NRF24_RX_SIZE 28
 
 enum {
 	NRF24_CMD_PING=0,
-	NRF24_SM_DATA,
-	NRF24_RTC_DATA,
-	NRF24_MAX_CMDS_ENUM
+	NRF24_CMD_SM_DATA,
+	NRF24_CMD_RTC_DATA,
+
+	NRF24_CMD_MAX_ENUM
 };
 
 typedef struct {
 	uint8_t size;
 	uint8_t cmd;
 	data_union_t data[(NRF24_RX_SIZE/4)];
+	uint32_t tx_ctr;
 }__attribute__((packed)) nrf24_frame_t;
+
+#define NRF_IDX_SM_DATA_MAIN_POWER 0
+#define NRF_IDX_SM_DATA_PLANT_POWER 1
+#define NRF_IDX_SM_DATA_MAIN_METER_DEL 2
+#define NRF_IDX_SM_DATA_MAIN_METER_PUR 3
+#define NRF_IDX_SM_DATA_PLANT_DEL 4
+
+
 
 // Timeout counter (depends on the CPU speed)
 // Used for not stuck waiting for IRQ

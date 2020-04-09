@@ -135,6 +135,9 @@ void TIM14_Init() {
 
 }
 
+/*
+ * 40Hz IRQ
+ */
 void TIM15_Init() {
 
 	__HAL_RCC_TIM15_CLK_ENABLE()

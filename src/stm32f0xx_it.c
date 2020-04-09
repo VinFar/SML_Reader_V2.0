@@ -2,6 +2,7 @@
 #include <stm32f0xx.h>
 #include "main.h"
 #include "usart.h"
+#include "nrf24.h"
 
 uint32_t sml_main_raw_data_idx = 0;
 uint8_t sml_main_raw_data[400] = { 0 };
@@ -28,10 +29,7 @@ void USART1_IRQHandler() {
 		 */
 
 		sml_main_raw_data[sml_main_raw_data_idx] = USART1->RDR;
-		USART5->TDR =sml_main_raw_data[sml_main_raw_data_idx];
-		if (flags.gateway) {
-//			USART6->TDR = sml_main_raw_data[sml_main_raw_data_idx];
-		}
+		USART5->TDR = sml_main_raw_data[sml_main_raw_data_idx];
 		sml_main_raw_data_idx++;
 		if (sml_main_raw_data_idx > sizeof(sml_main_raw_data)) {
 			sml_main_raw_data_idx = 0;
@@ -102,14 +100,45 @@ void HardFault_Handler(void) {
 	}
 }
 
+uint32_t timer_ctr_for_nrf24_tx = 0;
 void TIM15_IRQHandler() {
 	if ((TIM15->SR & TIM_SR_UIF) == TIM_SR_UIF) {	//Interrupt every 25 ms
 		TIM15->SR &= ~TIM_SR_UIF;	//Reset update interrupt flag
+		if (flags.display_connected == 1) {
+			if (++timer_ctr_for_nrf24_tx > 40) {
+				timer_ctr_for_nrf24_tx = 0;
+				/*
+				 * if the display is in rage then periodically send
+				 * data
+				 */
 
+				union data_union sm[5];
+				sm[NRF_IDX_SM_DATA_MAIN_METER_DEL].uint32_data =
+						sm_main_current_data.meter_delivery;
+				sm[NRF_IDX_SM_DATA_MAIN_METER_PUR].uint32_data =
+						sm_main_current_data.meter_purchase;
+				sm[NRF_IDX_SM_DATA_MAIN_POWER].uint32_data =
+						sm_main_current_data.power;
+				sm[NRF_IDX_SM_DATA_PLANT_DEL].uint32_data =
+						sm_plant_current_data.meter_delivery;
+				sm[NRF_IDX_SM_DATA_PLANT_POWER].uint32_data =
+						sm_plant_current_data.power;
+				nrf_add_qeue(NRF24_CMD_SM_DATA, sm);
 
+			}
+		} else {
+			/*
+			 * if not, ping it until it is in range again
+			 */
+
+			if (++timer_ctr_for_nrf24_tx > 40) {
+				timer_ctr_for_nrf24_tx = 0;
+				nrf_add_qeue(NRF24_CMD_PING, 0);
+			}
+		}
 	}
 }
 
-void RTC_IRQHandler(){
+void RTC_IRQHandler() {
 
 }

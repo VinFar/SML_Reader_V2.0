@@ -88,7 +88,7 @@ volatile typedef struct {
 	unsigned new_plant_sml_packet:1;
 	unsigned usart6_new_cmd:1;
 	unsigned usart6_rx_busy:1;
-	unsigned gateway:1;
+	unsigned display_connected:1;
 }flags_t;
 
 flags_t flags;

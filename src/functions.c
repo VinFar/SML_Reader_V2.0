@@ -6,6 +6,9 @@
 #include "rtc.h"
 #include "crc.h"
 #include "gpio.h"
+#include "functions.h"
+
+static struct nrf24_queue_struct nrf24_queue;
 
 int32_t old_main_power = 0;
 int32_t old_plant_power = 0;
@@ -119,7 +122,7 @@ void check_cmd_frame() {
 			usart6_ack_frame.ack = CMD_ACK;
 			switch (usart6_cmd_frame.cmd) {
 			case CMD_PING:
-				flags.gateway = 0;
+
 				NOP
 				break;
 			case CMD_READ_FLASH_ADDRESS_MAIN:
@@ -163,7 +166,8 @@ void check_cmd_frame() {
 								== 0xbadeaffe) {
 							flash_bulkErase();
 							flash_current_address_main_sml = 0;
-							flash_current_address_plant_sml = W25N_START_ADDRESS_PLANT;
+							flash_current_address_plant_sml =
+									W25N_START_ADDRESS_PLANT;
 						}
 					}
 				}
@@ -174,21 +178,22 @@ void check_cmd_frame() {
 				RTC_DISABLE_WP
 				;
 				RTC_INIT_WAIT
-;				TR = usart6_cmd_frame.data[0].uint32_data;
+				;
+				TR = usart6_cmd_frame.data[0].uint32_data;
 				DR = usart6_cmd_frame.data[1].uint32_data;
-				RTC->TR = (uint32_t)(TR & RTC_TR_RESERVED_MASK);
-				RTC->DR = (uint32_t)(DR & RTC_DR_RESERVED_MASK);
-				RTC->ISR &= (uint32_t)~RTC_ISR_INIT;
+				RTC->TR = (uint32_t) (TR & RTC_TR_RESERVED_MASK);
+				RTC->DR = (uint32_t) (DR & RTC_DR_RESERVED_MASK);
+				RTC->ISR &= (uint32_t) ~RTC_ISR_INIT;
 				RTC_ENABLE_WP;
 				break;
-				case CMD_GET_UNIX_TIME:
+			case CMD_GET_UNIX_TIME:
 				RTC_GetTime(RTC_FORMAT_BIN, &sm_time);
 				RTC_GetDate(RTC_FORMAT_BIN, &sm_date);
-				usart6_ack_frame.data[0].uint32_data = rtc_get_unix_time(&sm_time,
-						&sm_date);
+				usart6_ack_frame.data[0].uint32_data = rtc_get_unix_time(
+						&sm_time, &sm_date);
 				data_size = 4;
 				break;
-				default:
+			default:
 				usart6_ack_frame.ack = CMD_NACK;
 				NOP
 				NOP
@@ -502,4 +507,43 @@ void flash_plant_store_data_in_cache(uint32_t timestamp) {
 
 	}
 
+}
+
+void nrf_queue_init()
+{
+  nrf24_queue.read_idx = 0;
+  nrf24_queue.write_idx = 0;
+}
+
+enum enqueue_result nrf_queue_enqueue(nrf24_frame_t * p_new_item) {
+  uint16_t elements_in = nrf24_queue.write_idx - nrf24_queue.read_idx;
+
+  size_t const capacity = ARRAY_LENGTH(nrf24_queue.items);
+  if (elements_in == capacity) {
+    return ENQUEUE_RESULT_FULL;
+  }
+
+  uint16_t i = (nrf24_queue.write_idx)++ & (capacity - 1);
+
+  memcpy(&nrf24_queue.items[i],p_new_item,sizeof(nrf24_frame_t));
+
+  return ENQUEUE_RESULT_SUCCESS;
+}
+
+enum dequeue_result nrf_queue_dequeue(nrf24_frame_t * p_item_out) {
+  uint16_t elements_in = nrf24_queue.write_idx - nrf24_queue.read_idx;
+  size_t const capacity = ARRAY_LENGTH(nrf24_queue.items);
+
+  if(elements_in == 0) {
+    return DEQUEUE_RESULT_EMPTY;
+  }
+
+  uint16_t i = (nrf24_queue.read_idx)++ & (capacity - 1);
+  memcpy(p_item_out,&nrf24_queue.items[i],sizeof(nrf24_frame_t));
+
+  return DEQUEUE_RESULT_SUCCESS;
+}
+
+uint8_t nrf_queue_is_empty() {
+  return ((nrf24_queue.write_idx - nrf24_queue.read_idx) == 0);
 }

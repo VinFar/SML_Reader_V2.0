@@ -23,6 +23,7 @@
 #include "rtc.h"
 #include "nrf24.h"
 #include "nrf24_hal.h"
+#include "queue.h"
 
 /* Priorities at which the tasks are created.  The event semaphore task is
  given the maximum priority of ( configMAX_PRIORITIES - 1 ) to ensure it runs as
@@ -68,25 +69,7 @@ uuid_t uuid = { { ((uint32_t*) UUID_BASE_ADDRESS),
 uint32_t rtc_current_time_unix;
 uint32_t rtc_old_time_unix;
 
-static uint32_t rtx_cur_time_nrf24 = 0;
-static uint32_t rtx_old_time_nrf24 = 0;
 
-const uint8_t nrf24_tx_size = NRF24_TX_SIZE;
-data_union_t nrf24_tx_buf[(NRF24_TX_SIZE / 4)];
-
-uint32_t i, j, k;
-
-// Buffer to store a payload of maximum width
-data_union_t nRF24_payload[32];
-
-// Pipe number
-nRF24_RXResult pipe;
-
-// Length of received payload
-uint8_t payload_length;
-
-nRF24_TXResult tx_res;
-nrf24_frame_t nrf24_frame;
 
 int main(void) {
 
@@ -95,7 +78,6 @@ int main(void) {
 
 	flash_init();
 //	flash_bulkErase();
-	flags.gateway = 1;
 
 	RTC_GetTime(RTC_Format_BIN, &sm_time);
 	RTC_GetDate(RTC_Format_BIN, &sm_date);
@@ -106,65 +88,15 @@ int main(void) {
 	rtc_current_time_unix = rtc_old_time_unix = rtc_get_unix_time(&sm_time,
 			&sm_date);
 
-	// This is simple transmitter with Enhanced ShockBurst (to one logic address):
-	//   - TX address: 'ESB'
-	//   - payload: 10 bytes
-	//   - RF channel: 40 (2440MHz)
-	//   - data rate: 2Mbps
-	//   - CRC scheme: 2 byte
+	nrf24_init_tx();
+	nrf_queue_init();
 
-	// The transmitter sends a 10-byte packets to the address 'ESB' with Auto-ACK (ShockBurst enabled)
-	nRF24_Check();
-	nRF24_Init();
-	// Set RF channel
-	nRF24_SetRFChannel(40);
 
-	// Set data rate
-	nRF24_SetDataRate(nRF24_DR_250kbps);
-
-	// Set CRC scheme
-	nRF24_SetCRCScheme(nRF24_CRC_2byte);
-
-	// Set address width, its common for all pipes (RX and TX)
-	nRF24_SetAddrWidth(3);
-
-	// Configure TX PIPE
-	static const uint8_t nRF24_ADDR[] = { 'E', 'S', 'B' };
-	nRF24_SetAddr(nRF24_PIPETX, nRF24_ADDR); // program TX address
-	nRF24_SetAddr(nRF24_PIPE0, nRF24_ADDR); // program address for pipe#0, must be same as TX (for Auto-ACK)
-
-	// Set TX power (maximum)
-	nRF24_SetTXPower(nRF24_TXPWR_0dBm);
-
-	// Configure auto retransmit: 10 retransmissions with pause of 2500s in between
-	nRF24_SetAutoRetr(nRF24_ARD_2500us, 10);
-
-	// Enable Auto-ACK for pipe#0 (for ACK packets)
-	nRF24_EnableAA(nRF24_PIPE0);
-
-	// Set operational mode (PTX == transmitter)
-	nRF24_SetOperationalMode(nRF24_MODE_TX);
-
-	// Clear any pending IRQ flags
-	nRF24_ClearIRQFlags();
-
-	// Wake the transceiver
-	nRF24_SetPowerMode(nRF24_PWR_UP);
-
-	// Some variables
-	uint32_t packets_lost = 0; // global counter of lost packets
-	uint8_t otx;
-	uint8_t otx_plos_cnt; // lost packet count
-	uint8_t otx_arc_cnt; // retransmit count
-
-	// The main loop
-	payload_length = 24;
-	j = 0;
 	while (1) {
 
 		RTC_GetTime(RTC_FORMAT_BIN, &sm_time);
 		RTC_GetDate(RTC_FORMAT_BIN, &sm_date);
-		rtx_cur_time_nrf24 = rtc_current_time_unix = rtc_get_unix_time(&sm_time,
+		rtc_current_time_unix = rtc_get_unix_time(&sm_time,
 				&sm_date);
 
 		if (flags.new_plant_sml_packet) {
@@ -177,56 +109,10 @@ int main(void) {
 			sm_main_extract_data();
 		}
 
-		// Prepare data packet
-		// Transmit a packet
-
-		if ((rtx_cur_time_nrf24 - rtx_old_time_nrf24) >= 2) {
-			rtx_old_time_nrf24 = rtx_cur_time_nrf24;
-			/*
-			 * transmit data every x second
-			 */
-
-			nrf24_frame.data[0].int32_data = sm_main_current_data.power;
-			nrf24_frame.data[1].int32_data = sm_plant_current_data.power;
-			nrf24_frame.data[2].int32_data =
-					sm_main_current_data.meter_delivery;
-			nrf24_frame.data[3].int32_data =
-					sm_main_current_data.meter_purchase;
-			nrf24_frame.data[4].int32_data =
-					sm_plant_current_data.meter_delivery;
-			nrf24_frame.data[5].int32_data++;
-
-			nrf24_frame.cmd = NRF24_SM_DATA;
-			nrf24_frame.size = 6 * 4 + 2;
-
-			tx_res = nRF24_TransmitPacket((uint8_t*) &nrf24_frame,
-					nrf24_tx_size);
-			otx = nRF24_GetRetransmitCounters();
-			otx_plos_cnt = (otx & nRF24_MASK_PLOS_CNT ) >> 4; // packets lost counter
-			otx_arc_cnt = (otx & nRF24_MASK_ARC_CNT ); // auto retransmissions counter
-			if (tx_res == nRF24_TX_SUCCESS) {
-				/*
-				 * OK
-				 */
-				NOP
-			} else {
-				/*
-				 * not ok
-				 */
-				NOP
-			}
-			switch (tx_res) {
-			case nRF24_TX_SUCCESS:
-				break;
-			case nRF24_TX_TIMEOUT:
-				break;
-			case nRF24_TX_MAXRT:
-				nRF24_ResetPLOS();
-				break;
-			default:
-				break;
-			}
+		if(nrf_queue_is_empty()==0){
+			nrf_transmit_next_item();
 		}
+
 		if ((rtc_current_time_unix - rtc_old_time_unix) >= FLASH_SAVE_INTERVALL) {
 			rtc_old_time_unix = rtc_current_time_unix;
 			/*
