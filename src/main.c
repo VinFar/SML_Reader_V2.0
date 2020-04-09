@@ -267,6 +267,7 @@ int main(void) {
 			nRF24_ClearIRQFlags();
 		}
 		if (flags.nrf24_new_frame) {
+			LED_ERROR_TOGGLE;
 			flags.nrf24_new_frame = 0;
 			if (nrf24_frame.size <= NRF24_RX_SIZE) {
 				/*

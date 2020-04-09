@@ -17,7 +17,7 @@ extern data_union_t nrf24_rx_data[5];
 
 extern uint32_t nrf24_tx_ctr;
 
-#define NRF24_RX_SIZE 32
+#define NRF24_RX_SIZE 28
 
 enum {
 	NRF24_CMD_PING=0,
