@@ -6,7 +6,6 @@
 #include "eeprom.h"
 #include "string.h"
 #include "functions.h"
-#include <time.h>
 
 #include "FreeRTOS.h"
 #include "task.h"
