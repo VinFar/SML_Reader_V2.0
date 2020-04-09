@@ -268,7 +268,7 @@ int main(void) {
 		}
 		if (flags.nrf24_new_frame) {
 			flags.nrf24_new_frame = 0;
-			if (nrf24_frame.size < NRF24_RX_SIZE) {
+			if (nrf24_frame.size <= NRF24_RX_SIZE) {
 				/*
 				 * size is ok
 				 */
