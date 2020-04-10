@@ -109,6 +109,16 @@ int main(void) {
 			flash_main_store_data_in_cache(rtc_old_time);
 			flash_plant_store_data_in_cache(rtc_old_time);
 
+			union data_union sm[6];
+			sm[0].uint32_data = flash_current_address_main_sml;
+			sm[1].uint32_data = flash_current_address_plant_sml;
+			sm[2].uint32_data = W25N_MAX_ADDRESS_MAIN;
+			sm[3].uint32_data = W25N_MAX_ADDRESS_PLANT;
+			sm[4].uint32_data = W25N_START_ADDRESS_MAIN;
+			sm[5].uint32_data = W25N_START_ADDRESS_PLANT;
+
+			nrf_add_qeue(NRF24_CMD_FLASH_DATA, sm);
+
 		}
 
 		if (flags.usart6_new_cmd) {
