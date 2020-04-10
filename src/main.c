@@ -281,6 +281,7 @@ int main(void) {
 					/*
 					 * call the approbiate function
 					 */
+					nrf24_tx_ctr = frame->tx_ctr;
 					nrf24_frame_fct_ptr[nrf24_frame.cmd](&nrf24_frame, NULL);
 
 				}
