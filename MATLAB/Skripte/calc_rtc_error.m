@@ -2,7 +2,7 @@ stm32 = connect_smu;
 % set rtc ideal freq
 rtc_ref_freq = 32768
 % set datetime when was last RTC sync
-last_sync_dt = datetime(2020, 03, 14, 13, 45, 00)
+last_sync_dt = datetime(2020, 03, 14, 17, 27, 50)
 % set reference datetime when RTC was checked
 check_ref_dt = datetime('now')
 % set RTC datetime when it was checked
