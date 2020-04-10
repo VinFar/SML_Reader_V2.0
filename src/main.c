@@ -65,38 +65,26 @@ uuid_t uuid = { { ((uint32_t*) UUID_BASE_ADDRESS),
 		(((uint32_t*) UUID_BASE_ADDRESS + 1)), ((uint32_t*) (UUID_BASE_ADDRESS
 				+ 2)) } };
 
-uint32_t rtc_current_time_unix;
-uint32_t rtc_old_time_unix;
-
-
-
 int main(void) {
 
 	prvSetupHardware();
 	flags.new_main_sml_packet = 0;
 
 	flash_init();
-//	flash_bulkErase();
-
-	RTC_GetTime(RTC_Format_BIN, &sm_time);
-	RTC_GetDate(RTC_Format_BIN, &sm_date);
-
 	flash_address_get_main();
 	flash_address_get_plant();
-
-	rtc_current_time_unix = rtc_old_time_unix = rtc_get_unix_time(&sm_time,
-			&sm_date);
 
 	nrf24_init_tx();
 	nrf_queue_init();
 
+	uint32_t rtc_old_time=rtc_get_current_unix_time();
 
 	while (1) {
 
-		RTC_GetTime(RTC_FORMAT_BIN, &sm_time);
-		RTC_GetDate(RTC_FORMAT_BIN, &sm_date);
-		rtc_current_time_unix = rtc_get_unix_time(&sm_time,
-				&sm_date);
+		if(flags.oneHz_flags){
+			flags.oneHz_flags=0;
+			rtc_calc_new_time();
+		}
 
 		if (flags.new_plant_sml_packet) {
 			flags.new_plant_sml_packet = 0;
@@ -112,14 +100,14 @@ int main(void) {
 			nrf_transmit_next_item();
 		}
 
-		if ((rtc_current_time_unix - rtc_old_time_unix) >= FLASH_SAVE_INTERVALL) {
-			rtc_old_time_unix = rtc_current_time_unix;
+		if ((rtc_get_current_unix_time() - rtc_old_time) >= FLASH_SAVE_INTERVALL) {
+			rtc_old_time = rtc_get_current_unix_time();
 			/*
 			 * save data every 2 seconds
 			 */
 
-			flash_main_store_data_in_cache(rtc_current_time_unix);
-			flash_plant_store_data_in_cache(rtc_current_time_unix);
+			flash_main_store_data_in_cache(rtc_old_time);
+			flash_plant_store_data_in_cache(rtc_old_time);
 
 		}
 

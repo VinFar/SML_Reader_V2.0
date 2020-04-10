@@ -101,6 +101,7 @@ void HardFault_Handler(void) {
 }
 
 uint32_t timer_ctr_for_nrf24_tx = 0;
+uint32_t timer_ctr_for_1s_flags=0;
 void TIM15_IRQHandler() {
 	if ((TIM15->SR & TIM_SR_UIF) == TIM_SR_UIF) {	//Interrupt every 25 ms
 		TIM15->SR &= ~TIM_SR_UIF;	//Reset update interrupt flag
@@ -133,8 +134,14 @@ void TIM15_IRQHandler() {
 
 			if (++timer_ctr_for_nrf24_tx > 40) {
 				timer_ctr_for_nrf24_tx = 0;
-				nrf_add_qeue(NRF24_CMD_PING, 0);
+				union data_union sm;
+				sm.uint32_data = rtc_get_current_unix_time();
+				nrf_add_qeue(NRF24_CMD_PING, &sm);
 			}
+		}
+		if(++timer_ctr_for_1s_flags > 35){
+			timer_ctr_for_1s_flags=0;
+			flags.oneHz_flags=1;
 		}
 	}
 }

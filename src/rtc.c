@@ -5,6 +5,9 @@
 RTC_TimeTypeDef sm_time;
 RTC_DateTypeDef sm_date;
 
+static uint32_t rtc_current_time_unix;
+static uint32_t rtc_old_time_unix;
+
 void rtc_init() {
 	__HAL_RCC_RTC_ENABLE();
 	/*
@@ -45,6 +48,8 @@ void rtc_init() {
 
 	NVIC_EnableIRQ(RTC_IRQn);
 
+	rtc_calc_new_time();
+
 }
 
 // Convert Date/Time structures to epoch time
@@ -78,7 +83,7 @@ uint32_t rtc_get_unix_time(RTC_TimeTypeDef *time, RTC_DateTypeDef *date) {
 	return JDN;
 }
 
-void RTC_GetTime(uint32_t RTC_Format, RTC_TimeTypeDef* RTC_TimeStruct) {
+void RTC_GetTime(uint32_t RTC_Format, RTC_TimeTypeDef *RTC_TimeStruct) {
 	uint32_t tmpreg = 0;
 
 	/* Check the parameters */
@@ -106,7 +111,7 @@ void RTC_GetTime(uint32_t RTC_Format, RTC_TimeTypeDef* RTC_TimeStruct) {
 	}
 }
 
-void RTC_GetDate(uint32_t RTC_Format, RTC_DateTypeDef* RTC_DateStruct) {
+void RTC_GetDate(uint32_t RTC_Format, RTC_DateTypeDef *RTC_DateStruct) {
 	uint32_t tmpreg = 0;
 
 	/* Check the parameters */
@@ -129,4 +134,15 @@ void RTC_GetDate(uint32_t RTC_Format, RTC_DateTypeDef* RTC_DateStruct) {
 		RTC_DateStruct->Date = (uint8_t) RTC_Bcd2ToByte(RTC_DateStruct->Date);
 		RTC_DateStruct->WeekDay = (uint8_t) (RTC_DateStruct->WeekDay);
 	}
+}
+
+uint32_t rtc_calc_new_time() {
+	RTC_GetTime(RTC_FORMAT_BIN, &sm_time);
+	RTC_GetDate(RTC_FORMAT_BIN, &sm_date);
+	rtc_current_time_unix = rtc_get_unix_time(&sm_time, &sm_date);
+	return rtc_current_time_unix;
+}
+
+uint32_t rtc_get_current_unix_time() {
+	return rtc_current_time_unix;
 }
