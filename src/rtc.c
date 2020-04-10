@@ -41,7 +41,7 @@ void rtc_init() {
 		;
 
 	RTC->CALR = RTC_CALR_CALP | 1;
-	RTC->CALR = RTC_CALR_CALM | 961;
+	RTC->CALR = RTC_CALR_CALM | 639;
 
 	RTC->WPR = 0xFE;
 	RTC->WPR = 0x64;
