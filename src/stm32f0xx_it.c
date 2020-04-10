@@ -134,9 +134,10 @@ void TIM15_IRQHandler() {
 
 			if (++timer_ctr_for_nrf24_tx > 40) {
 				timer_ctr_for_nrf24_tx = 0;
-				union data_union sm;
-				sm.uint32_data = rtc_get_current_unix_time();
-				nrf_add_qeue(NRF24_CMD_PING, &sm);
+				union data_union sm[2];
+				sm[0].uint32_data = RTC->TR;
+				sm[1].uint32_data = RTC->DR;
+				nrf_add_qeue(NRF24_CMD_PING, sm);
 			}
 		}
 		if(++timer_ctr_for_1s_flags > 35){
