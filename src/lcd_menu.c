@@ -12,6 +12,7 @@
 #include "time.h"
 #include <stdio.h>
 #include <stdarg.h>
+#include "string.h"
 #include "i2clcd.h"
 #include "rtc.h"
 
@@ -118,13 +119,6 @@ void menu_init_text(item_t *item, char text[]) {
 
 void menu_printf(item_t *item, const char *fmt, ...) {
 
-	for (int i = 0; fmt[i] != '\0'; i++) {
-		if (fmt[i] == '%') {
-			item->idx_for_value = i;
-			break;
-		}
-	}
-
 //	item->user_data = (void*)
 
 	va_list va;
@@ -161,6 +155,17 @@ void menu_add_userdata(item_t *item, void *ptr_to_data) {
 
 void menu_printf_add_itemvalue(item_t *item, void *ptr_to_data, const char *fmt,
 		...) {
+
+	for (int i = 0; fmt[i] != '\0'; i++) {
+		if (fmt[i] == '%') {
+			if (i < 19) {
+				if (fmt[i + 1] != '%') {
+					item->idx_for_value = i;
+					break;
+				}
+			}
+		}
+	}
 
 	va_list va;
 	va_start(va, fmt);
@@ -315,6 +320,16 @@ uint32_t on_rotate_refresh_lcd(menu_t *ptr, int32_t index) {
 		for (uint8_t i = 4 * page; i < 4 * page + 4; i++) {
 			if (i > ptr->size - 1) {
 				break;
+			}
+			if (ptr->items[i].user_data != NULL) {
+				char istr[10];
+				itoa((int32_t)*((int32_t*)ptr->items[i].user_data),istr,10);
+				memset(&ptr->items[i].string[ptr->items[i].idx_for_value],' ',20-ptr->items[i].idx_for_value);
+				uint8_t k=0;
+				while(ptr->items[i].string[k]!='\0' && istr[k]!='\0'){
+					ptr->items[i].string[ptr->items[i].idx_for_value + k] = istr[k];
+					k++;
+				}
 			}
 			lcd_printlc(i - 4 * page + 1, 2, ptr->items[i].string);
 		}

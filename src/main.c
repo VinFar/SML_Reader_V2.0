@@ -98,7 +98,8 @@ uint8_t payload_length;
 nrf24_frame_t nrf24_frame;
 
 int8_t (*nrf24_frame_fct_ptr[MAX_ENUM_CMDS - 1])(nrf24_frame_t*,
-		void*) = {ping_cmd_handler,ping_sm_data_handler,ping_rtc_data_handler };
+		void*) = {ping_cmd_handler,ping_sm_data_handler,ping_rtc_data_handler,nrf_flash_data_handler
+		};
 
 /*
  * Version v0.1.0.2
@@ -281,7 +282,7 @@ int main(void) {
 					/*
 					 * call the approbiate function
 					 */
-					nrf24_tx_ctr = frame->tx_ctr;
+					nrf24_tx_ctr = nrf24_frame.tx_ctr;
 					nrf24_frame_fct_ptr[nrf24_frame.cmd](&nrf24_frame, NULL);
 
 				}
@@ -358,8 +359,6 @@ void Initial_Init() {
 	TIM3->CNT = 0x00ff;
 	flags.lcd_light_on_off = 1;
 
-
-
 	eeprom_init_data();
 
 	menu_init(&Hauptmenu, Hauptmenu_items, SIZE_OF_MENU(Hauptmenu_items));
@@ -393,11 +392,11 @@ void Initial_Init() {
 	/*
 	 * system settings menu
 	 */
-	menu_printf(&system_settings.items[1], "LCD Auto Off: %d",
-			time_for_lcd_light);
+	menu_printf_add_itemvalue(&system_settings.items[1], &time_for_lcd_light,
+			"LCD Auto Off: %d", time_for_lcd_light);
 
-	menu_printf(&system_settings.items[2], "Sek. fuer MW: %d",
-			time_for_meanvalue);
+	menu_printf_add_itemvalue(&system_settings.items[2], &time_for_meanvalue,
+			"Sek. fuer MW: %d", time_for_meanvalue);
 
 	menu_init_text(&system_settings.items[3], "Akku:");
 
@@ -406,13 +405,13 @@ void Initial_Init() {
 	 */
 	menu_init_text(&menu_system_info.items[1], "Max:");
 	menu_init_text(&menu_system_info.items[2], "Min:");
-	menu_init_text(&menu_system_info.items[3], "genutzte Leist.");
 	menu_init_text(&menu_system_info.items[4], "24h Mittel");
 	menu_init_text(&menu_system_info.items[5], "7d Mittel");
 	menu_init_text(&menu_system_info.items[6], "30d Mittel");
 	menu_init_text(&menu_system_info.items[7], "1y Mittel");
-	menu_init_text(&menu_system_info.items[9], "Free Main:");
 
+	menu_printf_add_itemvalue(&menu_system_info.items[8], &free_cap_main, "Free Main: %d",free_cap_main);
+	menu_printf_add_itemvalue(&menu_system_info.items[9], &free_cap_plant, "Free Plant: %d",free_cap_plant);
 
 	current_menu_ptr = &Hauptmenu;
 	flags.currently_in_menu = 1;

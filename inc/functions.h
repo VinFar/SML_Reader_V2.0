@@ -54,6 +54,8 @@ extern int32_t sm_power_hist[2][SM_MAIN_SIZE_ARRAY];
 extern uint16_t time_for_meanvalue;
 extern uint8_t P_CONFIG;
 
+extern uint8_t free_cap_main;
+extern uint8_t free_cap_plant;
 
 
 typedef struct outlets {
@@ -102,6 +104,7 @@ void set_max_min_time(uint16_t time);
 int8_t ping_cmd_handler(nrf24_frame_t *frame, void *userData);
 int8_t ping_sm_data_handler(nrf24_frame_t *frame, void *userData);
 int8_t ping_rtc_data_handler(nrf24_frame_t *frame, void *userData);
+int8_t nrf_flash_data_handler(nrf24_frame_t *frame, void *userData);
 
 
 #endif /* FUNCTIONS_H_ */

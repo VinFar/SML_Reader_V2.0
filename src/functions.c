@@ -29,6 +29,9 @@ uint16_t time_for_meanvalue = 300;
 static uint32_t flash_current_address_main_sml;
 static uint32_t flash_current_address_plant_sml;
 
+uint8_t free_cap_main;
+uint8_t free_cap_plant;
+
 uint16_t Log2n(uint16_t n) {
 	return (n > 1) ? 1 + Log2n(n / 2) : 0;
 }
@@ -86,25 +89,12 @@ void set_max_min_power(int32_t power) {
 
 }
 
-uint8_t flash_get_free_space_plant() {
-	return (uint8_t) ((((float) flash_current_address_plant_sml)
-			/ ((float) W25N_MAX_ADDRESS_PLANT)
-			- ((float) W25N_START_ADDRESS_PLANT)) * 100);
-}
-
-uint8_t flash_get_free_space_main() {
-	return (uint8_t) ((((float) flash_current_address_main_sml)
-			/ ((float) W25N_MAX_ADDRESS_MAIN - (float) W25N_START_ADDRESS_MAIN))
-			* 100);
-}
-
 int8_t ping_cmd_handler(nrf24_frame_t *frame, void *userData) {
 	flags.smu_connected = 1;
 	RTC_DISABLE_WP
 	;
 	RTC_INIT_WAIT
-	;
-	uint32_t TR = frame->data[0].uint32_data;
+;	uint32_t TR = frame->data[0].uint32_data;
 	uint32_t DR = frame->data[1].uint32_data;
 	RTC->TR = (uint32_t) (TR & RTC_TR_RESERVED_MASK);
 	RTC->DR = (uint32_t) (DR & RTC_DR_RESERVED_MASK);
@@ -136,6 +126,15 @@ int8_t ping_rtc_data_handler(nrf24_frame_t *frame, void *userData) {
 
 int8_t nrf_flash_data_handler(nrf24_frame_t *frame, void *userData) {
 	flash_current_address_main_sml = frame->data[0].uint32_data;
-	flash_current_address_plant_sml = frame->data[0].uint32_data;
+	flash_current_address_plant_sml = frame->data[1].uint32_data;
+
+	free_cap_plant = (uint8_t) ((((float) flash_current_address_plant_sml-(float)W25N_START_ADDRESS_PLANT)
+			/ ((float) W25N_MAX_ADDRESS_PLANT
+			- (float) W25N_START_ADDRESS_PLANT)) * 100);
+
+	free_cap_main = (uint8_t) ((((float) flash_current_address_main_sml)
+			/ ((float) W25N_MAX_ADDRESS_MAIN - (float) W25N_START_ADDRESS_MAIN))
+			* 100);
+
 	return 0;
 }
