@@ -5,6 +5,7 @@
 // Low level functions (hardware depended)
 #include "nrf24_hal.h"
 #include "usart.h"
+#include "shared_defines.h"
 
 extern data_union_t nrf24_rx_data[5];
 
@@ -17,15 +18,6 @@ extern data_union_t nrf24_rx_data[5];
 
 extern uint32_t nrf24_tx_ctr;
 
-#define NRF24_RX_SIZE 28
-
-enum {
-	NRF24_CMD_PING=0,
-	NRF24_SM_DATA,
-	NRF24_RTC_DATA,
-	NRF24_CMD_FLASH_DATA,
-	NRF24_MAX_CMDS_ENUM
-};
 
 // Timeout counter (depends on the CPU speed)
 // Used for not stuck waiting for IRQ

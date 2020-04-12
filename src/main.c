@@ -24,6 +24,7 @@
 #include "i2clcd.h"
 #include "i2c.h"
 #include "timer.h"
+#include "shared_defines.h"
 
 /* Priorities at which the tasks are created.  The event semaphore task is
  given the maximum priority of ( configMAX_PRIORITIES - 1 ) to ensure it runs as
@@ -65,35 +66,10 @@ uuid_t uuid = { { ((uint32_t*) UUID_BASE_ADDRESS),
 uint32_t rtc_current_time_unix;
 uint32_t rtc_old_time_unix;
 
-// Buffer to store a payload of maximum width
-uint8_t nRF24_payload[32];
-
-// Pipe number
-nRF24_RXResult pipe;
-
-// Length of received payload
-uint8_t payload_length;
-
-nRF24_TXResult tx_res;
-
-data_union_t nrf24_rx_data[5];
 static uint8_t nrf24_rx_size = NRF24_RX_SIZE;
 
 static uint32_t sm_power_hist_idx_write = 0;
-
 static uint32_t sm_power_hist_idx_oldest_value = 0;
-
-uint32_t startup_timestamp = 0;
-uint32_t last_eeprom_timestamp = 0;
-
-uint32_t uptime_of_smartmeter;
-static uint32_t runtime_of_system_sec;
-
-// Pipe number
-nRF24_RXResult pipe;
-
-// Length of received payload
-uint8_t payload_length;
 
 nrf24_frame_t nrf24_frame;
 
@@ -257,7 +233,7 @@ int main(void) {
 		if (nRF24_GetStatus_RXFIFO() != nRF24_STATUS_RXFIFO_EMPTY) {
 			// Get a payload from the transceiver
 
-			pipe = nRF24_ReadPayload((uint8_t*) &nrf24_frame, &nrf24_rx_size);
+			nRF24_ReadPayload((uint8_t*) &nrf24_frame, &nrf24_rx_size);
 			flags.nrf24_new_frame = 1;
 			// Clear all pending IRQ flags
 			nRF24_ClearIRQFlags();
