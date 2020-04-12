@@ -5,6 +5,7 @@
 // Low level functions (hardware depended)
 #include "nrf24_hal.h"
 #include "usart.h"
+#include "shared_defines.h"
 
 
 #ifndef nRF24_ADDR_REVERSE
@@ -13,33 +14,6 @@
 //   1 - reverse - the last byte of the address transmitted first
 #define nRF24_ADDR_REVERSE         0
 #endif
-
-#define NRF24_RX_SIZE 28
-
-enum {
-	NRF24_CMD_PING=0,
-	NRF24_CMD_SM_DATA,
-	NRF24_CMD_RTC_DATA,
-	NRF24_CMD_FLASH_DATA,
-
-	NRF24_CMD_MAX_ENUM
-};
-
-typedef struct {
-	uint8_t size;
-	uint8_t cmd;
-	data_union_t data[(NRF24_RX_SIZE/4)];
-	uint32_t tx_ctr;
-}__attribute__((packed)) nrf24_frame_t;
-
-#define NRF_IDX_SM_DATA_MAIN_POWER 0
-#define NRF_IDX_SM_DATA_PLANT_POWER 1
-#define NRF_IDX_SM_DATA_MAIN_METER_DEL 2
-#define NRF_IDX_SM_DATA_MAIN_METER_PUR 3
-#define NRF_IDX_SM_DATA_PLANT_DEL 4
-
-
-
 // Timeout counter (depends on the CPU speed)
 // Used for not stuck waiting for IRQ
 #define nRF24_WAIT_TIMEOUT         (uint32_t)0x000FFFFF
@@ -230,7 +204,6 @@ typedef enum{
 	nrf24_rx_pipe5,
 }nrf24_rx_pipes_t;
 
-#define NRF24_TX_SIZE 32
 
 extern const uint8_t nrf24_tx_size;
 extern data_union_t nrf24_tx_buf[(NRF24_TX_SIZE/4)];

@@ -515,7 +515,7 @@ void nrf_queue_init()
   nrf24_queue.write_idx = 0;
 }
 
-enum enqueue_result nrf_queue_enqueue(nrf24_frame_t * p_new_item) {
+enum enqueue_result nrf_queue_enqueue(nrf24_frame_queue_t * p_new_item) {
   uint16_t elements_in = nrf24_queue.write_idx - nrf24_queue.read_idx;
 
   size_t const capacity = ARRAY_LENGTH(nrf24_queue.items);
@@ -530,7 +530,7 @@ enum enqueue_result nrf_queue_enqueue(nrf24_frame_t * p_new_item) {
   return ENQUEUE_RESULT_SUCCESS;
 }
 
-enum dequeue_result nrf_queue_dequeue(nrf24_frame_t * p_item_out) {
+enum dequeue_result nrf_queue_dequeue(nrf24_frame_queue_t * p_item_out) {
   uint16_t elements_in = nrf24_queue.write_idx - nrf24_queue.read_idx;
   size_t const capacity = ARRAY_LENGTH(nrf24_queue.items);
 

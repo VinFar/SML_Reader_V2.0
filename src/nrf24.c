@@ -1,5 +1,6 @@
 #include "nrf24.h"
 #include "functions.h"
+#include "shared_defines.h"
 
 // The address used to test presence of the transceiver,
 // note: should not exceed 5 bytes
@@ -619,21 +620,21 @@ void nrf24_init_tx() {
 	nRF24_SetCRCScheme(nRF24_CRC_2byte);
 
 	// Set address width, its common for all pipes (RX and TX)
-	nRF24_SetAddrWidth(3);
+	nRF24_SetAddrWidth(NRF_ADDR_LEN);
 
 	// Configure TX PIPE
-	static const uint8_t nRF24_ADDR[] = { 'E', 'S', 'B' };
+	static const uint8_t nRF24_ADDR[] = NRF_ADDR_DISP;
 	nRF24_SetAddr(nRF24_PIPETX, nRF24_ADDR); // program TX address
-	nRF24_SetAddr(nRF24_PIPE0, nRF24_ADDR); // program address for pipe#0, must be same as TX (for Auto-ACK)
+	nRF24_SetAddr(NRF_DISP_PIPE, nRF24_ADDR); // program address for pipe#0, must be same as TX (for Auto-ACK)
 
 	// Set TX power (maximum)
 	nRF24_SetTXPower(nRF24_TXPWR_0dBm);
 
 	// Configure auto retransmit: 10 retransmissions with pause of 2500s in between
-	nRF24_SetAutoRetr(nRF24_ARD_2500us, 10);
+	nRF24_SetAutoRetr(nRF24_ARD_2500us, 15);
 
 	// Enable Auto-ACK for pipe#0 (for ACK packets)
-	nRF24_EnableAA(nRF24_PIPE0);
+	nRF24_EnableAA(NRF_DISP_PIPE);
 
 	// Set operational mode (PTX == transmitter)
 	nRF24_SetOperationalMode(nRF24_MODE_TX);
@@ -646,8 +647,7 @@ void nrf24_init_tx() {
 
 }
 
-int8_t nrf_add_qeue(uint8_t cmd,
-		data_union_t *ptr ) {
+int8_t nrf_add_qeue(uint8_t cmd, data_union_t *ptr) {
 
 	if (cmd > NRF24_CMD_MAX_ENUM) {
 		return -1;
@@ -671,14 +671,15 @@ static uint32_t nrf24_tx_ctr = 0;
 
 int8_t nrf_transmit_next_item() {
 
-	nrf24_frame_t item;
+	nrf24_frame_queue_t item;
 	enum dequeue_result res;
 	res = nrf_queue_dequeue(&item);
+	nRF24_SetAddr(nRF24_PIPETX, item.addr);
 	if (res == DEQUEUE_RESULT_SUCCESS) {
-		if (item.cmd < NRF24_CMD_MAX_ENUM) {
-			if (item.size <= 32) {
-				item.tx_ctr = nrf24_tx_ctr;
-				nRF24_TXResult nrf_res = nRF24_TransmitPacket((uint8_t*) &item,
+		if (item.frame.cmd < NRF24_CMD_MAX_ENUM) {
+			if (item.frame.size <= 32) {
+				item.frame.tx_ctr = nrf24_tx_ctr;
+				nRF24_TXResult nrf_res = nRF24_TransmitPacket((uint8_t*) &item.frame,
 						32);
 				uint8_t otx = nRF24_GetRetransmitCounters();
 				UNUSED(otx);
@@ -695,3 +696,4 @@ int8_t nrf_transmit_next_item() {
 	}
 	return -1;
 }
+
