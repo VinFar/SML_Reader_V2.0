@@ -99,7 +99,7 @@ nrf24_frame_t nrf24_frame;
 
 int8_t (*nrf24_frame_fct_ptr[MAX_ENUM_CMDS - 1])(nrf24_frame_t*,
 		void*) = {ping_cmd_handler,ping_sm_data_handler,ping_rtc_data_handler,nrf_flash_data_handler
-		};
+};
 
 /*
  * Version v0.1.0.2
@@ -118,22 +118,15 @@ int main(void) {
 	nrf24_init_rx();
 	lightOn = 1;
 	lcd_light(lightOn);
+
 	while (1) {
 
-		if (lightOn == 0) {
-			TIM15_DISABLE;
-			NVIC_DisableIRQ(TIM15_IRQn);
-			LED_OK_ON;
-
-			__WFI();
-
-			LED_OK_OFF;
-			NVIC_EnableIRQ(TIM15_IRQn);
-			TIM15_ENABLE;
-		}
+		LED_OK_ON;
+		__WFI();
+		LED_OK_OFF;
 
 		if (flags.refreshed_push) {
-
+//			lcd_init();
 			if (current_menu_ptr == &menu_changing_value) {
 				/*
 				 * if we are in the chaning value menu we have to keep the
@@ -167,7 +160,7 @@ int main(void) {
 		}
 
 		if (flags.refreshed_rotary) {
-
+//			lcd_init();
 			rtc_old_time_unix = rtc_current_time_unix;
 
 			if (current_menu_ptr == &menu_changing_value) {
@@ -182,9 +175,11 @@ int main(void) {
 		}
 
 		if (rtc_current_time_unix > rtc_old_time_unix) {
+
 			if (flags.currently_in_menu == 0 && (menu_idx_isr % 3) == 2) {
 				flags.refreshed_rotary = 1;
 			}
+
 			rtc_old_time_unix = rtc_current_time_unix;
 			/*
 			 * write powervalue into history
@@ -405,40 +400,30 @@ void Initial_Init() {
 	 */
 	menu_init_text(&menu_system_info.items[1], "Max:");
 	menu_init_text(&menu_system_info.items[2], "Min:");
+	menu_printf_add_itemvalue(&menu_system_info.items[1],
+			&power_value_main_max, "Max Main: %d",
+			power_value_main_max);
+	menu_printf_add_itemvalue(&menu_system_info.items[2],
+			&power_value_main_min, "Min Main: %d",
+			power_value_main_min);
+	menu_printf_add_itemvalue(&menu_system_info.items[3],
+			&power_value_pant_max, "Max Plant: %d",
+			power_value_pant_max);
 	menu_init_text(&menu_system_info.items[4], "24h Mittel");
 	menu_init_text(&menu_system_info.items[5], "7d Mittel");
 	menu_init_text(&menu_system_info.items[6], "30d Mittel");
 	menu_init_text(&menu_system_info.items[7], "1y Mittel");
 
-	menu_printf_add_itemvalue(&menu_system_info.items[8], &free_cap_main, "Free Main: %d",free_cap_main);
-	menu_printf_add_itemvalue(&menu_system_info.items[9], &free_cap_plant, "Free Plant: %d",free_cap_plant);
+	menu_printf_add_itemvalue(&menu_system_info.items[8], &free_cap_main,
+			"Free Main: %d", free_cap_main);
+	menu_printf_add_itemvalue(&menu_system_info.items[9], &free_cap_plant,
+			"Free Plant: %d", free_cap_plant);
 
 	current_menu_ptr = &Hauptmenu;
 	flags.currently_in_menu = 1;
 	flags.refreshed_push = 1;
-	create_custom_characters();
+
 	return;
-}
-
-void outlet_on_off(menu_t *instance) {
-
-	outlets_t *outlet;
-	outlet = (outlets_t*) instance->items[menu_timer_index].user_data;
-	;
-	if (outlet == NULL) {
-		/*
-		 * null pointer
-		 */
-		return;
-	}
-	if (outlet->state == 1) {
-		switch_outlet(outlet, 0);
-		strcpy(&outlet->ptr_to_string[12], (char*) " aus");
-	} else {
-		switch_outlet(outlet, 1);
-		strcpy(&outlet->ptr_to_string[12], (char*) " ein");
-	}
-
 }
 
 void SystemClock_Config(void) {

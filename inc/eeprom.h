@@ -182,8 +182,9 @@ typedef struct {
 
 typedef eeprom_u8_t eeprom_t;
 
-extern eeprom_i32_t eeprom_powermax;
-extern eeprom_i32_t eeprom_powermin;
+extern eeprom_i32_t eeprom_powermax_main;
+extern eeprom_i32_t eeprom_powermin_main;
+extern eeprom_i32_t eeprom_powermax_plant;
 extern eeprom_i32_t eeprom_meanpower24h;
 extern eeprom_i32_t eeprom_meanpower7d;
 extern eeprom_i32_t eeprom_meanpower30d;

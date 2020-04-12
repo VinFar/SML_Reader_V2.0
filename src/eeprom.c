@@ -399,6 +399,10 @@ int8_t eeprom_read_data(void *data) {
 
 int8_t eeprom_init_data() {
 
+	eeprom_read_data(&eeprom_powermax_main);
+	eeprom_read_data(&eeprom_powermax_plant);
+	eeprom_read_data(&eeprom_powermin_main);
+
 
 	return 0;
 }

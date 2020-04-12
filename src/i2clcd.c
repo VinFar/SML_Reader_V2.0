@@ -37,8 +37,6 @@ int8_t lcd_poll() {
 void lcd_init(void) {
 
 //	lcd_light(false);
-	lcd_command(LCD_CLEAR);
-	_delay_ms(15);		 	//-	Wait for more than 15ms after VDD rises to 4.5V
 	lcd_write(CMD_D1 | CMD_D0);	//-	Set interface to 8-bit
 	_delay_ms(5);			    //-	Wait for more than 4.1ms
 	lcd_write(CMD_D1 | CMD_D0);	//-	Set interface to 8-bit
@@ -54,6 +52,7 @@ void lcd_init(void) {
 
 //	_delay_ms(2);
 	lcd_command(LCD_INCREASE | LCD_DISPLAYSHIFTOFF);
+	create_custom_characters();
 
 }
 
@@ -118,6 +117,7 @@ void lcd_write(uint8_t value) {
 
 	lcd_write_i2c(data_out);		//-	Set new data and enable to high
 	lcd_pulseEnable(data_out);
+	lcd_write_i2c(data_out & ~LCD_E);	// En low
 
 }
 

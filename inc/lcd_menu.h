@@ -65,6 +65,7 @@ void menu_printf(item_t *item, const char *fmt, ...);
 void menu_printf_add_itemvalue(item_t *item, void *ptr_to_data, const char *fmt, ...);
 void menu_init(menu_t *main_menu, item_t *main_menu_items,uint8_t size);
 int8_t lcd_printf(const char *fmt, ...);
+void create_custom_characters();
 /*
  * Main menu
  */
