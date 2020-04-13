@@ -3,6 +3,7 @@
 #include "usart.h"
 #include "defines.h"
 #include "crc.h"
+#include "string.h"
 
 /*
  * usart6 is used to communicate with a host pc, in order
@@ -39,7 +40,7 @@ void usart6_send_data(uint8_t *ptr, uint32_t nbr) {
 void usart6_send_ack_frame(ack_frame_t *ack) {
 
 	uint32_t *crc = (uint32_t*) &((uint8_t*) ack)[ack->size - 4];
-
+	UNUSED(crc);
 //	*crc = crc32_calc((uint8_t*) ack, ack->size - 4);
 
 	usart6_send_data((uint8_t*) ack, ack->size);

@@ -82,7 +82,7 @@ void Error_Handler(void);
 #define I2C1_SDA_Pin GPIO_PIN_7
 #define I2C1_SDA_GPIO_Port GPIOB
 
-volatile typedef struct {
+typedef volatile struct {
 	unsigned refreshed_rotary :1;
 	unsigned currently_in_menu :1;
 	unsigned set_power_min_max :1;

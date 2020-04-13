@@ -2,7 +2,8 @@
 #include "i2c.h"
 #include "eeprom.h"
 #include "functions.h"
-
+#include "delay.h"
+#include "string.h"
 eeprom_i32_t eeprom_powermax_main =
 EEPROM_INIT_STRUCT(eeprom_addr_powermax_main, power_value_main_max);
 eeprom_i32_t eeprom_powermin_main =
@@ -13,6 +14,56 @@ eeprom_i32_t eeprom_meanpower24h;
 eeprom_i32_t eeprom_meanpower7d;
 eeprom_i32_t eeprom_meanpower30d;
 eeprom_i32_t eeprom_meanpower1y;
+
+static int8_t eeprom_poll_ack_for_read(int timeout) {
+	timeout = 50;
+	while (timeout-- > 0) {
+		if (i2c1_start(EEPROM_ADDRESS, 1, I2C_READ) < 0) {
+
+			i2c1_stop();
+			delay_us(1000);
+			/*
+			 * got no ack
+			 */
+			continue;
+		}
+		uint8_t tmp_read;
+		i2c1_readNack(&tmp_read);
+		if (i2c1_stop() < 0) {
+			continue;
+		}
+		/*
+		 * got an ack, so go on
+		 */
+		return 0;
+
+	}
+	return -1;
+}
+
+static int8_t eeprom_poll_ack_for_write(int timeout) {
+	timeout = 10000;
+	while (timeout-- > 0) {
+		if (i2c1_start(EEPROM_ADDRESS, 0, I2C_WRITE) < 0) {
+
+			i2c1_stop();
+			delay_us(1000);
+			/*
+			 * got no ack
+			 */
+			continue;
+		}
+		if (i2c1_stop() < 0) {
+			continue;
+		}
+		/*
+		 * got an ack, so go on
+		 */
+		return 0;
+
+	}
+	return -1;
+}
 
 static int8_t eeprom_calc_crc8(const uint8_t *data, uint8_t length) {
 	int crc = 0x00;
@@ -30,110 +81,6 @@ static int8_t eeprom_calc_crc8(const uint8_t *data, uint8_t length) {
 		data++;
 	}
 	return crc;
-}
-
-int8_t eeprom_read_serial_numer(uint8_t *serial, uint8_t nbr) {
-	if (nbr > 16) {
-		/*
-		 * error size is too big, abort
-		 */
-		return -1;
-	}
-
-	/*
-	 * set address pointer
-	 */
-
-	if (i2c1_start(EEPROM_ADDRESS_SERIAL, 1, I2C_WRITE) < 0) {
-
-		return -1;
-
-	}
-	if (i2c1_write(0x80) < 0) {
-
-		return -1;
-	}
-	if (i2c1_stop() < 0) {
-
-		return -1;
-	}
-
-	/*
-	 * read 16 byte serial number
-	 */
-	if (i2c1_start(EEPROM_ADDRESS_SERIAL, 16, I2C_READ) < 0) {
-
-		return -1;
-	}
-	for (int i = 0; i < 15; i++) {
-		if (i2c1_readAck(&serial[i]) < 0) {
-
-			return -1;
-		}
-	}
-	if (i2c1_readNack(&serial[15]) < 0) {
-
-		return -1;
-	}
-
-	if (i2c1_stop() < 0) {
-
-		return -1;
-	}
-	return 0;
-
-}
-
-static int8_t eeprom_write_data_addr(uint8_t address, uint8_t *data,
-		uint16_t size) {
-	/*
-	 * get correct page and byte
-	 */
-	uint8_t page = address / (EEPROM_MAX_BYTE - 1);
-	uint8_t byte = address - (page * (EEPROM_MAX_BYTE - 1));
-
-	/*
-	 * if the read of the current page would go beyond the size of the page,
-	 * we have to split it into multiply reads
-	 */
-	if ((address + size) > (((EEPROM_MAX_PAGE) * (EEPROM_MAX_BYTE - 1)))) {
-		/*
-		 * the requested data can't be stored in this eeprom, cause the size of the
-		 * eeprom is smaller than the requested data, so abort-
-		 */
-		return -1;
-	}
-	uint8_t data_already_written = size;
-	if ((byte + size) > (EEPROM_MAX_BYTE - 1)) {
-		/*
-		 * calculate how many bytes of the entire data is contained in the starting page and
-		 * substract it from the current address to do a recursive function call with a new adress.
-		 * This address will be the start of the next page.
-		 * If the requested data will be also bigger than that page, the function will do a second
-		 * recursive call. This goes on until the entire data is read.
-		 */
-		data_already_written = (EEPROM_MAX_BYTE - 1) - byte;
-		uint8_t new_address = address + data_already_written;
-		eeprom_write_data_addr(new_address, &data[data_already_written],
-				size - data_already_written);
-	}
-
-	/*
-	 * no recursive call anymore, so read the entire page at this address and
-	 * copy only the neccessary data to the passed buffer.
-	 */
-	uint8_t page_data[15] = { 0 };
-
-	/*
-	 * read entire page to prevent overwriting of eeprom data
-	 */
-	eeprom_read_page(page, page_data);
-
-	memcpy(&page_data[byte], data, data_already_written);
-
-	eeprom_write_page(page, page_data);
-	return 0;
-
 }
 
 static int8_t eeprom_write_page(uint8_t page, uint8_t *data) {
@@ -249,6 +196,58 @@ static int8_t eeprom_read_page(uint8_t page, uint8_t *data) {
 
 }
 
+static int8_t eeprom_write_data_addr(uint8_t address, uint8_t *data,
+		uint16_t size) {
+	/*
+	 * get correct page and byte
+	 */
+	uint8_t page = address / (EEPROM_MAX_BYTE - 1);
+	uint8_t byte = address - (page * (EEPROM_MAX_BYTE - 1));
+
+	/*
+	 * if the read of the current page would go beyond the size of the page,
+	 * we have to split it into multiply reads
+	 */
+	if ((address + size) > (((EEPROM_MAX_PAGE) * (EEPROM_MAX_BYTE - 1)))) {
+		/*
+		 * the requested data can't be stored in this eeprom, cause the size of the
+		 * eeprom is smaller than the requested data, so abort-
+		 */
+		return -1;
+	}
+	uint8_t data_already_written = size;
+	if ((byte + size) > (EEPROM_MAX_BYTE - 1)) {
+		/*
+		 * calculate how many bytes of the entire data is contained in the starting page and
+		 * substract it from the current address to do a recursive function call with a new adress.
+		 * This address will be the start of the next page.
+		 * If the requested data will be also bigger than that page, the function will do a second
+		 * recursive call. This goes on until the entire data is read.
+		 */
+		data_already_written = (EEPROM_MAX_BYTE - 1) - byte;
+		uint8_t new_address = address + data_already_written;
+		eeprom_write_data_addr(new_address, &data[data_already_written],
+				size - data_already_written);
+	}
+
+	/*
+	 * no recursive call anymore, so read the entire page at this address and
+	 * copy only the neccessary data to the passed buffer.
+	 */
+	uint8_t page_data[15] = { 0 };
+
+	/*
+	 * read entire page to prevent overwriting of eeprom data
+	 */
+	eeprom_read_page(page, page_data);
+
+	memcpy(&page_data[byte], data, data_already_written);
+
+	eeprom_write_page(page, page_data);
+	return 0;
+
+}
+
 static int8_t eeprom_read_data_addr(uint8_t address, uint8_t *data,
 		uint16_t size) {
 
@@ -296,54 +295,56 @@ static int8_t eeprom_read_data_addr(uint8_t address, uint8_t *data,
 	return 0;
 }
 
-static int8_t eeprom_poll_ack_for_read(int timeout) {
-	timeout = 50;
-	while (timeout-- > 0) {
-		if (i2c1_start(EEPROM_ADDRESS, 1, I2C_READ) < 0) {
-
-			i2c1_stop();
-			delay_us(1000);
-			/*
-			 * got no ack
-			 */
-			continue;
-		}
-		uint8_t tmp_read;
-		i2c1_readNack(&tmp_read);
-		if (i2c1_stop() < 0) {
-			continue;
-		}
+int8_t eeprom_read_serial_numer(uint8_t *serial, uint8_t nbr) {
+	if (nbr > 16) {
 		/*
-		 * got an ack, so go on
+		 * error size is too big, abort
 		 */
-		return 0;
+		return -1;
+	}
+
+	/*
+	 * set address pointer
+	 */
+
+	if (i2c1_start(EEPROM_ADDRESS_SERIAL, 1, I2C_WRITE) < 0) {
+
+		return -1;
 
 	}
-	return -1;
-}
+	if (i2c1_write(0x80) < 0) {
 
-static int8_t eeprom_poll_ack_for_write(int timeout) {
-	timeout = 10000;
-	while (timeout-- > 0) {
-		if (i2c1_start(EEPROM_ADDRESS, 0, I2C_WRITE) < 0) {
-
-			i2c1_stop();
-			delay_us(1000);
-			/*
-			 * got no ack
-			 */
-			continue;
-		}
-		if (i2c1_stop() < 0) {
-			continue;
-		}
-		/*
-		 * got an ack, so go on
-		 */
-		return 0;
-
+		return -1;
 	}
-	return -1;
+	if (i2c1_stop() < 0) {
+
+		return -1;
+	}
+
+	/*
+	 * read 16 byte serial number
+	 */
+	if (i2c1_start(EEPROM_ADDRESS_SERIAL, 16, I2C_READ) < 0) {
+
+		return -1;
+	}
+	for (int i = 0; i < 15; i++) {
+		if (i2c1_readAck(&serial[i]) < 0) {
+
+			return -1;
+		}
+	}
+	if (i2c1_readNack(&serial[15]) < 0) {
+
+		return -1;
+	}
+
+	if (i2c1_stop() < 0) {
+
+		return -1;
+	}
+	return 0;
+
 }
 
 int8_t eeprom_erase_page(uint8_t page) {

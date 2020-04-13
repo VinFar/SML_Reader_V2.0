@@ -1,6 +1,7 @@
 #include "rtc.h"
 #include "main.h"
 #include "stm32f0xx_hal_rtc.h"
+#include "rtc.h"
 
 RTC_TimeTypeDef sm_time;
 RTC_DateTypeDef sm_date;

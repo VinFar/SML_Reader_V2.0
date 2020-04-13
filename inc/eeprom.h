@@ -14,17 +14,10 @@
 
 #define EEPROM_INIT_STRUCT(addr,inst) {addr,sizeof(inst),&(inst)}
 
-static int8_t eeprom_write_data_addr(uint8_t address, uint8_t *data, uint16_t size);
-static int8_t eeprom_read_serial_numer(uint8_t *serial, uint8_t nbr);
-static int8_t eeprom_read_page(uint8_t page, uint8_t *data);
-static int8_t eeprom_poll_ack_for_read(int timeout);
-static int8_t eeprom_poll_ack_for_write(int timeout);
 int8_t eeprom_erase_page(uint8_t page);
 int8_t eeprom_write_data_struct(void *data);
 int8_t eeprom_read_data_struct(void *data);
 int8_t eeprom_init_data();
-static int8_t eeprom_write_page(uint8_t page, uint8_t *data);
-static int8_t eeprom_read_data_addr(uint8_t address, uint8_t *data, uint16_t size);
 int8_t eeprom_write_data(void *data);
 int8_t eeprom_read_data(void *data);
 

@@ -24,6 +24,8 @@
 #include "i2clcd.h"
 #include "i2c.h"
 #include "timer.h"
+#include "nrf24.h"
+#include "rtc.h"
 #include "shared_defines.h"
 
 /* Priorities at which the tasks are created.  The event semaphore task is
@@ -75,7 +77,7 @@ int8_t (*nrf24_frame_fct_ptr[MAX_ENUM_CMDS - 1])(nrf24_frame_t*,
 };
 
 /*
- * Version v0.1.0.2
+ * Version v0.0.0.1
  */
 
 int main(void) {
@@ -89,8 +91,6 @@ int main(void) {
 			&sm_date);
 
 	nrf24_init_rx();
-	lightOn = 1;
-	lcd_light(lightOn);
 
 	while (1) {
 
@@ -99,61 +99,17 @@ int main(void) {
 		LED_OK_OFF;
 
 		if (flags.refreshed_push) {
-//			lcd_init();
-			if (current_menu_ptr == &menu_changing_value) {
-				/*
-				 * if we are in the chaning value menu we have to keep the
-				 * index always on the 'go_back' item to go out
-				 * of the changing value menu in case of push
-				 */
-				current_menu_ptr = current_menu_ptr->items[0].menu_ptr;
-
-				flags.refreshed_rotary = 1;
-			} else {
-				if (flags.currently_in_menu == 0) {
-					current_menu_ptr->items[0].on_push(current_menu_ptr);
-					flags.refreshed_rotary = 1;
-				} else {
-					if (current_menu_ptr->items[menu_timer_index].on_push
-							== NULL) {
-						/*
-						 * prevent NULL pointer dereferencing
-						 */
-					} else {
-
-						current_menu_ptr->items[menu_timer_index].on_push(
-								current_menu_ptr);
-						flags.refreshed_rotary = 1;
-
-					}
-				}
-			}
 
 			flags.refreshed_push = 0;
 		}
 
 		if (flags.refreshed_rotary) {
-//			lcd_init();
-			rtc_old_time_unix = rtc_current_time_unix;
 
-			if (current_menu_ptr == &menu_changing_value) {
-				menu_timer_index = current_menu_ptr->items[1].on_rotate(
-						current_menu_ptr, menu_timer_index);
-			} else {
-				menu_timer_index =
-						current_menu_ptr->items[menu_timer_index].on_rotate(
-								current_menu_ptr, menu_timer_index);
-			}
 			flags.refreshed_rotary = 0;
 		}
 
 		if (rtc_current_time_unix > rtc_old_time_unix) {
 
-			if (flags.currently_in_menu == 0 && (menu_idx_isr % 3) == 2) {
-				flags.refreshed_rotary = 1;
-			}
-			rtc_old_time_unix = rtc_current_time_unix;
-			sm_calc_mean();
 		}
 
 		if (nRF24_GetStatus_RXFIFO() != nRF24_STATUS_RXFIFO_EMPTY) {
@@ -243,87 +199,11 @@ static void prvSetupHardware(void) {
 	 */
 	TIM15_Init();
 
-	Initial_Init();
 	LED_ERROR_OFF;
 	LED_OK_OFF;
 
 }
 
-void Initial_Init() {
-	lightOn = 1;
-	lcd_init();
-
-	TIM3->CNT = 0x00ff;
-	flags.lcd_light_on_off = 1;
-
-	eeprom_init_data();
-
-	menu_init(&Hauptmenu, Hauptmenu_items, SIZE_OF_MENU(Hauptmenu_items));
-
-	/*
-	 * init the menu structs
-	 */
-	menu_init_menu(&menu_system_info, infomenu_items,
-			SIZE_OF_MENU(infomenu_items));
-	menu_init_menu(&system_settings, system_settings_items, 5);
-
-	/*
-	 * add the corresponding submenus
-	 */
-	menu_add_submenu(&Hauptmenu, &menu_system_info, 2);
-	menu_add_submenu(&Hauptmenu, &system_settings, 4);
-	menu_add_submenu(&system_settings, &menu_changing_value, 1);
-	menu_add_submenu(&system_settings, &menu_changing_value, 2);
-
-	menu_add_userdata(&system_settings_items[1], &time_for_lcd_light);
-	menu_add_userdata(&system_settings_items[2], &time_for_meanvalue);
-
-	/*
-	 * Init text of of main menu
-	 */
-	menu_printf(&Hauptmenu_items[1], "Started");
-	menu_printf(&Hauptmenu_items[2], "Systeminfo");
-	menu_printf(&Hauptmenu_items[3], "Steckdoseneinst.");
-	menu_printf(&Hauptmenu_items[4], "Systemeinst.");
-
-	/*
-	 * system settings menu
-	 */
-	menu_printf_add_itemvalue(&system_settings.items[1], &time_for_lcd_light,
-			"LCD Auto Off: %d", time_for_lcd_light);
-
-	menu_printf_add_itemvalue(&system_settings.items[2], &time_for_meanvalue,
-			"Sek. fuer MW: %d", time_for_meanvalue);
-
-	menu_init_text(&system_settings.items[3], "Akku:");
-
-	/*
-	 * Initiation of infomenu
-	 */
-	menu_init_text(&menu_system_info.items[1], "Max:");
-	menu_init_text(&menu_system_info.items[2], "Min:");
-	menu_printf_add_itemvalue(&menu_system_info.items[1], &power_value_main_max,
-			"Max Main: %d", power_value_main_max);
-	menu_printf_add_itemvalue(&menu_system_info.items[2], &power_value_main_min,
-			"Min Main: %d", power_value_main_min);
-	menu_printf_add_itemvalue(&menu_system_info.items[3], &power_value_pant_max,
-			"Max Plant: %d", power_value_pant_max);
-	menu_init_text(&menu_system_info.items[4], "24h Mittel");
-	menu_init_text(&menu_system_info.items[5], "7d Mittel");
-	menu_init_text(&menu_system_info.items[6], "30d Mittel");
-	menu_init_text(&menu_system_info.items[7], "1y Mittel");
-
-	menu_printf_add_itemvalue(&menu_system_info.items[8], &free_cap_main,
-			"Free Main: %d", free_cap_main);
-	menu_printf_add_itemvalue(&menu_system_info.items[9], &free_cap_plant,
-			"Free Plant: %d", free_cap_plant);
-
-	current_menu_ptr = &Hauptmenu;
-	flags.currently_in_menu = 1;
-	flags.refreshed_push = 1;
-
-	return;
-}
 
 void SystemClock_Config(void) {
 

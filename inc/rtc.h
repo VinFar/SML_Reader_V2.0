@@ -25,11 +25,12 @@ extern uint32_t rtc_old_time_unix;
 #define RTC_ENABLE_WP RTC->WPR = 0xFF
 
 #define RTC_INIT_WAIT RTC->ISR |= RTC_ISR_INIT;\
-						while ((RTC->ISR & RTC_ISR_INITF) == 0)
+						while ((RTC->ISR & RTC_ISR_INITF) == 0){}
 
 
 uint32_t rtc_get_unix_time(RTC_TimeTypeDef *time, RTC_DateTypeDef *date);
 void RTC_GetDate(uint32_t RTC_Format, RTC_DateTypeDef* RTC_DateStruct);
 void RTC_GetTime(uint32_t RTC_Format, RTC_TimeTypeDef* RTC_TimeStruct);
+void rtc_init();
 
 #endif /* RTC_H_ */

@@ -9,6 +9,7 @@
 #include "functions.h"
 #include "eeprom.h"
 #include "lcd_menu.h"
+#include "delay.h"
 
 int32_t old_Powervalue;
 int32_t tmp_PWR;
@@ -59,7 +60,7 @@ int8_t ping_cmd_handler(nrf24_frame_t *frame, void *userData) {
 	RTC_DISABLE_WP
 	;
 	RTC_INIT_WAIT
-;	uint32_t TR = frame->data[0].uint32_data;
+	uint32_t TR = frame->data[0].uint32_data;
 	uint32_t DR = frame->data[1].uint32_data;
 	RTC->TR = (uint32_t) (TR & RTC_TR_RESERVED_MASK);
 	RTC->DR = (uint32_t) (DR & RTC_DR_RESERVED_MASK);

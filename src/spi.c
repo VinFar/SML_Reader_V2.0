@@ -1,5 +1,5 @@
 #include "spi.h"
-
+#include "stm32f0xx_hal_spi.h"
 SPI_HandleTypeDef hspi1;
 
 /* SPI1 init function */
@@ -26,7 +26,7 @@ void spi1_init(void) {
 
 }
 
-void HAL_SPI_MspInit(SPI_HandleTypeDef* spiHandle) {
+void HAL_SPI_MspInit(SPI_HandleTypeDef *spiHandle) {
 
 	GPIO_InitTypeDef GPIO_InitStruct = { 0 };
 	if (spiHandle->Instance == SPI1) {
@@ -57,7 +57,7 @@ void HAL_SPI_MspInit(SPI_HandleTypeDef* spiHandle) {
 	}
 }
 
-void HAL_SPI_MspDeInit(SPI_HandleTypeDef* spiHandle) {
+void HAL_SPI_MspDeInit(SPI_HandleTypeDef *spiHandle) {
 
 	if (spiHandle->Instance == SPI1) {
 		/* USER CODE BEGIN SPI1_MspDeInit 0 */
@@ -79,6 +79,32 @@ void HAL_SPI_MspDeInit(SPI_HandleTypeDef* spiHandle) {
 	}
 }
 
+static int8_t spi_end(SPI_HandleTypeDef *hspi, uint32_t Timeout,
+		uint32_t Tickstart) {
+	uint32_t timeout = 10000;
+	while ((SPI1->SR & SPI_FLAG_FTLVL) != SPI_FTLVL_EMPTY) {
+		if (--timeout == 0) {
+			return -1;
+		}
+	}
+
+	timeout = 10000;
+	while ((((SPI1->SR & SPI_FLAG_BSY) == SPI_FLAG_BSY) ? SET : RESET) != RESET) {
+		if (--timeout == 0) {
+			return -1;
+		}
+	}
+
+	timeout = 10000;
+	while ((SPI1->SR & SPI_FLAG_FRLVL) != SPI_FRLVL_EMPTY) {
+		if (--timeout == 0) {
+			return -1;
+		}
+	}
+
+	return 0;
+}
+
 void spi_transmit(uint8_t *outpp, uint32_t count) {
 
 	uint8_t *outp = outpp;
@@ -87,19 +113,18 @@ void spi_transmit(uint8_t *outpp, uint32_t count) {
 		while (!(SPI1->SR & SPI_SR_TXE))
 			;
 		if (count > 1U) {
-			SPI1->DR = *((uint16_t *) outp);
+			SPI1->DR = *((uint16_t*) outp);
 			outp += sizeof(uint16_t);
 			count -= 2U;
 		} else {
-			*((__IO uint8_t *) &SPI1->DR) = (*outp++);
+			*((__IO uint8_t*) &SPI1->DR) = (*outp++);
 			count--;
 		}
-
 
 	}
 
 	/* Check the end of the transaction */
-	if (SPI_EndRxTxTransaction(&hspi1, 50, 0) != HAL_OK) {
+	if (spi_end(&hspi1, 50, 0) < 0) {
 		NOP
 	}
 
@@ -107,7 +132,6 @@ void spi_transmit(uint8_t *outpp, uint32_t count) {
 	if (&hspi1.Init.Direction == SPI_DIRECTION_2LINES) {
 		__HAL_SPI_CLEAR_OVRFLAG(&hspi1);
 	}
-
 
 }
 
@@ -128,17 +152,17 @@ void spi_transmit_receive(uint8_t *outpp, uint8_t *inpp, uint32_t count) {
 		while (!(SPI1->SR & SPI_SR_TXE))
 			;
 		if (count > 1U) {
-			SPI1->DR = *((uint16_t *) outp);
+			SPI1->DR = *((uint16_t*) outp);
 			outp += sizeof(uint16_t);
 
 		} else {
-			*(__IO uint8_t *) &SPI1->DR = (*outp++);
+			*(__IO uint8_t*) &SPI1->DR = (*outp++);
 
 		}
 		while (!(SPI1->SR & SPI_SR_RXNE))
 			;
 		if (count > 1U) {
-			*((uint16_t *) inp) = SPI1->DR;
+			*((uint16_t*) inp) = SPI1->DR;
 			inp += sizeof(uint16_t);
 			count -= 2U;
 			if (count <= 1U) {
@@ -147,7 +171,7 @@ void spi_transmit_receive(uint8_t *outpp, uint8_t *inpp, uint32_t count) {
 
 			}
 		} else {
- 			(*(uint8_t *) inp++) = *(__IO uint8_t *) &SPI1->DR;
+			(*(uint8_t*) inp++) = *(__IO uint8_t*) &SPI1->DR;
 			count--;
 		}
 	}
@@ -170,15 +194,15 @@ void spi_receive(uint8_t *inpp, uint32_t count) {
 		while (!(SPI1->SR & SPI_SR_TXE))
 			;
 		if (count > 1U) {
-			SPI1->DR = *((uint16_t *) 0);
+			SPI1->DR = *((uint16_t*) 0);
 		} else {
-			*(__IO uint8_t *) &SPI1->DR = 0;
+			*(__IO uint8_t*) &SPI1->DR = 0;
 
 		}
 		while (!(SPI1->SR & SPI_SR_RXNE))
 			;
 		if (count > 1U) {
-			*((uint16_t *) inp) = SPI1->DR;
+			*((uint16_t*) inp) = SPI1->DR;
 			inp += sizeof(uint16_t);
 			count -= 2U;
 			if (count <= 1U) {
@@ -187,7 +211,7 @@ void spi_receive(uint8_t *inpp, uint32_t count) {
 
 			}
 		} else {
-			(*(uint8_t *) inp++) = *(__IO uint8_t *) &SPI1->DR;
+			(*(uint8_t*) inp++) = *(__IO uint8_t*) &SPI1->DR;
 			count--;
 		}
 	}

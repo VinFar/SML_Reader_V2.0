@@ -54,9 +54,7 @@ ack_frame_t ack_frame;
 #define CMD_ACK 70
 #define CMD_NACK 67
 
-#define CMD_FRAME_MIN_SIZE 11
 #define ACK_FRAME_MIN_SIZE 11
-#define CMD_FRAME_MAX_SIZE (CMD_FRAME_MIN_SIZE+MAX_PAYLOAD_SIZE-4)
 #define ACK_FRAME_MAX_SIZE (ACK_FRAME_MIN_SIZE+MAX_PAYLOAD_SIZE-4)
 
 enum commands {

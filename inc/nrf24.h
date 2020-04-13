@@ -257,4 +257,6 @@ void nRF24_ClearIRQFlags(void);
 void nRF24_WritePayload(uint8_t *pBuf, uint8_t length);
 nRF24_RXResult nRF24_ReadPayload(uint8_t *pBuf, uint8_t *length);
 
+void nrf24_init_rx();
+
 #endif // __NRF24_H
