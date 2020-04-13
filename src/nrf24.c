@@ -623,8 +623,10 @@ void nrf24_init_tx() {
 	nRF24_SetAddrWidth(NRF_ADDR_LEN);
 
 	// Configure TX PIPE
-	nRF24_SetAddr(NRF_DISP_PIPE, NRF_ADDR_DISP); // program address for pipe#0, must be same as TX (for Auto-ACK)
-	nRF24_SetAddr(NRF_WALLBOX_PIPE, NRF_ADDR_WALLBOX); // program address for pipe#0, must be same as TX (for Auto-ACK)
+	const uint32_t addr = NRF_ADDR_DISP;
+	nRF24_SetAddr(NRF_DISP_PIPE, (const uint8_t*)&addr); // program address for pipe#0, must be same as TX (for Auto-ACK)
+	const uint32_t addr2 = NRF_ADDR_WALLBOX;
+	nRF24_SetAddr(NRF_WALLBOX_PIPE, (const uint8_t*)&addr2); // program address for pipe#0, must be same as TX (for Auto-ACK)
 
 	// Set TX power (maximum)
 	nRF24_SetTXPower(nRF24_TXPWR_0dBm);
@@ -674,13 +676,13 @@ int8_t nrf_transmit_next_item() {
 	nrf24_frame_queue_t item;
 	enum dequeue_result res;
 	res = nrf_queue_dequeue(&item);
-	nRF24_SetAddr(nRF24_PIPETX, item.addr);
+	nRF24_SetAddr(nRF24_PIPETX, (const uint8_t*)&item.addr);
 	if (res == DEQUEUE_RESULT_SUCCESS) {
 		if (item.frame.cmd < NRF24_CMD_MAX_ENUM) {
 			if (item.frame.size <= 32) {
 				item.frame.tx_ctr = nrf24_tx_ctr;
-				nRF24_TXResult nrf_res = nRF24_TransmitPacket((uint8_t*) &item.frame,
-						32);
+				nRF24_TXResult nrf_res = nRF24_TransmitPacket(
+						(uint8_t*) &item.frame, 32);
 				uint8_t otx = nRF24_GetRetransmitCounters();
 				UNUSED(otx);
 				if (nrf_res != nRF24_TX_SUCCESS) {
