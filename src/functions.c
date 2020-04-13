@@ -23,7 +23,7 @@ int32_t power_value_pant_max;
 
 uint32_t meter_main_del, meter_main_pur, meter_plant_del;
 
-int32_t sm_power_hist[2][SM_MAIN_SIZE_ARRAY];
+static int32_t sm_power_hist[2][SM_MAIN_SIZE_ARRAY];
 uint16_t time_for_meanvalue = 300;
 
 static uint32_t flash_current_address_main_sml;
@@ -31,6 +31,9 @@ static uint32_t flash_current_address_plant_sml;
 
 uint8_t free_cap_main;
 uint8_t free_cap_plant;
+
+static uint32_t sm_power_hist_idx_write = 0;
+static uint32_t sm_power_hist_idx_oldest_value = 0;
 
 uint16_t Log2n(uint16_t n) {
 	return (n > 1) ? 1 + Log2n(n / 2) : 0;
@@ -56,8 +59,7 @@ int8_t ping_cmd_handler(nrf24_frame_t *frame, void *userData) {
 	RTC_DISABLE_WP
 	;
 	RTC_INIT_WAIT
-;
-	uint32_t TR = frame->data[0].uint32_data;
+;	uint32_t TR = frame->data[0].uint32_data;
 	uint32_t DR = frame->data[1].uint32_data;
 	RTC->TR = (uint32_t) (TR & RTC_TR_RESERVED_MASK);
 	RTC->DR = (uint32_t) (DR & RTC_DR_RESERVED_MASK);
@@ -114,4 +116,106 @@ int8_t nrf_flash_data_handler(nrf24_frame_t *frame, void *userData) {
 			* 100);
 
 	return 0;
+}
+
+uint32_t sm_main_value_Nseconds_past(uint16_t n) {
+	int16_t idx_last = (sm_power_hist_idx_write - 1);
+	if (idx_last < 0) {
+		idx_last = SM_MAIN_SIZE_ARRAY - 1;
+	}
+
+	int16_t idx = (idx_last) - n;
+
+	if (idx < 0) {
+
+		idx = SM_MAIN_SIZE_ARRAY - n;
+	}
+	return sm_power_hist[SM_MAIN_IDX_ARRAY][idx];
+}
+
+uint32_t sm_plant_value_Nseconds_past(uint16_t n) {
+	int16_t idx_last = (sm_power_hist_idx_write - 1);
+	if (idx_last < 0) {
+		idx_last = SM_MAIN_SIZE_ARRAY - 1;
+	}
+
+	int16_t idx = (idx_last) - n;
+
+	if (idx < 0) {
+
+		idx = SM_MAIN_SIZE_ARRAY - n;
+	}
+	return sm_power_hist[SM_PLANT_IDX_ARRAY][idx];
+}
+
+void sm_calc_mean() {
+
+	/*
+	 * write powervalue into history
+	 */
+	sm_power_hist[SM_MAIN_IDX_ARRAY][sm_power_hist_idx_write] =
+			sm_power_main_current;
+	sm_power_hist[SM_PLANT_IDX_ARRAY][sm_power_hist_idx_write] =
+			sm_power_plant_current;
+
+	/*
+	 * we have a history of 300 values, so catch overflow
+	 */
+
+	if (sm_power_hist_idx_write++ == ARRAY_LEN(sm_power_hist[0])) {
+		sm_power_hist_idx_write = 0;
+	}
+
+	if (sm_power_hist_idx_oldest_value == sm_power_hist_idx_write) {
+		sm_power_hist_idx_oldest_value++;
+		if (sm_power_hist_idx_oldest_value == ARRAY_LEN(sm_power_hist[0])) {
+			sm_power_hist_idx_oldest_value = 0;
+		}
+	}
+
+	int32_t sm_power_sum_main = 0;
+	int32_t sm_power_sum_plant = 0;
+	/*
+	 * we have to add all values that are inside the period specified by SECONDS_FOR_MEAN_VALUE
+	 * From the newest value down to the period, so we have to decrement the idx.
+	 * The user can configure the time period over which the mean value
+	 * will be calculated (time_for_meanvalue). So abort on reaching this value
+	 */
+	int16_t idx_read = sm_power_hist_idx_write - 1;
+	if (idx_read < 0) {
+		idx_read = 0;
+	}
+	uint32_t ctr;
+	for (ctr = 0; ctr < time_for_meanvalue; ctr++) {
+
+		/*
+		 * add all values
+		 */
+		sm_power_sum_main += sm_power_hist[SM_MAIN_IDX_ARRAY][idx_read];
+		sm_power_sum_plant += sm_power_hist[SM_PLANT_IDX_ARRAY][idx_read];
+
+		/*
+		 * catch overflow of index and decrement idx
+		 */
+
+		if (idx_read == sm_power_hist_idx_oldest_value) {
+			/*
+			 * at the beginning there will be not enough time stamps in the array
+			 * to reach the sum of time_for_meanvalue, so catch index on which we began.
+			 * if this is the case take the maximum passed time and use this for the mean value
+			 */
+			break;
+		}
+		idx_read--;
+		if (idx_read < 0) {
+			idx_read = 0;
+		}
+	}
+	sm_power_main_mean = (int32_t) (sm_power_sum_main / (int32_t) (ctr));
+	sm_power_plant_mean = sm_power_sum_plant / (int32_t) (ctr);
+
+	/*
+	 * end of mean value calculation
+	 */
+
 }

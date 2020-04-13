@@ -50,7 +50,6 @@ extern int32_t power_value_pant_max;
 
 extern uint32_t meter_main_del,meter_main_pur,meter_plant_del;
 
-extern int32_t sm_power_hist[2][SM_MAIN_SIZE_ARRAY];
 extern uint16_t time_for_meanvalue;
 extern uint8_t P_CONFIG;
 
@@ -106,5 +105,8 @@ int8_t ping_sm_data_handler(nrf24_frame_t *frame, void *userData);
 int8_t ping_rtc_data_handler(nrf24_frame_t *frame, void *userData);
 int8_t nrf_flash_data_handler(nrf24_frame_t *frame, void *userData);
 
+uint32_t sm_main_value_Nseconds_past(uint16_t n);
+uint32_t sm_plant_value_Nseconds_past(uint16_t n);
+void sm_calc_mean();
 
 #endif /* FUNCTIONS_H_ */

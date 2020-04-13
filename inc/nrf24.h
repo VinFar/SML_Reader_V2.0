@@ -257,11 +257,4 @@ void nRF24_ClearIRQFlags(void);
 void nRF24_WritePayload(uint8_t *pBuf, uint8_t length);
 nRF24_RXResult nRF24_ReadPayload(uint8_t *pBuf, uint8_t *length);
 
-typedef struct {
-	uint8_t size;
-	uint8_t cmd;
-	data_union_t data[(NRF24_RX_SIZE/4)];
-	uint32_t tx_ctr;
-}__attribute__((packed)) nrf24_frame_t;
-
 #endif // __NRF24_H

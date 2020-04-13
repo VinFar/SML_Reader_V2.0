@@ -208,9 +208,10 @@ void menu_info_print() {
 		lcd_print(tmp_string);
 
 		lcd_setcursor(3, 1);
-		lcd_print("TX ctr:");
+		lcd_print("Differenz:");
 		lcd_setcursor(3, 9);
-		itoa(nrf24_tx_ctr, tmp_string, 10);
+		int32_t val5sec =  sm_main_value_Nseconds_past(5);
+		itoa(sm_power_main_current - val5sec, tmp_string, 10);
 		lcd_setcursor(3, 9);
 		lcd_print(tmp_string);
 
