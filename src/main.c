@@ -68,7 +68,6 @@ uint32_t rtc_old_time_unix;
 
 static uint8_t nrf24_rx_size = NRF24_RX_SIZE;
 
-
 nrf24_frame_t nrf24_frame;
 
 int8_t (*nrf24_frame_fct_ptr[MAX_ENUM_CMDS - 1])(nrf24_frame_t*,
@@ -164,7 +163,9 @@ int main(void) {
 			flags.nrf24_new_frame = 1;
 			// Clear all pending IRQ flags
 			nRF24_ClearIRQFlags();
+
 		}
+
 		if (flags.nrf24_new_frame) {
 			LED_ERROR_TOGGLE;
 			flags.nrf24_new_frame = 0;
@@ -242,8 +243,6 @@ static void prvSetupHardware(void) {
 	 */
 	TIM15_Init();
 
-	eeprom_init_data();
-
 	Initial_Init();
 	LED_ERROR_OFF;
 	LED_OK_OFF;
@@ -303,15 +302,12 @@ void Initial_Init() {
 	 */
 	menu_init_text(&menu_system_info.items[1], "Max:");
 	menu_init_text(&menu_system_info.items[2], "Min:");
-	menu_printf_add_itemvalue(&menu_system_info.items[1],
-			&power_value_main_max, "Max Main: %d",
-			power_value_main_max);
-	menu_printf_add_itemvalue(&menu_system_info.items[2],
-			&power_value_main_min, "Min Main: %d",
-			power_value_main_min);
-	menu_printf_add_itemvalue(&menu_system_info.items[3],
-			&power_value_pant_max, "Max Plant: %d",
-			power_value_pant_max);
+	menu_printf_add_itemvalue(&menu_system_info.items[1], &power_value_main_max,
+			"Max Main: %d", power_value_main_max);
+	menu_printf_add_itemvalue(&menu_system_info.items[2], &power_value_main_min,
+			"Min Main: %d", power_value_main_min);
+	menu_printf_add_itemvalue(&menu_system_info.items[3], &power_value_pant_max,
+			"Max Plant: %d", power_value_pant_max);
 	menu_init_text(&menu_system_info.items[4], "24h Mittel");
 	menu_init_text(&menu_system_info.items[5], "7d Mittel");
 	menu_init_text(&menu_system_info.items[6], "30d Mittel");

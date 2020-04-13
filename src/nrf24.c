@@ -623,8 +623,8 @@ void nrf24_init_rx() {
 	nRF24_SetAddrWidth(4);
 
 	// Configure RX PIPE
-	static const uint8_t nRF24_ADDR[] = {NRF_ADDR_DISP};
-	nRF24_SetAddr(nRF24_PIPE0, nRF24_ADDR); // program address for pipe
+	uint32_t addr = NRF_ADDR_DISP;
+	nRF24_SetAddr(nRF24_PIPE0, (const uint8_t*)&addr); // program address for pipe
 	nRF24_SetRXPipe(nRF24_PIPE0, nRF24_AA_ON, 32); // Auto-ACK: enabled, payload length: 10 bytes
 
 	// Set TX power for Auto-ACK (maximum, to ensure that transmitter will hear ACK reply)

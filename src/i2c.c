@@ -182,14 +182,15 @@ int8_t i2c1_write(char data) {
 	uint32_t timeout;
 	timeout = I2C_TIMEOUT;
 
+
+	I2C1->TXDR = data;
+
 	while (!(I2C1->ISR && I2C_ISR_TXE)) {
 		if ((timeout--) == 0) {
 
 			return -1;
 		}
 	}
-
-	I2C1->TXDR = data;
 
 	timeout = I2C_TIMEOUT;
 

@@ -9,6 +9,7 @@
 		while((I2C1->CR1 & I2C_CR1_PE));\
 		I2C1->CR1|=I2C_CR1_PE;\
 
+
 #define I2C_READ    1
 #define I2C_WRITE   0
 

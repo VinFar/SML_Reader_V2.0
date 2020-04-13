@@ -3,9 +3,12 @@
 #include "eeprom.h"
 #include "functions.h"
 
-eeprom_i32_t eeprom_powermax_main = EEPROM_INIT_STRUCT(eeprom_addr_powermax_main,power_value_main_max);
-eeprom_i32_t eeprom_powermin_main = EEPROM_INIT_STRUCT(eeprom_addr_powermin_main,power_value_main_min);
-eeprom_i32_t eeprom_powermax_plant = EEPROM_INIT_STRUCT(eeprom_addr_powermax_plant,power_value_pant_max);
+eeprom_i32_t eeprom_powermax_main =
+EEPROM_INIT_STRUCT(eeprom_addr_powermax_main, power_value_main_max);
+eeprom_i32_t eeprom_powermin_main =
+EEPROM_INIT_STRUCT(eeprom_addr_powermin_main, power_value_main_min);
+eeprom_i32_t eeprom_powermax_plant =
+EEPROM_INIT_STRUCT(eeprom_addr_powermax_plant, power_value_pant_max);
 eeprom_i32_t eeprom_meanpower24h;
 eeprom_i32_t eeprom_meanpower7d;
 eeprom_i32_t eeprom_meanpower30d;
@@ -81,7 +84,8 @@ int8_t eeprom_read_serial_numer(uint8_t *serial, uint8_t nbr) {
 
 }
 
-static int8_t eeprom_write_data_addr(uint8_t address, uint8_t *data, uint16_t size) {
+static int8_t eeprom_write_data_addr(uint8_t address, uint8_t *data,
+		uint16_t size) {
 	/*
 	 * get correct page and byte
 	 */
@@ -92,8 +96,7 @@ static int8_t eeprom_write_data_addr(uint8_t address, uint8_t *data, uint16_t si
 	 * if the read of the current page would go beyond the size of the page,
 	 * we have to split it into multiply reads
 	 */
-	if ((address + size)
-			> (((EEPROM_MAX_PAGE) * (EEPROM_MAX_BYTE - 1)))) {
+	if ((address + size) > (((EEPROM_MAX_PAGE) * (EEPROM_MAX_BYTE - 1)))) {
 		/*
 		 * the requested data can't be stored in this eeprom, cause the size of the
 		 * eeprom is smaller than the requested data, so abort-
@@ -246,7 +249,8 @@ static int8_t eeprom_read_page(uint8_t page, uint8_t *data) {
 
 }
 
-static int8_t eeprom_read_data_addr(uint8_t address, uint8_t *data, uint16_t size) {
+static int8_t eeprom_read_data_addr(uint8_t address, uint8_t *data,
+		uint16_t size) {
 
 	/*
 	 * get correct page and byte
@@ -258,8 +262,7 @@ static int8_t eeprom_read_data_addr(uint8_t address, uint8_t *data, uint16_t siz
 	 * if the read of the current page would go beyond the size of the page,
 	 * we have to split it into multiply reads
 	 */
-	if ((address + size)
-			> (((EEPROM_MAX_PAGE) * (EEPROM_MAX_BYTE - 1)))) {
+	if ((address + size) > (((EEPROM_MAX_PAGE) * (EEPROM_MAX_BYTE - 1)))) {
 		/*
 		 * the requested data can't be stored in this eeprom, cause the size of the
 		 * eeprom is smaller than the requested data, so abort-
@@ -294,7 +297,7 @@ static int8_t eeprom_read_data_addr(uint8_t address, uint8_t *data, uint16_t siz
 }
 
 static int8_t eeprom_poll_ack_for_read(int timeout) {
-	timeout = 1000;
+	timeout = 50;
 	while (timeout-- > 0) {
 		if (i2c1_start(EEPROM_ADDRESS, 1, I2C_READ) < 0) {
 
@@ -402,7 +405,6 @@ int8_t eeprom_init_data() {
 	eeprom_read_data(&eeprom_powermax_main);
 	eeprom_read_data(&eeprom_powermax_plant);
 	eeprom_read_data(&eeprom_powermin_main);
-
 
 	return 0;
 }

@@ -209,10 +209,10 @@ void menu_info_print() {
 
 		lcd_setcursor(3, 1);
 		lcd_print("Differenz:");
-		lcd_setcursor(3, 9);
 		int32_t val5sec =  sm_main_value_Nseconds_past(5);
 		itoa(sm_power_main_current - val5sec, tmp_string, 10);
-		lcd_setcursor(3, 9);
+		strcat(tmp_string, "W");
+		lcd_setcursor(3, 11);
 		lcd_print(tmp_string);
 
 		lcd_setcursor(4, 1);
