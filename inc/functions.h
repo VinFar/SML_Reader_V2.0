@@ -18,26 +18,23 @@ void flash_plant_store_data_in_cache(uint32_t timestamp);
 void check_cmd_struct(void *param);
 
 struct nrf24_queue_struct {
-  uint16_t read_idx;
-  uint16_t write_idx;
-  nrf24_frame_queue_t items[4];
+	uint16_t read_idx;
+	uint16_t write_idx;
+	nrf24_frame_queue_t items[4];
 };
 
 enum enqueue_result {
-  ENQUEUE_RESULT_SUCCESS,
-  ENQUEUE_RESULT_FULL,
+	ENQUEUE_RESULT_SUCCESS, ENQUEUE_RESULT_FULL,
 };
 
 enum dequeue_result {
-  DEQUEUE_RESULT_SUCCESS,
-  DEQUEUE_RESULT_EMPTY,
+	DEQUEUE_RESULT_SUCCESS, DEQUEUE_RESULT_EMPTY,
 };
 
-
-
 void nrf_queue_init();
-enum enqueue_result nrf_queue_enqueue(nrf24_frame_queue_t * p_new_item);
-enum dequeue_result nrf_queue_dequeue(nrf24_frame_queue_t * p_item_out);
+enum enqueue_result nrf_queue_enqueue(nrf24_frame_queue_t *p_new_item);
+enum dequeue_result nrf_queue_dequeue(nrf24_frame_queue_t *p_item_out);
 uint8_t nrf_queue_is_empty();
+int8_t memcopy(void *to, void *from, uint32_t len);
 
 #endif /* FUNCTIONS_H_ */

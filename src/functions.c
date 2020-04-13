@@ -167,7 +167,7 @@ void check_cmd_frame() {
 							flash_bulkErase();
 							flash_current_address_main_sml = 0;
 							flash_current_address_plant_sml =
-									W25N_START_ADDRESS_PLANT;
+							W25N_START_ADDRESS_PLANT;
 						}
 					}
 				}
@@ -509,44 +509,42 @@ void flash_plant_store_data_in_cache(uint32_t timestamp) {
 
 }
 
-void nrf_queue_init()
-{
-  nrf24_queue.read_idx = 0;
-  nrf24_queue.write_idx = 0;
+void nrf_queue_init() {
+	nrf24_queue.read_idx = 0;
+	nrf24_queue.write_idx = 0;
 }
 
-enum enqueue_result nrf_queue_enqueue(nrf24_frame_queue_t * p_new_item) {
-  uint16_t elements_in = nrf24_queue.write_idx - nrf24_queue.read_idx;
+enum enqueue_result nrf_queue_enqueue(nrf24_frame_queue_t *p_new_item) {
+	uint16_t elements_in = nrf24_queue.write_idx - nrf24_queue.read_idx;
 
-  size_t const capacity = ARRAY_LENGTH(nrf24_queue.items);
-  if (elements_in == capacity) {
-    return ENQUEUE_RESULT_FULL;
-  }
+	size_t const capacity = ARRAY_LENGTH(nrf24_queue.items);
+	if (elements_in == capacity) {
+		return ENQUEUE_RESULT_FULL;
+	}
 
-  uint16_t i = (nrf24_queue.write_idx)++ & (capacity - 1);
+	uint16_t i = (nrf24_queue.write_idx)++ & (capacity - 1);
 
-  memcpy(&nrf24_queue.items[i],p_new_item,sizeof(nrf24_frame_t));
+	memcpy(&nrf24_queue.items[i], p_new_item, sizeof(nrf24_frame_t));
 
-  return ENQUEUE_RESULT_SUCCESS;
+	return ENQUEUE_RESULT_SUCCESS;
 }
 
-enum dequeue_result nrf_queue_dequeue(nrf24_frame_queue_t * p_item_out) {
-  uint16_t elements_in = nrf24_queue.write_idx - nrf24_queue.read_idx;
-  size_t const capacity = ARRAY_LENGTH(nrf24_queue.items);
+enum dequeue_result nrf_queue_dequeue(nrf24_frame_queue_t *p_item_out) {
+	uint16_t elements_in = nrf24_queue.write_idx - nrf24_queue.read_idx;
+	size_t const capacity = ARRAY_LENGTH(nrf24_queue.items);
 
-  if(elements_in == 0) {
-    return DEQUEUE_RESULT_EMPTY;
-  }
+	if (elements_in == 0) {
+		return DEQUEUE_RESULT_EMPTY;
+	}
 
-  uint16_t i = (nrf24_queue.read_idx)++ & (capacity - 1);
-  memcpy(p_item_out,&nrf24_queue.items[i],sizeof(nrf24_frame_t));
+	uint16_t i = (nrf24_queue.read_idx)++ & (capacity - 1);
+	memcpy(p_item_out, &nrf24_queue.items[i], sizeof(nrf24_frame_t));
 
-  return DEQUEUE_RESULT_SUCCESS;
+	return DEQUEUE_RESULT_SUCCESS;
 }
 
 uint8_t nrf_queue_is_empty() {
-  return ((nrf24_queue.write_idx - nrf24_queue.read_idx) == 0);
+	return ((nrf24_queue.write_idx - nrf24_queue.read_idx) == 0);
 }
-
 
 

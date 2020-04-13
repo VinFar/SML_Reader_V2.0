@@ -6,7 +6,6 @@ RTC_TimeTypeDef sm_time;
 RTC_DateTypeDef sm_date;
 
 static uint32_t rtc_current_time_unix;
-static uint32_t rtc_old_time_unix;
 
 void rtc_init() {
 	__HAL_RCC_RTC_ENABLE();

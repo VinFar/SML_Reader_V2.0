@@ -623,9 +623,8 @@ void nrf24_init_tx() {
 	nRF24_SetAddrWidth(NRF_ADDR_LEN);
 
 	// Configure TX PIPE
-	static const uint8_t nRF24_ADDR[] = NRF_ADDR_DISP;
-	nRF24_SetAddr(nRF24_PIPETX, nRF24_ADDR); // program TX address
-	nRF24_SetAddr(NRF_DISP_PIPE, nRF24_ADDR); // program address for pipe#0, must be same as TX (for Auto-ACK)
+	nRF24_SetAddr(NRF_DISP_PIPE, NRF_ADDR_DISP); // program address for pipe#0, must be same as TX (for Auto-ACK)
+	nRF24_SetAddr(NRF_WALLBOX_PIPE, NRF_ADDR_WALLBOX); // program address for pipe#0, must be same as TX (for Auto-ACK)
 
 	// Set TX power (maximum)
 	nRF24_SetTXPower(nRF24_TXPWR_0dBm);
@@ -647,18 +646,19 @@ void nrf24_init_tx() {
 
 }
 
-int8_t nrf_add_qeue(uint8_t cmd, data_union_t *ptr) {
+int8_t nrf_add_qeue(uint8_t cmd, data_union_t *ptr, uint32_t addr) {
 
 	if (cmd > NRF24_CMD_MAX_ENUM) {
 		return -1;
 	}
 
-	nrf24_frame_t item;
+	nrf24_frame_queue_t item;
 
-	item.cmd = cmd;
-	item.size = 24;
+	item.addr = addr;
+	item.frame.cmd = cmd;
+	item.frame.size = 24;
 	if (ptr != NULL) {
-		memcpy(&item.data[0], ptr, NRF24_TX_SIZE);
+		memcpy(&item.frame.data[0], ptr, NRF24_TX_SIZE);
 	}
 	if (nrf_queue_enqueue(&item) == ENQUEUE_RESULT_FULL) {
 		return -1;

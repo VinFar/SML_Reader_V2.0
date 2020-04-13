@@ -101,7 +101,7 @@ void HardFault_Handler(void) {
 }
 
 uint32_t timer_ctr_for_nrf24_tx = 0;
-uint32_t timer_ctr_for_1s_flags=0;
+uint32_t timer_ctr_for_1s_flags = 0;
 void TIM15_IRQHandler() {
 	if ((TIM15->SR & TIM_SR_UIF) == TIM_SR_UIF) {	//Interrupt every 25 ms
 		TIM15->SR &= ~TIM_SR_UIF;	//Reset update interrupt flag
@@ -124,27 +124,27 @@ void TIM15_IRQHandler() {
 						sm_plant_current_data.meter_delivery;
 				sm[NRF_IDX_SM_DATA_PLANT_POWER].uint32_data =
 						sm_plant_current_data.power;
-				nrf_add_qeue(NRF24_CMD_SM_DATA, sm);
+			nrf_add_qeue(NRF24_CMD_SM_DATA, sm, NRF_ADDR_DISP);
 
-			}
-		} else {
-			/*
-			 * if not, ping it until it is in range again
-			 */
-
-			if (++timer_ctr_for_nrf24_tx > 40) {
-				timer_ctr_for_nrf24_tx = 0;
-				union data_union sm[2];
-				sm[0].uint32_data = RTC->TR;
-				sm[1].uint32_data = RTC->DR;
-				nrf_add_qeue(NRF24_CMD_PING, sm);
-			}
 		}
-		if(++timer_ctr_for_1s_flags > 35){
-			timer_ctr_for_1s_flags=0;
-			flags.oneHz_flags=1;
+	} else {
+		/*
+		 * if not, ping it until it is in range again
+		 */
+
+		if (++timer_ctr_for_nrf24_tx > 40) {
+			timer_ctr_for_nrf24_tx = 0;
+			union data_union sm[2];
+			sm[0].uint32_data = RTC->TR;
+			sm[1].uint32_data = RTC->DR;
+			nrf_add_qeue(NRF24_CMD_PING, sm,NRF_ADDR_DISP);
 		}
 	}
+	if (++timer_ctr_for_1s_flags > 35) {
+		timer_ctr_for_1s_flags = 0;
+		flags.oneHz_flags = 1;
+	}
+}
 }
 
 void RTC_IRQHandler() {

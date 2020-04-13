@@ -259,5 +259,7 @@ void nrf24_init_tx();
 void nRF24_WritePayload(uint8_t *pBuf, uint8_t length);
 nRF24_RXResult nRF24_ReadPayload(uint8_t *pBuf, uint8_t *length);
 nRF24_TXResult nRF24_TransmitPacket(uint8_t *pBuf, uint8_t length);
+int8_t nrf_add_qeue(uint8_t cmd, data_union_t *ptr, uint32_t addr);
+int8_t nrf_transmit_next_item();
 
 #endif // __NRF24_H

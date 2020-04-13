@@ -37,9 +37,6 @@ typedef struct {
 
 cmd_frame_t cmd_frame;
 
-#define CMD_FRAME_SIZE (sizeof(cmd_frame_t))
-#define CMD_FRAME_MIN_SIZE (CMD_FRAME_SIZE - (sizeof(data_union_t)*MAX_PAYLOAD_SIZE) + 5)
-#define CMD_FRAME_MAX_SIZE CMD_FRAME_SIZE
 
 typedef struct {
 	uint16_t size;
@@ -54,8 +51,11 @@ ack_frame_t ack_frame;
 #define CMD_ACK 70
 #define CMD_NACK 67
 
+#define CMD_FRAME_SIZE (sizeof(cmd_frame_t))
+
 #define CMD_FRAME_MIN_SIZE 11
 #define ACK_FRAME_MIN_SIZE 11
+
 #define CMD_FRAME_MAX_SIZE (CMD_FRAME_MIN_SIZE+MAX_PAYLOAD_SIZE-4)
 #define ACK_FRAME_MAX_SIZE (ACK_FRAME_MIN_SIZE+MAX_PAYLOAD_SIZE-4)
 

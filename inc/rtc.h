@@ -29,5 +29,6 @@ void RTC_GetDate(uint32_t RTC_Format, RTC_DateTypeDef* RTC_DateStruct);
 void RTC_GetTime(uint32_t RTC_Format, RTC_TimeTypeDef* RTC_TimeStruct);
 uint32_t rtc_calc_new_time();
 uint32_t rtc_get_current_unix_time();
+void rtc_init();
 
 #endif /* RTC_H_ */

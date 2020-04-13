@@ -23,6 +23,9 @@
 #include "nrf24.h"
 #include "nrf24_hal.h"
 #include "queue.h"
+#include "crc.h"
+#include "i2c.h"
+#include "timer.h"
 
 /* Priorities at which the tasks are created.  The event semaphore task is
  given the maximum priority of ( configMAX_PRIORITIES - 1 ) to ensure it runs as
@@ -117,7 +120,7 @@ int main(void) {
 			sm[4].uint32_data = W25N_START_ADDRESS_MAIN;
 			sm[5].uint32_data = W25N_START_ADDRESS_PLANT;
 
-			nrf_add_qeue(NRF24_CMD_FLASH_DATA, sm);
+			nrf_add_qeue(NRF24_CMD_FLASH_DATA, sm,NRF_ADDR_DISP);
 
 		}
 
