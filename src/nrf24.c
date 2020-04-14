@@ -623,9 +623,9 @@ void nrf24_init_rx() {
 	nRF24_SetAddrWidth(4);
 
 	// Configure RX PIPE
-	uint32_t addr = NRF_ADDR_DISP;
-	nRF24_SetAddr(nRF24_PIPE0, (const uint8_t*)&addr); // program address for pipe
-	nRF24_SetRXPipe(nRF24_PIPE0, nRF24_AA_ON, 32); // Auto-ACK: enabled, payload length: 10 bytes
+	uint32_t addr = NRF_ADDR_WALLBOX;
+	nRF24_SetAddr(NRF_WALLBOX_PIPE, (const uint8_t*)&addr); // program address for pipe
+	nRF24_SetRXPipe(NRF_WALLBOX_PIPE, nRF24_AA_ON, 32); // Auto-ACK: enabled, payload length: 10 bytes
 
 	// Set TX power for Auto-ACK (maximum, to ensure that transmitter will hear ACK reply)
 	nRF24_SetTXPower(nRF24_TXPWR_0dBm);
