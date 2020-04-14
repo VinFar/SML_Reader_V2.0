@@ -158,7 +158,7 @@ int main(void) {
 
 		if (nRF24_GetStatus_RXFIFO() != nRF24_STATUS_RXFIFO_EMPTY) {
 			// Get a payload from the transceiver
-
+			LED_ERROR_TOGGLE;
 			nRF24_ReadPayload((uint8_t*) &nrf24_frame, &nrf24_rx_size);
 			flags.nrf24_new_frame = 1;
 			// Clear all pending IRQ flags
