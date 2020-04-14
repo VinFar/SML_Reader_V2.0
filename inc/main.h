@@ -90,6 +90,7 @@ volatile typedef struct {
 	unsigned usart6_rx_busy:1;
 	unsigned display_connected:1;
 	unsigned oneHz_flags:1;
+	unsigned wallbox_connected:1;
 }flags_t;
 
 flags_t flags;

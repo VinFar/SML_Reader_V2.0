@@ -453,6 +453,16 @@ void flash_main_store_data_in_cache(uint32_t timestamp) {
 		W25N_MAX_CLOUMN;
 		sm_idx_for_main_cache_data = 0;
 
+		union data_union sm[6];
+		sm[0].uint32_data = flash_current_address_main_sml;
+		sm[1].uint32_data = flash_current_address_plant_sml;
+		sm[2].uint32_data = W25N_MAX_ADDRESS_MAIN;
+		sm[3].uint32_data = W25N_MAX_ADDRESS_PLANT;
+		sm[4].uint32_data = W25N_START_ADDRESS_MAIN;
+		sm[5].uint32_data = W25N_START_ADDRESS_PLANT;
+
+		nrf_add_qeue(NRF24_CMD_FLASH_DATA, sm, NRF_ADDR_DISP);
+
 		if (flash_current_address_main_sml > W25N_MAX_ADDRESS_MAIN) {
 			/*
 			 * if we reached the end of the flash memory,
@@ -497,6 +507,17 @@ void flash_plant_store_data_in_cache(uint32_t timestamp) {
 		flash_current_address_plant_sml +=
 		W25N_MAX_CLOUMN;
 		sm_idx_for_plant_cache_data = 0;
+
+		union data_union sm[6];
+		sm[0].uint32_data = flash_current_address_main_sml;
+		sm[1].uint32_data = flash_current_address_plant_sml;
+		sm[2].uint32_data = W25N_MAX_ADDRESS_MAIN;
+		sm[3].uint32_data = W25N_MAX_ADDRESS_PLANT;
+		sm[4].uint32_data = W25N_START_ADDRESS_MAIN;
+		sm[5].uint32_data = W25N_START_ADDRESS_PLANT;
+
+		nrf_add_qeue(NRF24_CMD_FLASH_DATA, sm, NRF_ADDR_DISP);
+
 		if (flash_current_address_plant_sml > W25N_MAX_ADDRESS_PLANT) {
 			/*
 			 * if we reached the end of the flash memory,
@@ -546,5 +567,4 @@ enum dequeue_result nrf_queue_dequeue(nrf24_frame_queue_t *p_item_out) {
 uint8_t nrf_queue_is_empty() {
 	return ((nrf24_queue.write_idx - nrf24_queue.read_idx) == 0);
 }
-
 

@@ -1,5 +1,6 @@
 #include "main.h"
 #include "crc.h"
+#include "delay.h"
 
 static void init_crc16_tab(void);
 uint16_t ccrc16(char *data_p, unsigned short length);
