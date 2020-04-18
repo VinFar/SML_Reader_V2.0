@@ -78,17 +78,10 @@ int8_t ping_sm_data_handler(nrf24_frame_t *frame, void *userData) {
 	sm_consumption_main_pur = frame->data[3].int32_data;
 	sm_consumption_plant = frame->data[4].int32_data;
 
-	if (sm_power_main_current > power_value_main_max) {
-		power_value_main_max = sm_power_main_current;
-//		eeprom_write_data(&eeprom_powermax_main);
-	}
-	if (sm_power_main_current < power_value_main_min) {
-		power_value_main_min = sm_power_main_current;
-//		eeprom_write_data(&eeprom_powermin_main);
-	}
-	if (sm_power_plant_current < power_value_pant_max) {
-		power_value_pant_max = sm_power_plant_current;
-//		eeprom_write_data(&eeprom_powermax_plant);
+	if(sm_power_plant_current < -50){
+		RELAY_RIGHT_ON;
+	}else{
+		RELAY_RIGHT_OFF;
 	}
 	if (flags.currently_in_menu == 0) {
 		flags.refreshed_rotary = 1;

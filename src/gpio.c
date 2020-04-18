@@ -134,4 +134,11 @@ void gpio_init(void) {
 	GPIO_InitStruct.Pull = GPIO_NOPULL;
 	HAL_GPIO_Init(ROTARY_PUSH_GPIO_Port, &GPIO_InitStruct);
 
+	GPIO_InitStruct.Pin = RELAY_LEFT_PIN | RELAY_RIGHT_PIN;
+	GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+	GPIO_InitStruct.Alternate = 0;
+	GPIO_InitStruct.Pull = GPIO_NOPULL;
+	HAL_GPIO_Init(RELAY_RIGHT_GPIO_PORT, &GPIO_InitStruct);
+
+
 }

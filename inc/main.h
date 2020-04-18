@@ -5,6 +5,7 @@
 #include "stm32f091xc.h"
 #include "stm32f0xx_hal.h"
 #include "defines.h"
+#include "gpio.h"
 
 #define NOP asm("nop");
 #define STRUCT_PACKED __attribute__((packed))
@@ -81,6 +82,13 @@ void Error_Handler(void);
 #define I2C1_SCL_GPIO_Port GPIOB
 #define I2C1_SDA_Pin GPIO_PIN_7
 #define I2C1_SDA_GPIO_Port GPIOB
+
+#define RELAY_LEFT_GPIO_PORT GPIOB
+#define RELAY_LEFT_PIN GPIO_PIN_2
+
+#define RELAY_RIGHT_GPIO_PORT GPIOB
+#define RELAY_RIGHT_PIN GPIO_PIN_10
+
 
 typedef volatile struct {
 	unsigned refreshed_rotary :1;
