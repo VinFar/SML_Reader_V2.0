@@ -115,8 +115,9 @@ void lcd_write(uint8_t value) {
 	if (lightOn)
 		data_out |= LCD_LIGHT_N;
 
-	lcd_write_i2c(data_out);		//-	Set new data and enable to high
-	lcd_pulseEnable(data_out);
+	lcd_write_i2c(data_out | LCD_E);		//-	Set new data and enable to high
+//	lcd_pulseEnable(data_out);
+	delay_us(1);
 	lcd_write_i2c(data_out & ~LCD_E);	// En low
 
 }

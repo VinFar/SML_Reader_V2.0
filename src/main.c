@@ -88,9 +88,13 @@ int main(void) {
 	rtc_current_time_unix = rtc_old_time_unix = rtc_get_unix_time(&sm_time,
 			&sm_date);
 
-	nrf24_init_rx();
+
 	lightOn = 1;
 	lcd_light(lightOn);
+
+	delay_us(2000000);
+	nrf24_init_rx();
+
 
 	while (1) {
 
@@ -228,6 +232,7 @@ static void prvSetupHardware(void) {
 	 * communication for NRF24 Wireless Chip and FLASH IC
 	 */
 	spi1_init();
+	nRF24_Init();
 //	usart6_init();
 
 //	crc_init();

@@ -7,8 +7,8 @@ void i2c1_init(void) {
 
 	hi2c1.Instance = I2C1;
 //	  hi2c1.Init.Timing = 0x20000209; //1Mhz
-	hi2c1.Init.Timing = 0x2010091A; //400kHz
-//	hi2c1.Init.Timing = 0x20303E5D; //100kHz
+//	hi2c1.Init.Timing = 0x2010091A; //400kHz
+	hi2c1.Init.Timing = 0x20303E5D; //100kHz
 	hi2c1.Init.OwnAddress1 = 0;
 	hi2c1.Init.AddressingMode = I2C_ADDRESSINGMODE_7BIT;
 	hi2c1.Init.DualAddressMode = I2C_DUALADDRESS_DISABLE;
