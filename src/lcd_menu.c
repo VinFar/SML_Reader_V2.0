@@ -191,7 +191,7 @@ void menu_info_print() {
 	lcd_clear();
 
 	switch (((menu_idx_isr) % 3)) {				//Main manue
-	case 0:
+	case 1:
 
 		lcd_setcursor(1, 1);
 		lcd_print("PV:");
@@ -224,7 +224,7 @@ void menu_info_print() {
 		lcd_print(tmp_string);
 
 		break;
-	case 1:						//Menue two
+	case 0:						//Menue two
 		lcd_setcursor(1, 1);
 		lcd_print("PV:");
 		lcd_setcursor(1, 4);
