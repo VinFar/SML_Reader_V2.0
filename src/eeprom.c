@@ -1,6 +1,7 @@
 #include "main.h"
 #include "i2c.h"
 #include "eeprom.h"
+#include "delay.h"
 
 int8_t eeprom_init_data() {
 

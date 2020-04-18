@@ -595,10 +595,6 @@ nRF24_TXResult nRF24_TransmitPacket(uint8_t *pBuf, uint8_t length) {
 	return nRF24_TX_ERROR;
 }
 
-void nrf24_pipe_set_payload_length(int8_t pipe, uint8_t length) {
-
-}
-
 void nrf24_init_tx() {
 	// This is simple transmitter with Enhanced ShockBurst (to one logic address):
 	//   - TX address: 'ESB'
@@ -610,6 +606,7 @@ void nrf24_init_tx() {
 	// The transmitter sends a 10-byte packets to the address 'ESB' with Auto-ACK (ShockBurst enabled)
 	nRF24_Check();
 	nRF24_Init();
+
 	// Set RF channel
 	nRF24_SetRFChannel(40);
 
@@ -624,9 +621,9 @@ void nrf24_init_tx() {
 
 	// Configure TX PIPE
 	const uint32_t addr = NRF_ADDR_DISP;
-	nRF24_SetAddr(NRF_DISP_PIPE, (const uint8_t*)&addr); // program address for pipe#0, must be same as TX (for Auto-ACK)
+	nRF24_SetAddr(NRF_DISP_PIPE, (const uint8_t*) &addr); // program address for pipe#0, must be same as TX (for Auto-ACK)
 	const uint32_t addr2 = NRF_ADDR_WALLBOX;
-	nRF24_SetAddr(NRF_WALLBOX_PIPE, (const uint8_t*)&addr2); // program address for pipe#0, must be same as TX (for Auto-ACK)
+	nRF24_SetAddr(NRF_WALLBOX_PIPE, (const uint8_t*) &addr2); // program address for pipe#0, must be same as TX (for Auto-ACK)
 
 	// Set TX power (maximum)
 	nRF24_SetTXPower(nRF24_TXPWR_0dBm);
@@ -636,7 +633,7 @@ void nrf24_init_tx() {
 
 	// Enable Auto-ACK for pipe#0 (for ACK packets)
 	nRF24_EnableAA(NRF_DISP_PIPE);
-
+	nRF24_EnableAA(NRF_WALLBOX_PIPE);
 	// Set operational mode (PTX == transmitter)
 	nRF24_SetOperationalMode(nRF24_MODE_TX);
 
@@ -676,7 +673,8 @@ int8_t nrf_transmit_next_item() {
 	nrf24_frame_queue_t item;
 	enum dequeue_result res;
 	res = nrf_queue_dequeue(&item);
-	nRF24_SetAddr(nRF24_PIPETX, (const uint8_t*)&item.addr);
+	nRF24_SetAddr(nRF24_PIPETX, (const uint8_t*) &item.addr);
+	nRF24_SetAddr(nRF24_PIPE0, (const uint8_t*) &item.addr);
 	if (res == DEQUEUE_RESULT_SUCCESS) {
 		if (item.frame.cmd < NRF24_CMD_MAX_ENUM) {
 			if (item.frame.size <= 32) {
@@ -687,11 +685,19 @@ int8_t nrf_transmit_next_item() {
 				UNUSED(otx);
 				if (nrf_res != nRF24_TX_SUCCESS) {
 					nRF24_ResetPLOS();
-					flags.display_connected = 0;
+					if (item.addr == NRF_ADDR_WALLBOX) {
+						flags.wallbox_connected = 0;
+					} else {
+						flags.display_connected = 0;
+					}
 					return -1;
 				}
 				nrf24_tx_ctr++;
-				flags.display_connected = 1;
+				if (item.addr == NRF_ADDR_WALLBOX) {
+					flags.wallbox_connected = 1;
+				} else {
+					flags.display_connected = 1;
+				}
 				return 0;
 			}
 		}
