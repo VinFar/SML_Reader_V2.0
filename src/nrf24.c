@@ -1,4 +1,6 @@
 #include "nrf24.h"
+#include "string.h"
+#include "functions.h"
 
 // The address used to test presence of the transceiver,
 // note: should not exceed 5 bytes
@@ -14,7 +16,7 @@ nRF24_REG_RX_ADDR_P4,
 nRF24_REG_RX_ADDR_P5,
 nRF24_REG_TX_ADDR };
 
-uint32_t nrf24_tx_ctr=0;
+static nrf24_frame_t nrf24_frame;
 
 //
 // Reads a value of register
@@ -85,7 +87,7 @@ static void nRF24_WriteMBReg(uint8_t reg, uint8_t *pBuf, uint8_t count) {
 // Configures the transceiver to its initial state
 void nRF24_Init(void) {
 	// Write to the registers their initial values
-	nRF24_WriteReg(nRF24_REG_CONFIG, 0x08);
+	nRF24_WriteReg(nRF24_REG_CONFIG, 0x00);
 	nRF24_WriteReg(nRF24_REG_EN_AA, 0x3F);
 	nRF24_WriteReg(nRF24_REG_EN_RXADDR, 0x03);
 	nRF24_WriteReg(nRF24_REG_SETUP_AW, 0x03);
@@ -543,6 +545,8 @@ nRF24_TXResult nRF24_TransmitPacket(uint8_t *pBuf, uint8_t length) {
 	volatile uint32_t wait = nRF24_WAIT_TIMEOUT;
 	uint8_t status;
 
+	flags.tx_busy = 1;
+
 	// Deassert the CE pin (in case if it still high)
 	nRF24_CE_L;
 
@@ -571,11 +575,6 @@ nRF24_TXResult nRF24_TransmitPacket(uint8_t *pBuf, uint8_t length) {
 		return nRF24_TX_TIMEOUT;
 	}
 
-	// Check the flags in STATUS register
-	UART_SendStr("[");
-	UART_SendHex8(status);
-	UART_SendStr("] ");
-
 	// Clear pending IRQ flags
 	nRF24_ClearIRQFlags();
 
@@ -595,11 +594,45 @@ nRF24_TXResult nRF24_TransmitPacket(uint8_t *pBuf, uint8_t length) {
 	return nRF24_TX_ERROR;
 }
 
+void nrf_enable_irq(nrf_irq_t irq) {
+	uint8_t reg;
+	// Configure PRIM_RX bit of the CONFIG register
+	reg = nRF24_ReadReg(nRF24_REG_CONFIG);
+	reg &= ~irq;
+	nRF24_WriteReg(nRF24_REG_CONFIG, reg);
+	return;
+}
+
+void nrf_disable_irq(nrf_irq_t irq) {
+	uint8_t reg;
+	// Configure PRIM_RX bit of the CONFIG register
+	reg = nRF24_ReadReg(nRF24_REG_CONFIG);
+	reg |= irq;
+	nRF24_WriteReg(nRF24_REG_CONFIG, reg);
+	return;
+}
+
 void nrf24_pipe_set_payload_length(int8_t pipe, uint8_t length) {
 
 }
 
 void nrf24_init_rx() {
+	// Configure RX PIPE
+	uint32_t addr = NRF_ADDR_WALLBOX;
+	nRF24_SetAddr(NRF_WALLBOX_PIPE, (const uint8_t*) &addr); // program address for pipe
+	nRF24_SetRXPipe(NRF_WALLBOX_PIPE, nRF24_AA_ON, 32); // Auto-ACK: enabled, payload length: 10 bytes
+
+	// Set operational mode (PRX == receiver)
+	nRF24_SetOperationalMode(nRF24_MODE_RX);
+
+	nrf_enable_irq(nrf_irq_rx_dr);
+
+	// Put the transceiver to the RX mode
+	nRF24_CE_H;
+
+}
+
+void nrf24_init_gen() {
 	// This is simple receiver with Enhanced ShockBurst:
 	//   - RX address: 'ESB'
 	//   - payload: 10 bytes
@@ -622,24 +655,93 @@ void nrf24_init_rx() {
 	// Set address width, its common for all pipes (RX and TX)
 	nRF24_SetAddrWidth(4);
 
-	// Configure RX PIPE
-	uint32_t addr = NRF_ADDR_WALLBOX;
-	nRF24_SetAddr(NRF_WALLBOX_PIPE, (const uint8_t*)&addr); // program address for pipe
-	nRF24_SetRXPipe(NRF_WALLBOX_PIPE, nRF24_AA_ON, 32); // Auto-ACK: enabled, payload length: 10 bytes
-
 	// Set TX power for Auto-ACK (maximum, to ensure that transmitter will hear ACK reply)
 	nRF24_SetTXPower(nRF24_TXPWR_0dBm);
-
-	// Set operational mode (PRX == receiver)
-	nRF24_SetOperationalMode(nRF24_MODE_RX);
-
-	// Clear any pending IRQ flags
-	nRF24_ClearIRQFlags();
 
 	// Wake the transceiver
 	nRF24_SetPowerMode(nRF24_PWR_UP);
 
-	// Put the transceiver to the RX mode
-	nRF24_CE_H;
+}
 
+
+int8_t nrf_write_frame(nrf24_frame_t frame) {
+	memcpy(&nrf24_frame, &frame, sizeof(frame));
+	return 0;
+}
+
+nrf24_frame_t nrf_get_frame() {
+	return nrf24_frame;
+}
+
+void nrf24_init_tx() {
+	// Configure TX PIPE
+	const uint32_t addr = NRF_ADDR_DISP;
+	nRF24_SetAddr(nRF24_PIPETX, (const uint8_t*) &addr); // program address for pipe#0, must be same as TX (for Auto-ACK)
+	// Enable Auto-ACK for pipe#0 (for ACK packets)
+	nRF24_EnableAA(NRF_WALLBOX_PIPE);
+
+	// Set TX power (maximum)
+	nRF24_SetTXPower(nRF24_TXPWR_0dBm);
+
+	// Configure auto retransmit: 10 retransmissions with pause of 2500s in between
+	nRF24_SetAutoRetr(nRF24_ARD_2500us, 15);
+
+	// Set operational mode (PTX == transmitter)
+	nRF24_SetOperationalMode(nRF24_MODE_TX);
+
+	nrf_disable_irq(nrf_irq_rx_dr);
+	nrf_enable_irq(nrf_irq_tx_ds);
+
+	// Clear any pending IRQ flags
+	nRF24_ClearIRQFlags();
+
+}
+
+int8_t nrf_add_qeue(uint8_t cmd, data_union_t *ptr, uint32_t addr) {
+
+	if (cmd > NRF24_CMD_MAX_ENUM) {
+		return -1;
+	}
+
+	nrf24_frame_queue_t item;
+
+	item.addr = addr;
+	item.frame.cmd = cmd;
+	item.frame.size = 24;
+	if (ptr != NULL) {
+		memcpy(&item.frame.data[0], ptr, NRF24_TX_SIZE);
+	}
+	if (nrf_queue_enqueue(&item) == ENQUEUE_RESULT_FULL) {
+		return -1;
+	}
+
+	return 0;
+}
+
+static uint32_t nrf24_tx_ctr = 0;
+
+int8_t nrf_transmit_next_item() {
+
+	nrf24_frame_queue_t item;
+	enum dequeue_result res;
+	res = nrf_queue_dequeue(&item);
+	nRF24_SetAddr(nRF24_PIPETX, (const uint8_t*) &item.addr);
+	if (res == DEQUEUE_RESULT_SUCCESS) {
+		if (item.frame.cmd < NRF24_CMD_MAX_ENUM) {
+			if (item.frame.size <= 32) {
+				item.frame.tx_ctr = nrf24_tx_ctr;
+				nRF24_TXResult nrf_res = nRF24_TransmitPacket(
+						(uint8_t*) &item.frame, 32);
+				uint8_t otx = nRF24_GetRetransmitCounters();
+				UNUSED(otx);
+				if (nrf_res != nRF24_TX_SUCCESS) {
+					nRF24_ResetPLOS();
+					return -1;
+				}
+				nrf24_tx_ctr++;
+				return 0;
+			}
+		}
+	}
+	return -1;
 }

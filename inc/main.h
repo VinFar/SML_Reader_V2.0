@@ -89,6 +89,9 @@ void Error_Handler(void);
 #define RELAY_RIGHT_GPIO_PORT GPIOB
 #define RELAY_RIGHT_PIN GPIO_PIN_10
 
+#define POWERVALUE_RELAY_LEFT 300
+#define POWERVALUE_BUFFER 100
+
 
 typedef volatile struct {
 	unsigned refreshed_rotary :1;
@@ -99,9 +102,11 @@ typedef volatile struct {
 	unsigned smu_connected :1;
 	unsigned nrf24_new_frame:1;
 	unsigned rotary_direction:1;
+	unsigned power_valid_timeout:1;
+	unsigned tx_busy:1;
 } flags_t;
 
-flags_t flags;
+volatile flags_t flags;
 
 typedef struct uuid_struct {
 	const uint32_t *id[3];

@@ -77,9 +77,6 @@ extern outlets_t outlets[NUMBER_OF_OUTLETS];
 extern uint32_t *outlets_prio_ptr[NUMBER_OF_OUTLETS];
 extern uint32_t *outlets_value_ptr[NUMBER_OF_OUTLETS];
 
-uint16_t Log2n(uint16_t n);
-int16_t isPowerOfTwo(uint16_t n);
-int16_t findPosition(uint16_t n);
 void check_cmd_frame();
 void sm_main_extract_data();
 void sm_plant_extract_data();
@@ -100,13 +97,40 @@ void sort_outlets_by_value();
 void set_max_min_power(int32_t power);
 void set_max_min_time(uint16_t time);
 
-int8_t ping_cmd_handler(nrf24_frame_t *frame, void *userData);
-int8_t ping_sm_data_handler(nrf24_frame_t *frame, void *userData);
-int8_t ping_rtc_data_handler(nrf24_frame_t *frame, void *userData);
-int8_t nrf_flash_data_handler(nrf24_frame_t *frame, void *userData);
+int8_t nrf_cmd_ping_handler(nrf24_frame_t *frame, void *userData);
+int8_t nrf_cmd_sm_data_handler(nrf24_frame_t *frame, void *userData);
+int8_t nrf_cmd_rtc_data_handler(nrf24_frame_t *frame, void *userData);
+int8_t nrf_cmd_flash_data_handler(nrf24_frame_t *frame, void *userData);
+int8_t nrf_cmd_relay_handler(nrf24_frame_t *frame, void *userData);
 
 uint32_t sm_main_value_Nseconds_past(uint16_t n);
 uint32_t sm_plant_value_Nseconds_past(uint16_t n);
 void sm_calc_mean();
+int8_t relay_right_off();
+int8_t relay_right_on();
+int8_t relay_left_off();
+int8_t relay_left_on();
+int8_t relay_left_get_state();
+int8_t relay_right_get_state();
+
+struct nrf24_queue_struct {
+	uint16_t read_idx;
+	uint16_t write_idx;
+	nrf24_frame_queue_t items[4];
+};
+
+enum enqueue_result {
+	ENQUEUE_RESULT_SUCCESS, ENQUEUE_RESULT_FULL,
+};
+
+enum dequeue_result {
+	DEQUEUE_RESULT_SUCCESS, DEQUEUE_RESULT_EMPTY,
+};
+
+void nrf_queue_init();
+enum enqueue_result nrf_queue_enqueue(nrf24_frame_queue_t *p_new_item);
+enum dequeue_result nrf_queue_dequeue(nrf24_frame_queue_t *p_item_out);
+uint8_t nrf_queue_is_empty();
+
 
 #endif /* FUNCTIONS_H_ */

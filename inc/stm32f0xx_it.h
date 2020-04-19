@@ -26,6 +26,8 @@ extern ack_frame_t usart6_ack_frame;
 extern uint32_t timer_ctr_for_lcd_light;
 extern uint32_t time_for_lcd_light;
 
+volatile uint32_t timer_ctr_for_power_valid_timeout;
+
 void NMI_Handler(void);
 void HardFault_Handler(void);
 void SVC_Handler(void);

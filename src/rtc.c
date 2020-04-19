@@ -23,7 +23,6 @@ void rtc_init() {
 	while ((RTC->ISR & RTC_ISR_INITF) == 0)
 		;
 
-
 	/*
 	 * load time and date
 	 * and set 24h format
@@ -46,7 +45,8 @@ void rtc_init() {
 	RTC->WPR = 0x64;
 
 	RTC->CR &= ~RTC_CR_WUTE;
-	while((RTC->ISR & RTC_ISR_WUTWF) == 0);
+	while ((RTC->ISR & RTC_ISR_WUTWF) == 0)
+		;
 	/*
 	 * 1Hz Wakeup clock
 	 */
@@ -60,11 +60,10 @@ void rtc_init() {
 
 	NVIC_EnableIRQ(RTC_IRQn);
 
-
 }
 
 // Convert Date/Time structures to epoch time
-uint32_t rtc_get_unix_time(RTC_TimeTypeDef *time, RTC_DateTypeDef *date) {
+static uint32_t rtc_get_unix_time(RTC_TimeTypeDef *time, RTC_DateTypeDef *date) {
 	uint8_t a;
 	uint16_t y;
 	uint8_t m;
@@ -94,7 +93,7 @@ uint32_t rtc_get_unix_time(RTC_TimeTypeDef *time, RTC_DateTypeDef *date) {
 	return JDN;
 }
 
-void RTC_GetTime(uint32_t RTC_Format, RTC_TimeTypeDef* RTC_TimeStruct) {
+static void RTC_GetTime(uint32_t RTC_Format, RTC_TimeTypeDef *RTC_TimeStruct) {
 	uint32_t tmpreg = 0;
 
 	/* Check the parameters */
@@ -122,7 +121,7 @@ void RTC_GetTime(uint32_t RTC_Format, RTC_TimeTypeDef* RTC_TimeStruct) {
 	}
 }
 
-void RTC_GetDate(uint32_t RTC_Format, RTC_DateTypeDef* RTC_DateStruct) {
+static void RTC_GetDate(uint32_t RTC_Format, RTC_DateTypeDef *RTC_DateStruct) {
 	uint32_t tmpreg = 0;
 
 	/* Check the parameters */
@@ -145,4 +144,10 @@ void RTC_GetDate(uint32_t RTC_Format, RTC_DateTypeDef* RTC_DateStruct) {
 		RTC_DateStruct->Date = (uint8_t) RTC_Bcd2ToByte(RTC_DateStruct->Date);
 		RTC_DateStruct->WeekDay = (uint8_t) (RTC_DateStruct->WeekDay);
 	}
+}
+
+uint32_t rtc_get_current_unix_time() {
+	RTC_GetTime(RTC_Format_BIN, &sm_time);
+	RTC_GetDate(RTC_Format_BIN, &sm_date);
+	return rtc_get_unix_time(&sm_time, &sm_date);
 }

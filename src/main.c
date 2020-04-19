@@ -65,16 +65,16 @@ uuid_t uuid = { { ((uint32_t*) UUID_BASE_ADDRESS),
 		(((uint32_t*) UUID_BASE_ADDRESS + 1)), ((uint32_t*) (UUID_BASE_ADDRESS
 				+ 2)) } };
 
-uint32_t rtc_current_time_unix;
-uint32_t rtc_old_time_unix;
-
+static uint32_t rtc_old_time_unix;
+nrf24_frame_t nrf24_frame;
 static uint8_t nrf24_rx_size = NRF24_RX_SIZE;
 
-nrf24_frame_t nrf24_frame;
-
-int8_t (*nrf24_frame_fct_ptr[MAX_ENUM_CMDS - 1])(nrf24_frame_t*,
-		void*) = {ping_cmd_handler,ping_sm_data_handler,ping_rtc_data_handler,nrf_flash_data_handler
+int8_t (*nrf24_fct_vec_main[MAX_ENUM_CMDS - 1])(nrf24_frame_t*,
+		void*) = {nrf_cmd_ping_handler,nrf_cmd_sm_data_handler,nrf_cmd_rtc_data_handler,nrf_cmd_flash_data_handler
 };
+
+int8_t (*nrf24_fct_vec_disp[MAX_ENUM_CMDS - 1])(nrf24_frame_t*,
+		void*) = {nrf_cmd_ping_handler,nrf_cmd_relay_handler};
 
 /*
  * Version v0.0.0.1
@@ -84,12 +84,8 @@ int main(void) {
 
 	prvSetupHardware();
 
-	RTC_GetTime(RTC_Format_BIN, &sm_time);
-	RTC_GetDate(RTC_Format_BIN, &sm_date);
 
-	rtc_current_time_unix = rtc_old_time_unix = rtc_get_unix_time(&sm_time,
-			&sm_date);
-
+	nrf24_init_gen();
 	nrf24_init_rx();
 
 	while (1) {
@@ -98,33 +94,34 @@ int main(void) {
 		__WFI();
 		LED_OK_OFF;
 
-		if (flags.refreshed_push) {
-
-			flags.refreshed_push = 0;
-		}
-
-		if (flags.refreshed_rotary) {
-
-			flags.refreshed_rotary = 0;
-		}
-
-		if (rtc_current_time_unix > rtc_old_time_unix) {
-
-		}
-
-		if (nRF24_GetStatus_RXFIFO() != nRF24_STATUS_RXFIFO_EMPTY) {
-			// Get a payload from the transceiver
-
-			nRF24_ReadPayload((uint8_t*) &nrf24_frame, &nrf24_rx_size);
-			flags.nrf24_new_frame = 1;
-			// Clear all pending IRQ flags
-			nRF24_ClearIRQFlags();
-
+		if (rtc_get_current_unix_time() > rtc_old_time_unix) {
+			rtc_old_time_unix = rtc_get_current_unix_time();
+			int32_t power_tmp_main = sm_power_main_current - POWERVALUE_BUFFER;
+			if(relay_right_get_state()){
+				/*
+				 * if the relay is already on, than the
+				 * power of main sm would not show a negative value
+				 * and thus we would switch off the relay again.
+				 * Then, in the next cycle we would switch the relays on again
+				 * and this would lead to a 1hz toggling of the relay
+				 * To prevent this, we need t osubstract the power value of the
+				 * connected device to "trick" the system that everything is OK
+				 */
+				power_tmp_main -= POWERVALUE_RELAY_LEFT;
+			}
+			if(sm_power_main_current < -POWERVALUE_RELAY_LEFT){
+				relay_right_on();
+			}else{
+				relay_right_off();
+			}
 		}
 
 		if (flags.nrf24_new_frame) {
 			LED_ERROR_TOGGLE;
 			flags.nrf24_new_frame = 0;
+			nrf24_frame_t nrf24_frame;
+			uint8_t rx_pipe = (uint8_t)nRF24_ReadPayload((uint8_t*) &nrf24_frame, &nrf24_rx_size);
+			UNUSED(rx_pipe);
 			if (nrf24_frame.size <= NRF24_RX_SIZE) {
 				/*
 				 * size is ok
@@ -137,8 +134,27 @@ int main(void) {
 					/*
 					 * call the approbiate function
 					 */
-					nrf24_tx_ctr = nrf24_frame.tx_ctr;
-					nrf24_frame_fct_ptr[nrf24_frame.cmd](&nrf24_frame, NULL);
+					flags.smu_connected = 1;
+					//nrf24_tx_ctr = nrf24_frame.tx_ctr;
+					switch(rx_pipe){
+					case NRF_DISP_PIPE:
+						nrf24_fct_vec_disp[nrf24_frame.cmd](&nrf24_frame,NULL);
+						break;
+					default:
+						nrf24_fct_vec_main[nrf24_frame.cmd](&nrf24_frame, NULL);
+						break;
+					}
+					if(nrf_queue_is_empty() != 1){
+						/*
+						 * after every TX frame from the main unit we can transmit
+						 * to it inside a 50ms window.
+						 * So if the queue is not empty, we have to a sent the
+						 * frame that is in the queue
+						 */
+						nrf24_init_tx();
+						memset(&nrf24_frame,0,sizeof(nrf24_frame));
+						nrf_transmit_next_item();
+					}
 
 				}
 			}

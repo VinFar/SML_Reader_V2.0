@@ -16,7 +16,7 @@ extern data_union_t nrf24_rx_data[5];
 #define nRF24_ADDR_REVERSE         0
 #endif
 
-extern uint32_t nrf24_tx_ctr;
+
 
 
 // Timeout counter (depends on the CPU speed)
@@ -209,6 +209,12 @@ typedef enum{
 	nrf24_rx_pipe5,
 }nrf24_rx_pipes_t;
 
+typedef enum{
+	nrf_irq_rx_dr=1<<6,
+	nrf_irq_tx_ds=1<<5,
+	nrf_irq_max_rt=1<<4
+}nrf_irq_t;
+
 // Function prototypes
 void nRF24_Init(void);
 uint8_t nRF24_Check(void);
@@ -258,5 +264,11 @@ void nRF24_WritePayload(uint8_t *pBuf, uint8_t length);
 nRF24_RXResult nRF24_ReadPayload(uint8_t *pBuf, uint8_t *length);
 
 void nrf24_init_rx();
+void nrf24_init_gen();
+nrf24_frame_t nrf_get_frame();
+int8_t nrf_write_frame(nrf24_frame_t frame);
+void nrf24_init_tx();
+int8_t nrf_transmit_next_item();
+int8_t nrf_add_qeue(uint8_t cmd, data_union_t *ptr, uint32_t addr);
 
 #endif // __NRF24_H

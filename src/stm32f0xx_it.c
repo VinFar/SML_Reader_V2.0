@@ -5,6 +5,7 @@
 #include "lcd_menu.h"
 #include "i2clcd.h"
 #include "rtc.h"
+#include "nrf24.h"
 
 void NMI_Handler(void) {
 }
@@ -54,6 +55,7 @@ void TIM2_IRQHandler() {
  *
  */
 uint32_t menu_idx_isr = 10000;
+
 void EXTI4_15_IRQHandler() {
 	if (( EXTI->PR & EXTI_PR_PR6)) {	//Interrupt from rotating rotary encoder
 
@@ -75,7 +77,7 @@ void EXTI4_15_IRQHandler() {
 			flags.rotary_direction = 0;
 		}
 
-		EXTI->PR |= EXTI_PR_PR6;	//Reset Interrupt Flag
+		EXTI->PR = EXTI_PR_PR6;	//Reset Interrupt Flag
 		return;
 
 	}
@@ -100,9 +102,21 @@ void EXTI4_15_IRQHandler() {
 			 */
 			TIM14->CR1 &= ~TIM_CR1_CEN;
 		}
-		EXTI->PR |= EXTI_PR_PR15;
+		EXTI->PR = EXTI_PR_PR15;
 
 		return;
+
+	}
+
+	if ((EXTI->PR & EXTI_PR_PIF12) == EXTI_PR_PIF12) {
+		EXTI->PR = EXTI_PR_PR12;
+		if (nRF24_GetStatus_RXFIFO() != nRF24_STATUS_RXFIFO_EMPTY) {
+			// Get a payload from the transceiver
+			flags.nrf24_new_frame = 1;
+			// Clear all pending IRQ flags
+			nRF24_ClearIRQFlags();
+
+		}
 
 	}
 }
@@ -146,6 +160,7 @@ uint32_t timer_ctr_for_lcd_light = 0;
 uint32_t time_for_lcd_light = 120;
 uint32_t timer_ctr_for_nrf24_timeout = 0;
 static uint32_t timer_ctr_for_rtc_calc = 38;
+volatile uint32_t timer_ctr_for_power_valid_timeout = 0;
 void TIM15_IRQHandler() {
 	if ((TIM15->SR & TIM_SR_UIF) == TIM_SR_UIF) {	//Interrupt every 25 ms
 		TIM15->SR &= ~TIM_SR_UIF;	//Reset update interrupt flag
@@ -154,12 +169,20 @@ void TIM15_IRQHandler() {
 			/*
 			 * TImeout of NRF24 communication: no data packet for more than 5 seconds
 			 */
+			flags.smu_connected = 0;
 		}
 		if (timer_ctr_for_rtc_calc++ > 35) {
 			timer_ctr_for_rtc_calc = 0;
-			RTC_GetTime(RTC_Format_BIN, &sm_time);
-			RTC_GetDate(RTC_Format_BIN, &sm_date);
-			rtc_current_time_unix = rtc_get_unix_time(&sm_time, &sm_date);
+
+
+		}
+		if (++timer_ctr_for_power_valid_timeout > (5 * 60 * 40)) {
+			/*
+			 * If no new power frame was recieved inside 5 minutes, than
+			 * the Main Unit is declared as not connected and the relays are
+			 * shut off
+			 */
+			flags.power_valid_timeout = 1;
 		}
 	}
 }

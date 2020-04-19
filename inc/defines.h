@@ -12,7 +12,7 @@
 
 #define SMART_METER_BAUDRATE 9600
 
-#define ARRAY_LEN(x) (sizeof(x) / sizeof(x[0]))
+#define ARRAY_LENGTH(x) (sizeof(x) / sizeof(x[0]))
 
 typedef struct smart_meter_struct {
 	uint32_t meter_purchase;

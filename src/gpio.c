@@ -94,9 +94,10 @@ void gpio_init(void) {
 
 	/*Configure GPIO pin : PtPin */
 	GPIO_InitStruct.Pin = NRF_IRQ_Pin;
-	GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+	GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING_FALLING;
 	GPIO_InitStruct.Pull = GPIO_NOPULL;
 	HAL_GPIO_Init(NRF_IRQ_GPIO_Port, &GPIO_InitStruct);
+	NVIC_EnableIRQ(EXTI4_15_IRQn);
 
 	/*Configure GPIO pin : PtPin */
 	GPIO_InitStruct.Pin = SPI1_CS_NRF_Pin;
@@ -113,7 +114,7 @@ void gpio_init(void) {
 	HAL_GPIO_Init(NRF_CE_GPIO_Port, &GPIO_InitStruct);
 
 	nRF24_CSN_H;
-	nRF24_CE_L;
+	nRF24_CE_H;
 
 	GPIO_InitStruct.Pin = ROTARY_A_Pin;
 	GPIO_InitStruct.Alternate = GPIO_AF1_TIM3;
