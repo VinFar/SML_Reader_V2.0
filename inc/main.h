@@ -83,6 +83,12 @@ void Error_Handler(void);
 #define I2C1_SDA_GPIO_Port GPIOB
 
 
+
+
+#define ADC_RJ1 ADC_CHSELR_CHSEL6
+#define ADC_RJ2 ADC_CHSELR_CHSEL8
+
+
 volatile typedef struct {
 	unsigned new_main_sml_packet:1;
 	unsigned new_plant_sml_packet:1;

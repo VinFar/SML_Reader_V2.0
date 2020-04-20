@@ -168,6 +168,12 @@ static void prvSetupHardware(void) {
 	usart3_init();
 //	usart5_init();
 
+
+
+	adc_init();
+
+
+
 	dac_init();
 	comp_init();
 

@@ -184,3 +184,29 @@ void TIM15_IRQHandler() {
 void RTC_IRQHandler() {
 
 }
+
+
+void ADC1_COMP_IRQHandler() {
+
+	if (ADC1->ISR & ADC_ISR_EOC) {
+		NOP
+		ADC1->ISR = ADC_ISR_EOC;
+		uint16_t dr = ADC1->DR;
+		printf("%d\r\n",dr);
+//		char ch[20];
+//		itoa(dr, (char*) ch, 10);
+//		int i;
+//		for (i = 0; i < 10; i++) {
+//			if (ch[i] == '\0') {
+//				ch[i] = '\r';
+//				ch[i + 1] = '\n';
+//				ch[i + 2] = '\0';
+//				break;
+//			}
+//		}
+//		usart6_send_data((uint8_t*) ch, i + 2);
+		UNUSED(dr);
+
+		NOP
+	}
+}

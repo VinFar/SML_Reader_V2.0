@@ -115,4 +115,17 @@ void gpio_init(void) {
 	nRF24_CSN_H;
 	nRF24_CE_L;
 
+	GPIO_InitStruct.Pin = ADC_RJ1_OUT_Pin;
+	GPIO_InitStruct.Mode = GPIO_MODE_ANALOG;
+	GPIO_InitStruct.Alternate = 0;
+	GPIO_InitStruct.Pull = GPIO_NOPULL;
+	HAL_GPIO_Init(ADC_RJ1_OUT_GPIO_Port, &GPIO_InitStruct);
+
+	GPIO_InitStruct.Pin = DAC_RJ1_IN_Pin;;
+	GPIO_InitStruct.Mode = GPIO_MODE_ANALOG;
+	GPIO_InitStruct.Alternate = 0;
+	GPIO_InitStruct.Pull = GPIO_NOPULL;
+	HAL_GPIO_Init(DAC_RJ1_IN_GPIO_Port, &GPIO_InitStruct);
+
+
 }
