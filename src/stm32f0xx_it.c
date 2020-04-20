@@ -6,6 +6,7 @@
 #include "i2clcd.h"
 #include "rtc.h"
 #include "nrf24.h"
+#include "stdlib.h"
 
 void NMI_Handler(void) {
 }
@@ -164,7 +165,7 @@ volatile uint32_t timer_ctr_for_power_valid_timeout = 0;
 void TIM15_IRQHandler() {
 	if ((TIM15->SR & TIM_SR_UIF) == TIM_SR_UIF) {	//Interrupt every 25 ms
 		TIM15->SR &= ~TIM_SR_UIF;	//Reset update interrupt flag
-
+		ADC1->CR |= ADC_CR_ADSTART;
 		if (timer_ctr_for_nrf24_timeout++ > 5 * 40) {
 			/*
 			 * TImeout of NRF24 communication: no data packet for more than 5 seconds
@@ -173,7 +174,6 @@ void TIM15_IRQHandler() {
 		}
 		if (timer_ctr_for_rtc_calc++ > 35) {
 			timer_ctr_for_rtc_calc = 0;
-
 
 		}
 		if (++timer_ctr_for_power_valid_timeout > (5 * 60 * 40)) {
@@ -184,6 +184,31 @@ void TIM15_IRQHandler() {
 			 */
 			flags.power_valid_timeout = 1;
 		}
+	}
+}
+
+void ADC1_COMP_IRQHandler() {
+
+	if (ADC1->ISR & ADC_ISR_EOC) {
+		NOP
+		ADC1->ISR = ADC_ISR_EOC;
+		uint16_t dr = ADC1->DR;
+		printf("%d\r\n",dr);
+//		char ch[20];
+//		itoa(dr, (char*) ch, 10);
+//		int i;
+//		for (i = 0; i < 10; i++) {
+//			if (ch[i] == '\0') {
+//				ch[i] = '\r';
+//				ch[i + 1] = '\n';
+//				ch[i + 2] = '\0';
+//				break;
+//			}
+//		}
+//		usart6_send_data((uint8_t*) ch, i + 2);
+		UNUSED(dr);
+
+		NOP
 	}
 }
 

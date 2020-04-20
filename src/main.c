@@ -27,6 +27,8 @@
 #include "nrf24.h"
 #include "rtc.h"
 #include "shared_defines.h"
+#include "adc.h"
+#include "stdlib.h"
 
 /* Priorities at which the tasks are created.  The event semaphore task is
  given the maximum priority of ( configMAX_PRIORITIES - 1 ) to ensure it runs as
@@ -74,7 +76,7 @@ int8_t (*nrf24_fct_vec_main[MAX_ENUM_CMDS - 1])(nrf24_frame_t*,
 };
 
 int8_t (*nrf24_fct_vec_disp[MAX_ENUM_CMDS - 1])(nrf24_frame_t*,
-		void*) = {nrf_cmd_ping_handler,nrf_cmd_relay_handler};
+		void*) = {nrf_cmd_ping_handler,nrf_cmd_relay_handler };
 
 /*
  * Version v0.0.0.1
@@ -84,12 +86,13 @@ int main(void) {
 
 	prvSetupHardware();
 
-
 	nrf24_init_gen();
 	nrf24_init_rx();
 
-	while (1) {
+	int32_t dr = 0;
 
+	while (1) {
+		dr++;
 		LED_OK_ON;
 		__WFI();
 		LED_OK_OFF;
@@ -97,7 +100,7 @@ int main(void) {
 		if (rtc_get_current_unix_time() > rtc_old_time_unix) {
 			rtc_old_time_unix = rtc_get_current_unix_time();
 			int32_t power_tmp_main = sm_power_main_current - POWERVALUE_BUFFER;
-			if(relay_right_get_state()){
+			if (relay_right_get_state()) {
 				/*
 				 * if the relay is already on, than the
 				 * power of main sm would not show a negative value
@@ -109,18 +112,21 @@ int main(void) {
 				 */
 				power_tmp_main -= POWERVALUE_RELAY_LEFT;
 			}
-			if(sm_power_main_current < -POWERVALUE_RELAY_LEFT){
+			if (sm_power_main_current < -POWERVALUE_RELAY_LEFT) {
 				relay_right_on();
-			}else{
+			} else {
 				relay_right_off();
 			}
 		}
+
+
 
 		if (flags.nrf24_new_frame) {
 			LED_ERROR_TOGGLE;
 			flags.nrf24_new_frame = 0;
 			nrf24_frame_t nrf24_frame;
-			uint8_t rx_pipe = (uint8_t)nRF24_ReadPayload((uint8_t*) &nrf24_frame, &nrf24_rx_size);
+			uint8_t rx_pipe = (uint8_t) nRF24_ReadPayload(
+					(uint8_t*) &nrf24_frame, &nrf24_rx_size);
 			UNUSED(rx_pipe);
 			if (nrf24_frame.size <= NRF24_RX_SIZE) {
 				/*
@@ -136,15 +142,15 @@ int main(void) {
 					 */
 					flags.smu_connected = 1;
 					//nrf24_tx_ctr = nrf24_frame.tx_ctr;
-					switch(rx_pipe){
+					switch (rx_pipe) {
 					case NRF_DISP_PIPE:
-						nrf24_fct_vec_disp[nrf24_frame.cmd](&nrf24_frame,NULL);
+						nrf24_fct_vec_disp[nrf24_frame.cmd](&nrf24_frame, NULL);
 						break;
 					default:
 						nrf24_fct_vec_main[nrf24_frame.cmd](&nrf24_frame, NULL);
 						break;
 					}
-					if(nrf_queue_is_empty() != 1){
+					if (nrf_queue_is_empty() != 1) {
 						/*
 						 * after every TX frame from the main unit we can transmit
 						 * to it inside a 50ms window.
@@ -152,7 +158,7 @@ int main(void) {
 						 * frame that is in the queue
 						 */
 						nrf24_init_tx();
-						memset(&nrf24_frame,0,sizeof(nrf24_frame));
+						memset(&nrf24_frame, 0, sizeof(nrf24_frame));
 						nrf_transmit_next_item();
 					}
 
@@ -191,6 +197,12 @@ static void prvSetupHardware(void) {
 	LED_OK_ON;
 	LED_ERROR_ON;
 
+	adc_init();
+
+	__HAL_RCC_DAC1_CLK_ENABLE();
+	DAC1->CR |= DAC_CR_EN1;
+	DAC1->DHR12R1 = 4000;
+
 	/*
 	 * communication for DAC, EEPROM and Display
 	 */
@@ -200,7 +212,7 @@ static void prvSetupHardware(void) {
 	 * communication for NRF24 Wireless Chip and FLASH IC
 	 */
 	spi1_init();
-//	usart6_init();
+	usart6_init();
 
 //	crc_init();
 
@@ -219,7 +231,6 @@ static void prvSetupHardware(void) {
 	LED_OK_OFF;
 
 }
-
 
 void SystemClock_Config(void) {
 

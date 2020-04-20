@@ -92,6 +92,9 @@ void Error_Handler(void);
 #define POWERVALUE_RELAY_LEFT 300
 #define POWERVALUE_BUFFER 100
 
+#define ADC_RJ1 ADC_CHSELR_CHSEL6
+#define ADC_RJ2 ADC_CHSELR_CHSEL8
+
 
 typedef volatile struct {
 	unsigned refreshed_rotary :1;
