@@ -26,6 +26,7 @@ void adc_init(void) {
 	/*
 	 * enable continuous mode
 	 */
+//	ADC1->CFGR1 |= ADC_CFGR1_CONT;
 
 	/*
 	 * enable end of conversion interrupt
