@@ -49,5 +49,7 @@ void adc_init(void) {
 	 */
 	ADC1->CR |= ADC_CR_ADSTART;
 
+	ADC->CCR |= ADC_CCR_VREFEN;
+
 
 }
