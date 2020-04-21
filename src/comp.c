@@ -21,6 +21,9 @@ void comp_init(){
 	 * Output is not inverted
 	 * positive input is the signal on the pin
 	 * negative inout is either DAC or Vref/2
+	 * Vrefint is typ. 1.2V
+	 *
+	 * polarity must be inverted for photo transistor
 	 */
 	COMP->CSR |= 0b11 << COMP_CSR_COMP2HYST_Pos;
 	COMP->CSR |= COMP_CSR_COMP2POL;
@@ -28,8 +31,9 @@ void comp_init(){
 	COMP->CSR |= COMP_CSR_COMP2EN;
 
 	COMP->CSR |= 0b11 << COMP_CSR_COMP1HYST_Pos;
-	COMP->CSR |= COMP_CSR_COMP1POL;
-	COMP->CSR |= COMP_CSR_COMP1INSEL_2;
+//	COMP->CSR |= COMP_CSR_COMP1POL;
+	COMP->CSR |= 0b101 << COMP_CSR_COMP1INSEL_Pos;
+//	COMP->CSR |= COMP_CSR_COMP1INSEL_2;
 	COMP->CSR |= COMP_CSR_COMP1EN;
 
 
