@@ -49,20 +49,6 @@ void gpio_init(void) {
 
 
 
-	GPIO_InitStruct.Pin = COMP1_INP_Pin;
-	GPIO_InitStruct.Mode = GPIO_MODE_ANALOG;
-	GPIO_InitStruct.Pull = GPIO_NOPULL;
-	GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
-	GPIO_InitStruct.Alternate = GPIO_AF7_COMP1;
-	HAL_GPIO_Init(COMP1_INP_GPIO_Port, &GPIO_InitStruct);
-
-	GPIO_InitStruct.Pin = COMP2_INP_Pin;
-	GPIO_InitStruct.Mode = GPIO_MODE_ANALOG;
-	GPIO_InitStruct.Pull = GPIO_NOPULL;
-	GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
-	GPIO_InitStruct.Alternate = GPIO_AF7_COMP2;
-	HAL_GPIO_Init(COMP2_INP_GPIO_Port, &GPIO_InitStruct);
-
 	GPIO_InitStruct.Pin = COMP1_OUT_Pin;
 	GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
 	GPIO_InitStruct.Pull = GPIO_NOPULL;
@@ -115,17 +101,15 @@ void gpio_init(void) {
 	nRF24_CSN_H;
 	nRF24_CE_L;
 
-	GPIO_InitStruct.Pin = ADC_RJ1_OUT_Pin;
-	GPIO_InitStruct.Mode = GPIO_MODE_ANALOG;
-	GPIO_InitStruct.Alternate = 0;
-	GPIO_InitStruct.Pull = GPIO_NOPULL;
-	HAL_GPIO_Init(ADC_RJ1_OUT_GPIO_Port, &GPIO_InitStruct);
 
-	GPIO_InitStruct.Pin = DAC_RJ1_IN_Pin;;
-	GPIO_InitStruct.Mode = GPIO_MODE_ANALOG;
-	GPIO_InitStruct.Alternate = 0;
-	GPIO_InitStruct.Pull = GPIO_NOPULL;
-	HAL_GPIO_Init(DAC_RJ1_IN_GPIO_Port, &GPIO_InitStruct);
+	/*
+	 * uncomment to output USART6 TX on IR LED of read head
+	 */
+//	GPIO_InitStruct.Pin = DAC_RJ2_IN_Pin;
+//	GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
+//	GPIO_InitStruct.Alternate = GPIO_AF5_USART6;
+//	GPIO_InitStruct.Pull = GPIO_NOPULL;
+//	HAL_GPIO_Init(DAC_RJ2_IN_GPIO_Port, &GPIO_InitStruct);
 
 
 }
