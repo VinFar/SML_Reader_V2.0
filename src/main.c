@@ -87,6 +87,7 @@ int main(void) {
 		if(flags.oneHz_flags){
 			flags.oneHz_flags=0;
 			rtc_calc_new_time();
+			sm_tx();
 		}
 
 		if (flags.new_plant_sml_packet) {
@@ -100,7 +101,7 @@ int main(void) {
 		}
 
 		if(nrf_queue_is_empty()==0){
-			nrf_transmit_next_item();
+//			nrf_transmit_next_item();
 		}
 
 		if ((rtc_get_current_unix_time() - rtc_old_time) >= FLASH_SAVE_INTERVALL) {
@@ -113,7 +114,7 @@ int main(void) {
 		}
 
 		if (flags.usart6_new_cmd) {
-			check_cmd_frame();
+//			check_cmd_frame();
 		}
 	}
 }
@@ -137,7 +138,7 @@ void vApplicationTickHook() {
 static void prvSetupHardware(void) {
 
 	SystemClock_Config();
-
+	dac_init();
 	gpio_init();
 
 	timer16_init();
@@ -168,13 +169,8 @@ static void prvSetupHardware(void) {
 	usart3_init();
 //	usart5_init();
 
+//	adc_init();
 
-
-	adc_init();
-
-
-
-	dac_init();
 	comp_init();
 
 	crc_init();
@@ -182,6 +178,8 @@ static void prvSetupHardware(void) {
 	rtc_init();
 
 	TIM15_Init();
+
+	init_tx_data();
 
 }
 
