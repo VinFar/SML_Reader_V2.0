@@ -17,6 +17,9 @@ void flash_main_store_data_in_cache(uint32_t timestamp);
 void flash_plant_store_data_in_cache(uint32_t timestamp);
 void check_cmd_struct(void *param);
 
+void sm_tx();
+void init_tx_data();
+
 struct nrf24_queue_struct {
 	uint16_t read_idx;
 	uint16_t write_idx;
