@@ -29,7 +29,6 @@ void USART1_IRQHandler() {
 		 */
 
 		sml_main_raw_data[sml_main_raw_data_idx] = USART1->RDR;
-		USART5->TDR = sml_main_raw_data[sml_main_raw_data_idx];
 		sml_main_raw_data_idx++;
 		if (sml_main_raw_data_idx > sizeof(sml_main_raw_data)) {
 			sml_main_raw_data_idx = 0;
@@ -107,6 +106,7 @@ uint32_t timer_ctr_for_wallbox_tx = 0;
 void TIM15_IRQHandler() {
 	if ((TIM15->SR & TIM_SR_UIF) == TIM_SR_UIF) {	//Interrupt every 25 ms
 		TIM15->SR &= ~TIM_SR_UIF;	//Reset update interrupt flag
+		ADC1->CR |= ADC_CR_ADSTART;
 		if (flags.display_connected == 1) {
 			if (++timer_ctr_for_display_tx > 40) {
 				timer_ctr_for_display_tx = 0;
@@ -174,7 +174,7 @@ void TIM15_IRQHandler() {
 				nrf_add_qeue(NRF24_CMD_PING, sm, NRF_ADDR_WALLBOX);
 			}
 		}
-		if (++timer_ctr_for_1s_flags > 35) {
+		if (++timer_ctr_for_1s_flags > 40) {
 			timer_ctr_for_1s_flags = 0;
 			flags.oneHz_flags = 1;
 		}
@@ -185,14 +185,13 @@ void RTC_IRQHandler() {
 
 }
 
-
 void ADC1_COMP_IRQHandler() {
 
 	if (ADC1->ISR & ADC_ISR_EOC) {
 		NOP
 		ADC1->ISR = ADC_ISR_EOC;
 		uint16_t dr = ADC1->DR;
-		printf("%d\r\n",dr);
+//		printf("%d\r\n",dr);
 //		char ch[20];
 //		itoa(dr, (char*) ch, 10);
 //		int i;
