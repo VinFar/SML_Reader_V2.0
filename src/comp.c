@@ -35,11 +35,11 @@ void comp_init(){
 	COMP->CSR |= COMP_CSR_COMP2EN;
 
 	/*
-	 * DAC 2 as Reference
+	 * Vref/2 as Reference
 	 */
 	COMP->CSR |= 0b11 << COMP_CSR_COMP1HYST_Pos;
 	COMP->CSR |= COMP_CSR_COMP1POL;
-	COMP->CSR |= 0b101 << COMP_CSR_COMP1INSEL_Pos;
+	COMP->CSR |= 0b01 << COMP_CSR_COMP1INSEL_Pos;
 //	COMP->CSR |= COMP_CSR_COMP1INSEL_2;
 	COMP->CSR |= COMP_CSR_COMP1EN;
 
