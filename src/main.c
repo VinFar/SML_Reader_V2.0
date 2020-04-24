@@ -68,6 +68,10 @@ uuid_t uuid = { { ((uint32_t*) UUID_BASE_ADDRESS),
 		(((uint32_t*) UUID_BASE_ADDRESS + 1)), ((uint32_t*) (UUID_BASE_ADDRESS
 				+ 2)) } };
 
+/*
+ * V0.0.1.1
+ */
+
 int main(void) {
 
 
@@ -75,6 +79,7 @@ int main(void) {
 	flags.new_main_sml_packet = 0;
 
 	flash_init();
+//	flash_bulkErase();
 	flash_address_get_main();
 	flash_address_get_plant();
 
@@ -139,7 +144,7 @@ void vApplicationTickHook() {
 static void prvSetupHardware(void) {
 
 	SystemClock_Config();
-	dac_init();
+//	dac_init();
 	gpio_init();
 
 	timer16_init();
