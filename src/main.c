@@ -70,6 +70,7 @@ uuid_t uuid = { { ((uint32_t*) UUID_BASE_ADDRESS),
 
 int main(void) {
 
+
 	prvSetupHardware();
 	flags.new_main_sml_packet = 0;
 
@@ -77,6 +78,7 @@ int main(void) {
 	flash_address_get_main();
 	flash_address_get_plant();
 
+	nrf24_init_gen();
 	nrf24_init_tx();
 	nrf_queue_init();
 
@@ -87,7 +89,6 @@ int main(void) {
 		if(flags.oneHz_flags){
 			flags.oneHz_flags=0;
 			rtc_calc_new_time();
-			sm_tx();
 		}
 
 		if (flags.new_plant_sml_packet) {
@@ -100,8 +101,8 @@ int main(void) {
 			sm_main_extract_data();
 		}
 
-		if(nrf_queue_is_empty()==0){
-//			nrf_transmit_next_item();
+		if(nrf_queue_is_empty()==0 && flags.nrf_rx_window == 0){
+			nrf_transmit_next_item();
 		}
 
 		if ((rtc_get_current_unix_time() - rtc_old_time) >= FLASH_SAVE_INTERVALL) {
@@ -114,7 +115,7 @@ int main(void) {
 		}
 
 		if (flags.usart6_new_cmd) {
-//			check_cmd_frame();
+			check_cmd_frame();
 		}
 	}
 }
@@ -169,7 +170,7 @@ static void prvSetupHardware(void) {
 	usart3_init();
 //	usart5_init();
 
-//	adc_init();
+	adc_init();
 
 	comp_init();
 
@@ -178,6 +179,7 @@ static void prvSetupHardware(void) {
 	rtc_init();
 
 	TIM15_Init();
+	TIM14_Init();
 
 	init_tx_data();
 

@@ -596,28 +596,6 @@ nRF24_TXResult nRF24_TransmitPacket(uint8_t *pBuf, uint8_t length) {
 }
 
 void nrf24_init_tx() {
-	// This is simple transmitter with Enhanced ShockBurst (to one logic address):
-	//   - TX address: 'ESB'
-	//   - payload: 10 bytes
-	//   - RF channel: 40 (2440MHz)
-	//   - data rate: 2Mbps
-	//   - CRC scheme: 2 byte
-
-	// The transmitter sends a 10-byte packets to the address 'ESB' with Auto-ACK (ShockBurst enabled)
-	nRF24_Check();
-	nRF24_Init();
-
-	// Set RF channel
-	nRF24_SetRFChannel(40);
-
-	// Set data rate
-	nRF24_SetDataRate(nRF24_DR_250kbps);
-
-	// Set CRC scheme
-	nRF24_SetCRCScheme(nRF24_CRC_2byte);
-
-	// Set address width, its common for all pipes (RX and TX)
-	nRF24_SetAddrWidth(NRF_ADDR_LEN);
 
 	// Configure TX PIPE
 	const uint32_t addr = NRF_ADDR_DISP;
@@ -625,15 +603,10 @@ void nrf24_init_tx() {
 	const uint32_t addr2 = NRF_ADDR_WALLBOX;
 	nRF24_SetAddr(NRF_WALLBOX_PIPE, (const uint8_t*) &addr2); // program address for pipe#0, must be same as TX (for Auto-ACK)
 
-	// Set TX power (maximum)
-	nRF24_SetTXPower(nRF24_TXPWR_0dBm);
-
-	// Configure auto retransmit: 10 retransmissions with pause of 2500s in between
-	nRF24_SetAutoRetr(nRF24_ARD_2500us, 15);
-
 	// Enable Auto-ACK for pipe#0 (for ACK packets)
 	nRF24_EnableAA(NRF_DISP_PIPE);
 	nRF24_EnableAA(NRF_WALLBOX_PIPE);
+
 	// Set operational mode (PTX == transmitter)
 	nRF24_SetOperationalMode(nRF24_MODE_TX);
 
@@ -643,9 +616,57 @@ void nrf24_init_tx() {
 	// Wake the transceiver
 	nRF24_SetPowerMode(nRF24_PWR_UP);
 
+	flags.nrf_rx_window = 0;
+
 }
 
-int8_t nrf_add_qeue(uint8_t cmd, data_union_t *ptr, uint32_t addr) {
+void nrf24_init_rx(nrf24_pipes_t pipe, uint32_t addr) {
+	// Configure RX PIPE
+
+	nRF24_SetAddr(pipe, (const uint8_t*) &addr); // program address for pipe
+	nRF24_SetRXPipe(pipe, nRF24_AA_ON, NRF_PAYLOAD_LEN);
+
+	// Set operational mode (PTX == transmitter)
+	nRF24_SetOperationalMode(nRF24_MODE_RX);
+
+	// Clear any pending IRQ flags
+	nRF24_ClearIRQFlags();
+
+	// Wake the transceiver
+	nRF24_SetPowerMode(nRF24_PWR_UP);
+
+	flags.nrf_rx_window=1;
+
+}
+
+void nrf24_init_gen() {
+
+	nRF24_Check();
+	nRF24_Init();
+
+	// Set RF channel
+	nRF24_SetRFChannel(NRF_CHANNEL);
+
+	// Set data rate
+	nRF24_SetDataRate(NRF_DATARATE);
+
+	// Set CRC scheme
+	nRF24_SetCRCScheme(NRF_CRC_SCHEME);
+
+	// Set address width, its common for all pipes (RX and TX)
+	nRF24_SetAddrWidth(NRF_ADDR_LEN);
+
+	// Set TX power (maximum)
+	nRF24_SetTXPower(nRF24_TXPWR_0dBm);
+
+	// Configure auto retransmit: 10 retransmissions with pause of 2500s in between
+	nRF24_SetAutoRetr(nRF24_ARD_2500us, 15);
+
+
+
+}
+
+int8_t nrf_add_qeue(uint8_t cmd, data_union_t *ptr, uint32_t addr,nrf24_pipes_t pipe) {
 
 	if (cmd > NRF24_CMD_MAX_ENUM) {
 		return -1;
@@ -683,6 +704,7 @@ int8_t nrf_transmit_next_item() {
 						(uint8_t*) &item.frame, 32);
 				uint8_t otx = nRF24_GetRetransmitCounters();
 				UNUSED(otx);
+
 				if (nrf_res != nRF24_TX_SUCCESS) {
 					nRF24_ResetPLOS();
 					if (item.addr == NRF_ADDR_WALLBOX) {
@@ -692,6 +714,7 @@ int8_t nrf_transmit_next_item() {
 					}
 					return -1;
 				}
+				nrf24_init_rx(item.pipe, item.addr);
 				nrf24_tx_ctr++;
 				if (item.addr == NRF_ADDR_WALLBOX) {
 					flags.wallbox_connected = 1;

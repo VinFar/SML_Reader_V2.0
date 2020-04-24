@@ -102,11 +102,12 @@ void HardFault_Handler(void) {
 uint32_t timer_ctr_for_display_tx = 0;
 uint32_t timer_ctr_for_1s_flags = 0;
 uint32_t timer_ctr_for_wallbox_tx = 0;
+uint32_t timer_ctr_for_nrf_rx_windows = 0;
 
 void TIM15_IRQHandler() {
+
 	if ((TIM15->SR & TIM_SR_UIF) == TIM_SR_UIF) {	//Interrupt every 25 ms
 		TIM15->SR &= ~TIM_SR_UIF;	//Reset update interrupt flag
-		ADC1->CR |= ADC_CR_ADSTART;
 		if (flags.display_connected == 1) {
 			if (++timer_ctr_for_display_tx > 40) {
 				timer_ctr_for_display_tx = 0;
@@ -126,7 +127,8 @@ void TIM15_IRQHandler() {
 						sm_plant_current_data.meter_delivery;
 				sm[NRF_IDX_SM_DATA_PLANT_POWER].uint32_data =
 						sm_plant_current_data.power;
-				nrf_add_qeue(NRF24_CMD_SM_DATA, sm, NRF_ADDR_DISP);
+				nrf_add_qeue(NRF24_CMD_SM_DATA, sm, NRF_ADDR_DISP,
+				NRF_DISP_PIPE);
 
 			}
 		} else {
@@ -138,7 +140,7 @@ void TIM15_IRQHandler() {
 				union data_union sm[2];
 				sm[0].uint32_data = RTC->TR;
 				sm[1].uint32_data = RTC->DR;
-				nrf_add_qeue(NRF24_CMD_PING, sm, NRF_ADDR_DISP);
+				nrf_add_qeue(NRF24_CMD_PING, sm, NRF_ADDR_DISP, NRF_DISP_PIPE);
 			}
 		}
 		if (flags.wallbox_connected == 1) {
@@ -159,7 +161,8 @@ void TIM15_IRQHandler() {
 						sm_plant_current_data.meter_delivery;
 				sm[NRF_IDX_SM_DATA_PLANT_POWER].uint32_data =
 						sm_plant_current_data.power;
-				nrf_add_qeue(NRF24_CMD_SM_DATA, sm, NRF_ADDR_WALLBOX);
+				nrf_add_qeue(NRF24_CMD_SM_DATA, sm, NRF_ADDR_WALLBOX,
+				NRF_WALLBOX_PIPE);
 
 			}
 		} else {
@@ -171,13 +174,31 @@ void TIM15_IRQHandler() {
 				union data_union sm[2];
 				sm[0].uint32_data = RTC->TR;
 				sm[1].uint32_data = RTC->DR;
-				nrf_add_qeue(NRF24_CMD_PING, sm, NRF_ADDR_WALLBOX);
+				nrf_add_qeue(NRF24_CMD_PING, sm, NRF_ADDR_WALLBOX,
+				NRF_WALLBOX_PIPE);
 			}
 		}
+
+		if (flags.nrf_rx_window) {
+			if (++timer_ctr_for_nrf_rx_windows > 1) {
+				timer_ctr_for_nrf_rx_windows = 0;
+				nrf24_init_tx();
+			}
+		}
+
 		if (++timer_ctr_for_1s_flags > 40) {
 			timer_ctr_for_1s_flags = 0;
 			flags.oneHz_flags = 1;
 		}
+
+	}
+}
+
+void TIM14_IRQHandler() {
+
+	if ((TIM14->SR & TIM_SR_UIF) == TIM_SR_UIF) {	//Interrupt every x ms
+		TIM14->SR &= ~TIM_SR_UIF;	//Reset update interrupt flag
+		ADC1->CR |= ADC_CR_ADSTART;
 	}
 }
 
@@ -191,7 +212,7 @@ void ADC1_COMP_IRQHandler() {
 		NOP
 		ADC1->ISR = ADC_ISR_EOC;
 		uint16_t dr = ADC1->DR;
-//		printf("%d\r\n",dr);
+		printf("%d\r\n", dr);
 //		char ch[20];
 //		itoa(dr, (char*) ch, 10);
 //		int i;

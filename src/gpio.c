@@ -48,7 +48,6 @@ void gpio_init(void) {
 	HAL_GPIO_Init(USART6_RX_GPIO_Port, &GPIO_InitStruct);
 
 
-
 	GPIO_InitStruct.Pin = COMP1_OUT_Pin;
 	GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
 	GPIO_InitStruct.Pull = GPIO_NOPULL;

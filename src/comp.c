@@ -25,13 +25,20 @@ void comp_init(){
 	 *
 	 * polarity must be inverted for photo transistor
 	 */
+
+	/*
+	 * Vref /2 as reference
+	 */
 	COMP->CSR |= 0b11 << COMP_CSR_COMP2HYST_Pos;
 	COMP->CSR |= COMP_CSR_COMP2POL;
 	COMP->CSR |= 0b001 << COMP_CSR_COMP2INSEL_Pos;;
 	COMP->CSR |= COMP_CSR_COMP2EN;
 
+	/*
+	 * DAC 2 as Reference
+	 */
 	COMP->CSR |= 0b11 << COMP_CSR_COMP1HYST_Pos;
-//	COMP->CSR |= COMP_CSR_COMP1POL;
+	COMP->CSR |= COMP_CSR_COMP1POL;
 	COMP->CSR |= 0b101 << COMP_CSR_COMP1INSEL_Pos;
 //	COMP->CSR |= COMP_CSR_COMP1INSEL_2;
 	COMP->CSR |= COMP_CSR_COMP1EN;

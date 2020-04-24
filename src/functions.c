@@ -465,7 +465,7 @@ void flash_main_store_data_in_cache(uint32_t timestamp) {
 		sm[4].uint32_data = W25N_START_ADDRESS_MAIN;
 		sm[5].uint32_data = W25N_START_ADDRESS_PLANT;
 
-		nrf_add_qeue(NRF24_CMD_FLASH_DATA, sm, NRF_ADDR_DISP);
+		nrf_add_qeue(NRF24_CMD_FLASH_DATA, sm, NRF_ADDR_DISP,NRF_DISP_PIPE);
 
 		if (flash_current_address_main_sml > W25N_MAX_ADDRESS_MAIN) {
 			/*
@@ -520,7 +520,7 @@ void flash_plant_store_data_in_cache(uint32_t timestamp) {
 		sm[4].uint32_data = W25N_START_ADDRESS_MAIN;
 		sm[5].uint32_data = W25N_START_ADDRESS_PLANT;
 
-		nrf_add_qeue(NRF24_CMD_FLASH_DATA, sm, NRF_ADDR_DISP);
+		nrf_add_qeue(NRF24_CMD_FLASH_DATA, sm, NRF_ADDR_DISP,NRF_DISP_PIPE);
 
 		if (flash_current_address_plant_sml > W25N_MAX_ADDRESS_PLANT) {
 			/*

@@ -97,6 +97,7 @@ volatile typedef struct {
 	unsigned display_connected:1;
 	unsigned oneHz_flags:1;
 	unsigned wallbox_connected:1;
+	unsigned nrf_rx_window:1;
 }flags_t;
 
 flags_t flags;

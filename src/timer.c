@@ -118,20 +118,20 @@ void TIM6_Init() {
 
 void TIM14_Init() {
 
-	__HAL_RCC_TIM14_CLK_ENABLE();
-
-	TIM14->ARR = 2000;//Auto reload register on 10s for checking correct data transmission
-	TIM14->PSC = 48000;			//1us counter
-//	TIM14->CR1 |= TIM_CR1_UDIS;
-	TIM14->DIER |= TIM_DIER_UIE;
-		TIM14->CR1 |= TIM_CR1_URS;
-
-//	TIM14->DIER |= TIM_DIER_CC1IE; //caputer interrupt 1 enable
-	TIM14->CNT = 0;
-	TIM14->EGR |= TIM_EGR_UG;
+	__HAL_RCC_TIM14_CLK_ENABLE()
+	;
+	delay_us(10);
+	TIM14->CR1 |= TIM_CR1_URS;	//Only overflow generates an itnerrupt
+	TIM14->DIER |= TIM_DIER_UIE;	//Update interrupt enable
+	TIM14->PSC = (SystemCoreClock)/1000000;			//Prescaler at 108 for 1us tick
+	TIM14->ARR = 1000;
 
 	NVIC_EnableIRQ(TIM14_IRQn);
-	return;
+	NVIC_SetPriority(TIM14_IRQn, 5);
+
+	TIM14->CNT = 0;
+	TIM14->CR1 |= TIM_CR1_CEN;
+
 
 }
 

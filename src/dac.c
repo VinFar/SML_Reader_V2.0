@@ -25,7 +25,7 @@ void dac_init(){
 //	DAC->CR |= DAC_CR_EN1;
 	DAC1->DHR12R1 = 1600;
 	DAC->CR |= DAC_CR_EN2;
-	DAC1->DHR12R2 = 2000;
+	DAC1->DHR12R2 = 160;
 
 
 }
