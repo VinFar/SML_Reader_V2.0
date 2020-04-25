@@ -94,7 +94,7 @@ void gpio_init(void) {
 
 	/*Configure GPIO pin : PtPin */
 	GPIO_InitStruct.Pin = NRF_IRQ_Pin;
-	GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING_FALLING;
+	GPIO_InitStruct.Mode = GPIO_MODE_IT_FALLING;
 	GPIO_InitStruct.Pull = GPIO_NOPULL;
 	HAL_GPIO_Init(NRF_IRQ_GPIO_Port, &GPIO_InitStruct);
 	NVIC_EnableIRQ(EXTI4_15_IRQn);

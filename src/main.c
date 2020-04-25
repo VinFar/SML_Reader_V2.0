@@ -91,6 +91,8 @@ int main(void) {
 
 	int32_t dr = 0;
 
+	nrf_queue_init();
+
 	while (1) {
 		dr++;
 		LED_OK_ON;
