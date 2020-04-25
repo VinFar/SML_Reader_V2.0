@@ -159,9 +159,9 @@ int main(void) {
 						 * So if the queue is not empty, we have to a sent the
 						 * frame that is in the queue
 						 */
-						nrf24_init_tx();
+//						nrf24_init_tx();
 						memset(&nrf24_frame, 0, sizeof(nrf24_frame));
-						nrf_transmit_next_item();
+//						nrf_transmit_next_item();
 					}
 
 				}
