@@ -108,13 +108,6 @@ typedef enum {
 	nRF24_ARD_4000us = (uint8_t)0x0F
 }nrf24_ard_delays_t;
 
-// Data rate
-typedef enum {
-	nRF24_DR_250kbps = (uint8_t)0x20, // 250kbps data rate
-	nRF24_DR_1Mbps   = (uint8_t)0x00, // 1Mbps data rate
-	nRF24_DR_2Mbps   = (uint8_t)0x08  // 2Mbps data rate
-}nrf24_datarates_t;
-
 // RF output power in TX mode
 typedef enum {
 	nRF24_TXPWR_18dBm = (uint8_t)0x00, // -18dBm
@@ -123,12 +116,6 @@ typedef enum {
 	nRF24_TXPWR_0dBm  = (uint8_t)0x06  //   0dBm
 }nrf24_txpwr_t;
 
-// CRC encoding scheme
-typedef enum {
-	nRF24_CRC_off   = (uint8_t)0x00, // CRC disabled
-	nRF24_CRC_1byte = (uint8_t)0x08, // 1-byte CRC
-	nRF24_CRC_2byte = (uint8_t)0x0c  // 2-byte CRC
-}nrf24_crc_scheme_t;
 
 // nRF24L01 power control
 typedef enum {
@@ -142,16 +129,6 @@ typedef enum {
 	nRF24_MODE_TX = (uint8_t)0x00  // PTX
 }nrf24_mode_t;
 
-// Enumeration of RX pipe addresses and TX address
-typedef enum {
-	nRF24_PIPE0  = (uint8_t)0x00, // pipe0
-	nRF24_PIPE1  = (uint8_t)0x01, // pipe1
-	nRF24_PIPE2  = (uint8_t)0x02, // pipe2
-	nRF24_PIPE3  = (uint8_t)0x03, // pipe3
-	nRF24_PIPE4  = (uint8_t)0x04, // pipe4
-	nRF24_PIPE5  = (uint8_t)0x05, // pipe5
-	nRF24_PIPETX = (uint8_t)0x06  // TX address (not a pipe in fact)
-}nrf24_pipes_t;
 
 // State of auto acknowledgment for specified pipe
 typedef enum {

@@ -627,6 +627,9 @@ void nrf24_init_rx() {
 
 	nrf_enable_irq(nrf_irq_rx_dr);
 
+	// Wake the transceiver
+	nRF24_SetPowerMode(nRF24_PWR_UP);
+
 	// Put the transceiver to the RX mode
 	nRF24_CE_H;
 
@@ -657,12 +660,7 @@ void nrf24_init_gen() {
 
 	// Set TX power for Auto-ACK (maximum, to ensure that transmitter will hear ACK reply)
 	nRF24_SetTXPower(nRF24_TXPWR_0dBm);
-
-	// Wake the transceiver
-	nRF24_SetPowerMode(nRF24_PWR_UP);
-
 }
-
 
 int8_t nrf_write_frame(nrf24_frame_t frame) {
 	memcpy(&nrf24_frame, &frame, sizeof(frame));
