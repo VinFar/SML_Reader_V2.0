@@ -88,6 +88,9 @@ int main(void) {
 	nrf_queue_init();
 
 	uint32_t rtc_old_time=rtc_get_current_unix_time();
+	flags.nrf_rx_window=0;
+	flags.display_connected = 0;
+	flags.wallbox_connected = 0;
 
 	while (1) {
 

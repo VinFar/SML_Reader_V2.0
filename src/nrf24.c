@@ -694,6 +694,7 @@ int8_t nrf_transmit_next_item() {
 	nrf24_frame_queue_t item;
 	enum dequeue_result res;
 	res = nrf_queue_dequeue(&item);
+	nrf24_init_tx();
 	nRF24_SetAddr(nRF24_PIPETX, (const uint8_t*) &item.addr);
 	nRF24_SetAddr(nRF24_PIPE0, (const uint8_t*) &item.addr);
 	if (res == DEQUEUE_RESULT_SUCCESS) {
