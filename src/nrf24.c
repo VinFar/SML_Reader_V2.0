@@ -1,6 +1,8 @@
 #include "nrf24.h"
 #include "functions.h"
 #include "shared_defines.h"
+#include "string.h"
+#include "delay.h"
 
 // The address used to test presence of the transceiver,
 // note: should not exceed 5 bytes
@@ -627,7 +629,7 @@ void nrf24_init_rx(nrf24_pipes_t pipe, uint32_t addr) {
 	nRF24_SetRXPipe(pipe, nRF24_AA_ON, NRF_PAYLOAD_LEN);
 
 	// Set operational mode (PTX == transmitter)
-	nRF24_SetOperationalMode(nRF24_MODE_RX);
+//	nRF24_SetOperationalMode(nRF24_MODE_RX);
 
 	// Clear any pending IRQ flags
 	nRF24_ClearIRQFlags();
@@ -695,8 +697,10 @@ int8_t nrf_transmit_next_item() {
 	enum dequeue_result res;
 	res = nrf_queue_dequeue(&item);
 	nrf24_init_tx();
+	delay_us(200);
 	nRF24_SetAddr(nRF24_PIPETX, (const uint8_t*) &item.addr);
 	nRF24_SetAddr(nRF24_PIPE0, (const uint8_t*) &item.addr);
+
 	if (res == DEQUEUE_RESULT_SUCCESS) {
 		if (item.frame.cmd < NRF24_CMD_MAX_ENUM) {
 			if (item.frame.size <= 32) {
@@ -716,6 +720,7 @@ int8_t nrf_transmit_next_item() {
 					return -1;
 				}
 				nrf24_init_rx(item.pipe, item.addr);
+				flags.nrf_rx_window=1;
 				nrf24_tx_ctr++;
 				if (item.addr == NRF_ADDR_WALLBOX) {
 					flags.wallbox_connected = 1;

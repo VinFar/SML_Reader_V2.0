@@ -182,7 +182,7 @@ void TIM15_IRQHandler() {
 		if (flags.nrf_rx_window) {
 			if (++timer_ctr_for_nrf_rx_windows > 1) {
 				timer_ctr_for_nrf_rx_windows = 0;
-				nrf24_init_tx();
+				flags.nrf_rx_window=0;
 			}
 		}
 

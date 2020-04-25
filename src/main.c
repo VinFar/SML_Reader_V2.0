@@ -91,6 +91,7 @@ int main(void) {
 	flags.nrf_rx_window=0;
 	flags.display_connected = 0;
 	flags.wallbox_connected = 0;
+	flags.nrf_tx_init = 0;
 
 	while (1) {
 
