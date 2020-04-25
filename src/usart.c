@@ -83,8 +83,8 @@ void usart6_init() {
 	USART6->BRR = SystemCoreClock / 1000000;
 
 	USART6->CR1 |= USART_CR1_RE | USART_CR1_TE;
-//	USART6->CR1 |= USART_CR1_RXNEIE; //Reciever Interrupt Enable
-//	USART6->CR1 |= USART_CR1_IDLEIE; //idle line detection interrupt
+	USART6->CR1 |= USART_CR1_RXNEIE; //Reciever Interrupt Enable
+	USART6->CR1 |= USART_CR1_IDLEIE; //idle line detection interrupt
 	USART6->CR1 |= USART_CR1_UE;
 
 	NVIC_SetPriority(USART3_8_IRQn, 1);

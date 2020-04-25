@@ -212,7 +212,7 @@ void ADC1_COMP_IRQHandler() {
 		NOP
 		ADC1->ISR = ADC_ISR_EOC;
 		uint16_t dr = ADC1->DR;
-		printf("%d\r\n", dr);
+//		printf("%d\r\n", dr);
 //		char ch[20];
 //		itoa(dr, (char*) ch, 10);
 //		int i;
