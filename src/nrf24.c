@@ -627,6 +627,8 @@ void nrf24_init_rx() {
 
 	nrf_enable_irq(nrf_irq_rx_dr);
 
+	nRF24_ClearIRQFlags();
+
 	// Wake the transceiver
 	nRF24_SetPowerMode(nRF24_PWR_UP);
 
@@ -647,16 +649,16 @@ void nrf24_init_gen() {
 	nRF24_Init();
 	nRF24_Check();
 	// Set RF channel
-	nRF24_SetRFChannel(40);
+	nRF24_SetRFChannel(NRF_CHANNEL);
 
 	// Set data rate
-	nRF24_SetDataRate(nRF24_DR_250kbps);
+	nRF24_SetDataRate(NRF_DATARATE);
 
 	// Set CRC scheme
-	nRF24_SetCRCScheme(nRF24_CRC_2byte);
+	nRF24_SetCRCScheme(NRF_CRC_SCHEME);
 
 	// Set address width, its common for all pipes (RX and TX)
-	nRF24_SetAddrWidth(4);
+	nRF24_SetAddrWidth(NRF_ADDR_LEN);
 
 	// Set TX power for Auto-ACK (maximum, to ensure that transmitter will hear ACK reply)
 	nRF24_SetTXPower(nRF24_TXPWR_0dBm);
