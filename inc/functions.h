@@ -7,6 +7,8 @@
 
 #define ARRAY_LENGTH(A) (sizeof(A)/sizeof((A)[0]))
 
+#define SM_HISTORY_SIZE 300
+
 uint16_t Log2n(uint16_t n);
 int16_t isPowerOfTwo(uint16_t n);
 int16_t findPosition(uint16_t n);

@@ -117,15 +117,15 @@ void TIM15_IRQHandler() {
 				 */
 
 				union data_union sm[5];
-				sm[NRF_IDX_SM_DATA_MAIN_METER_DEL].uint32_data =
+				sm[NRF_IDX_DISP_SM_DATA_MAIN_METER_DEL].uint32_data =
 						sm_main_current_data.meter_delivery;
-				sm[NRF_IDX_SM_DATA_MAIN_METER_PUR].uint32_data =
+				sm[NRF_IDX_DISP_SM_DATA_MAIN_METER_PUR].uint32_data =
 						sm_main_current_data.meter_purchase;
-				sm[NRF_IDX_SM_DATA_MAIN_POWER].uint32_data =
+				sm[NRF_IDX_DISP_SM_DATA_MAIN_POWER].uint32_data =
 						sm_main_current_data.power;
-				sm[NRF_IDX_SM_DATA_PLANT_DEL].uint32_data =
+				sm[NRF_IDX_DISP_SM_DATA_PLANT_DEL].uint32_data =
 						sm_plant_current_data.meter_delivery;
-				sm[NRF_IDX_SM_DATA_PLANT_POWER].uint32_data =
+				sm[NRF_IDX_DISP_SM_DATA_PLANT_POWER].uint32_data =
 						sm_plant_current_data.power;
 				nrf_add_qeue(NRF24_CMD_SM_DATA, sm, NRF_ADDR_DISP,
 				NRF_DISP_PIPE);
@@ -151,16 +151,15 @@ void TIM15_IRQHandler() {
 				 * data
 				 */
 				union data_union sm[5];
-				sm[NRF_IDX_SM_DATA_MAIN_METER_DEL].uint32_data =
-						sm_main_current_data.meter_delivery;
-				sm[NRF_IDX_SM_DATA_MAIN_METER_PUR].uint32_data =
-						sm_main_current_data.meter_purchase;
-				sm[NRF_IDX_SM_DATA_MAIN_POWER].uint32_data =
+				sm[NRF_IDX_WB_SM_DATA_MAIN_POWER].uint32_data =
 						sm_main_current_data.power;
-				sm[NRF_IDX_SM_DATA_PLANT_DEL].uint32_data =
-						sm_plant_current_data.meter_delivery;
-				sm[NRF_IDX_SM_DATA_PLANT_POWER].uint32_data =
+				sm[NRF_IDX_WB_SM_DATA_PLANT_POWER].uint32_data =
 						sm_plant_current_data.power;
+				sm[NRF_IDX_WB_SM_DATA_MAIN_POWER_MEAN].uint32_data =
+						sm_main_get_mean_value(300);
+				sm[NRF_IDX_WB_SM_DATA_PLANT_POWER_MEAN].uint32_data =
+						sm_plant_get_mean_value(300);
+
 				nrf_add_qeue(NRF24_CMD_SM_DATA, sm, NRF_ADDR_WALLBOX,
 				NRF_WALLBOX_PIPE);
 
@@ -182,7 +181,7 @@ void TIM15_IRQHandler() {
 		if (flags.nrf_rx_window) {
 			if (++timer_ctr_for_nrf_rx_windows > 1) {
 				timer_ctr_for_nrf_rx_windows = 0;
-				flags.nrf_rx_window=0;
+				flags.nrf_rx_window = 0;
 			}
 		}
 

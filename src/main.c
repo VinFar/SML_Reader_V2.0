@@ -98,6 +98,10 @@ int main(void) {
 		if(flags.oneHz_flags){
 			flags.oneHz_flags=0;
 			rtc_calc_new_time();
+
+
+
+
 		}
 
 		if (flags.new_plant_sml_packet) {

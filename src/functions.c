@@ -31,6 +31,9 @@ smartmeter_flash_data_t sm_flash_main_cache_data[W25N_MAX_CLOUMN
 smartmeter_flash_data_t sm_flash_plant_cache_data[W25N_MAX_CLOUMN
 		/ sizeof(smartmeter_flash_data_t)];
 
+int32_t sm_main_hist[SM_HISTORY_SIZE], sm_plant_hist[SM_HISTORY_SIZE];
+static int32_t sm_main_hist_idx = 0, sm_plant_hist_idx = 0;
+
 uint8_t sm_idx_for_main_cache_data = 0;
 uint8_t sm_idx_for_plant_cache_data = 0;
 uint32_t flash_current_address_main_sml = 0;
@@ -302,6 +305,11 @@ void sm_plant_extract_data() {
 
 				}
 
+				sm_plant_hist[sm_plant_hist_idx] = sm_plant_current_data.power;
+				if (++sm_plant_hist_idx > SM_HISTORY_SIZE) {
+					sm_plant_hist_idx = 0;
+				}
+
 				/*
 				 * at this point all data from the smart meter was written
 				 * to the struct.
@@ -330,7 +338,7 @@ void sm_main_extract_data() {
 		uint16_t crc_check = ((uint16_t) sml_main_raw_data[sml_main_raw_data_idx
 				- 2] << 8)
 				+ (uint16_t) sml_main_raw_data[sml_main_raw_data_idx - 1];
-		sml_main_raw_data_idx=0;
+		sml_main_raw_data_idx = 0;
 
 		if (crc_check == crc_calc) {
 
@@ -409,6 +417,11 @@ void sm_main_extract_data() {
 
 				}
 
+				sm_main_hist[sm_main_hist_idx] = sm_main_current_data.power;
+				if (++sm_main_hist_idx > SM_HISTORY_SIZE) {
+					sm_main_hist_idx = 0;
+				}
+
 				/*
 				 * at this point all data from the smart meter was written
 				 * to the struct
@@ -419,7 +432,7 @@ void sm_main_extract_data() {
 		}
 	}
 
-	memset(sml_main_raw_data,0,sizeof(sml_main_raw_data));
+	memset(sml_main_raw_data, 0, sizeof(sml_main_raw_data));
 
 }
 
@@ -465,7 +478,7 @@ void flash_main_store_data_in_cache(uint32_t timestamp) {
 		sm[4].uint32_data = W25N_START_ADDRESS_MAIN;
 		sm[5].uint32_data = W25N_START_ADDRESS_PLANT;
 
-		nrf_add_qeue(NRF24_CMD_FLASH_DATA, sm, NRF_ADDR_DISP,NRF_DISP_PIPE);
+		nrf_add_qeue(NRF24_CMD_FLASH_DATA, sm, NRF_ADDR_DISP, NRF_DISP_PIPE);
 
 		if (flash_current_address_main_sml > W25N_MAX_ADDRESS_MAIN) {
 			/*
@@ -520,7 +533,7 @@ void flash_plant_store_data_in_cache(uint32_t timestamp) {
 		sm[4].uint32_data = W25N_START_ADDRESS_MAIN;
 		sm[5].uint32_data = W25N_START_ADDRESS_PLANT;
 
-		nrf_add_qeue(NRF24_CMD_FLASH_DATA, sm, NRF_ADDR_DISP,NRF_DISP_PIPE);
+		nrf_add_qeue(NRF24_CMD_FLASH_DATA, sm, NRF_ADDR_DISP, NRF_DISP_PIPE);
 
 		if (flash_current_address_plant_sml > W25N_MAX_ADDRESS_PLANT) {
 			/*
@@ -973,6 +986,53 @@ void init_tx_data() {
 
 }
 
-void sm_tx(){
+void sm_tx() {
 	usart6_send_data(sml_tx_data, sizeof(sml_tx_data));
+}
+
+static int32_t calc_mean_i32b(int32_t *hist, uint32_t run_idx, uint32_t size) {
+
+	if (run_idx == 0) {
+		run_idx = SM_HISTORY_SIZE - 1;
+	} else {
+		run_idx--;
+	}
+
+	uint32_t seconds_sum = 0;
+	int32_t power_sum = 0;
+	while (seconds_sum++ < size) {
+		power_sum += hist[run_idx];
+		if (--run_idx < 0) {
+			run_idx = SM_HISTORY_SIZE - 1;
+		}
+	}
+	return power_sum / size;
+}
+
+int32_t sm_plant_get_mean_value(int32_t time) {
+
+	if (time > SM_HISTORY_SIZE) {
+		int32_t sum = 0;
+		for (int i = 0; i < SM_HISTORY_SIZE; i++) {
+			sum += sm_plant_hist[i];
+		}
+		return sum / SM_HISTORY_SIZE;
+	}
+
+	return calc_mean_i32b(sm_plant_hist,sm_main_hist_idx,time);
+
+}
+
+int32_t sm_main_get_mean_value(int32_t time) {
+
+	if (time > SM_HISTORY_SIZE) {
+		int32_t sum = 0;
+		for (int i = 0; i < SM_HISTORY_SIZE; i++) {
+			sum += sm_main_hist[i];
+		}
+		return sum / SM_HISTORY_SIZE;
+	}
+
+	return calc_mean_i32b(sm_main_hist,sm_main_hist_idx,time);
+
 }

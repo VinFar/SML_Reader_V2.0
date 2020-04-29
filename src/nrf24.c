@@ -719,7 +719,7 @@ int8_t nrf_transmit_next_item() {
 					}
 					return -1;
 				}
-				nrf24_init_rx(item.pipe, item.addr);
+//				nrf24_init_rx(item.pipe, item.addr);
 				flags.nrf_rx_window=1;
 				nrf24_tx_ctr++;
 				if (item.addr == NRF_ADDR_WALLBOX) {
