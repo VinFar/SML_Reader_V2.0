@@ -184,6 +184,13 @@ typedef enum{
 	nrf24_rx_pipe5,
 }nrf24_rx_pipes_t;
 
+typedef enum{
+	nrf_irq_rx_dr=1<<6,
+	nrf_irq_tx_ds=1<<5,
+	nrf_irq_max_rt=1<<4
+}nrf_irq_t;
+
+
 
 extern const uint8_t nrf24_tx_size;
 extern data_union_t nrf24_tx_buf[(NRF24_TX_SIZE/4)];
@@ -243,5 +250,7 @@ nRF24_RXResult nRF24_ReadPayload(uint8_t *pBuf, uint8_t *length);
 nRF24_TXResult nRF24_TransmitPacket(uint8_t *pBuf, uint8_t length);
 int8_t nrf_add_qeue(uint8_t cmd, data_union_t *ptr, uint32_t addr,nrf24_pipes_t pipe);
 int8_t nrf_transmit_next_item();
+void nrf_enable_irq(nrf_irq_t irq);
+void nrf_disable_irq(nrf_irq_t irq);
 
 #endif // __NRF24_H

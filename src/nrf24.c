@@ -597,6 +597,24 @@ nRF24_TXResult nRF24_TransmitPacket(uint8_t *pBuf, uint8_t length) {
 	return nRF24_TX_ERROR;
 }
 
+void nrf_enable_irq(nrf_irq_t irq) {
+	uint8_t reg;
+	// Configure PRIM_RX bit of the CONFIG register
+	reg = nRF24_ReadReg(nRF24_REG_CONFIG);
+	reg &= ~irq;
+	nRF24_WriteReg(nRF24_REG_CONFIG, reg);
+	return;
+}
+
+void nrf_disable_irq(nrf_irq_t irq) {
+	uint8_t reg;
+	// Configure PRIM_RX bit of the CONFIG register
+	reg = nRF24_ReadReg(nRF24_REG_CONFIG);
+	reg |= irq;
+	nRF24_WriteReg(nRF24_REG_CONFIG, reg);
+	return;
+}
+
 void nrf24_init_tx() {
 
 	// Configure TX PIPE
@@ -611,6 +629,9 @@ void nrf24_init_tx() {
 
 	// Set operational mode (PTX == transmitter)
 	nRF24_SetOperationalMode(nRF24_MODE_TX);
+
+	nrf_disable_irq(nrf_irq_rx_dr);
+	nrf_enable_irq(nrf_irq_tx_ds);
 
 	// Clear any pending IRQ flags
 	nRF24_ClearIRQFlags();
@@ -630,6 +651,9 @@ void nrf24_init_rx(nrf24_pipes_t pipe, uint32_t addr) {
 
 	// Set operational mode (PTX == transmitter)
 //	nRF24_SetOperationalMode(nRF24_MODE_RX);
+
+	nrf_disable_irq(nrf_irq_tx_ds);
+	nrf_enable_irq(nrf_irq_rx_dr);
 
 	// Clear any pending IRQ flags
 	nRF24_ClearIRQFlags();
