@@ -22,6 +22,7 @@ This Repo is about a system for reading out the upcoming electrical [SmartMeter]
 - The green area is the amount of electricity which is put into the grid
 
 The interval for saving the data was set to two seconds and thus it is possible to detect different consumer, like a **bread baking machine** that is shown in the zoomed area.
+<img src="Beispielanlage.png" width="100%"/>
 
 <img src="MatlabPlot.png" width="100%"/>
 
