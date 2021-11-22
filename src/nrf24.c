@@ -1,4 +1,8 @@
 #include "nrf24.h"
+#include "functions.h"
+#include "shared_defines.h"
+#include "string.h"
+#include "delay.h"
 
 // The address used to test presence of the transceiver,
 // note: should not exceed 5 bytes
@@ -593,264 +597,164 @@ nRF24_TXResult nRF24_TransmitPacket(uint8_t *pBuf, uint8_t length) {
 	return nRF24_TX_ERROR;
 }
 
-void nrf24_pipe_set_payload_length(int8_t pipe, uint8_t length) {
+void nrf_enable_irq(nrf_irq_t irq) {
+	uint8_t reg;
+	// Configure PRIM_RX bit of the CONFIG register
+	reg = nRF24_ReadReg(nRF24_REG_CONFIG);
+	reg &= ~irq;
+	nRF24_WriteReg(nRF24_REG_CONFIG, reg);
+	return;
+}
 
+void nrf_disable_irq(nrf_irq_t irq) {
+	uint8_t reg;
+	// Configure PRIM_RX bit of the CONFIG register
+	reg = nRF24_ReadReg(nRF24_REG_CONFIG);
+	reg |= irq;
+	nRF24_WriteReg(nRF24_REG_CONFIG, reg);
+	return;
 }
 
 void nrf24_init_tx() {
-	// This is simple transmitter with Enhanced ShockBurst (to one logic address):
-	//   - TX address: 'ESB'
-	//   - payload: 10 bytes
-	//   - RF channel: 40 (2440MHz)
-	//   - data rate: 2Mbps
-	//   - CRC scheme: 2 byte
-
-	// The transmitter sends a 10-byte packets to the address 'ESB' with Auto-ACK (ShockBurst enabled)
-
-	// Set RF channel
-	nRF24_SetRFChannel(40);
-
-	// Set data rate
-	nRF24_SetDataRate(nRF24_DR_2Mbps);
-
-	// Set CRC scheme
-	nRF24_SetCRCScheme(nRF24_CRC_2byte);
-
-	// Set address width, its common for all pipes (RX and TX)
-	nRF24_SetAddrWidth(3);
 
 	// Configure TX PIPE
-	static const uint8_t nRF24_ADDR[] = { 'E', 'S', 'B' };
-	nRF24_SetAddr(nRF24_PIPETX, nRF24_ADDR); // program TX address
-	nRF24_SetAddr(nRF24_PIPE0, nRF24_ADDR); // program address for pipe#0, must be same as TX (for Auto-ACK)
-
-	// Set TX power (maximum)
-	nRF24_SetTXPower(nRF24_TXPWR_0dBm);
-
-	// Configure auto retransmit: 10 retransmissions with pause of 2500s in between
-	nRF24_SetAutoRetr(nRF24_ARD_2500us, 10);
+	const uint32_t addr = NRF_ADDR_DISP;
+	nRF24_SetAddr(NRF_DISP_PIPE, (const uint8_t*) &addr); // program address for pipe#0, must be same as TX (for Auto-ACK)
+	const uint32_t addr2 = NRF_ADDR_WALLBOX;
+	nRF24_SetAddr(NRF_WALLBOX_PIPE, (const uint8_t*) &addr2); // program address for pipe#0, must be same as TX (for Auto-ACK)
 
 	// Enable Auto-ACK for pipe#0 (for ACK packets)
-	nRF24_EnableAA(nRF24_PIPE0);
+	nRF24_EnableAA(NRF_DISP_PIPE);
+	nRF24_EnableAA(NRF_WALLBOX_PIPE);
 
 	// Set operational mode (PTX == transmitter)
 	nRF24_SetOperationalMode(nRF24_MODE_TX);
+
+	nrf_disable_irq(nrf_irq_rx_dr);
+	nrf_enable_irq(nrf_irq_tx_ds);
 
 	// Clear any pending IRQ flags
 	nRF24_ClearIRQFlags();
 
 	// Wake the transceiver
 	nRF24_SetPowerMode(nRF24_PWR_UP);
+
+	flags.nrf_rx_window = 0;
+
 }
 
-#if 0
+void nrf24_init_rx(nrf24_pipes_t pipe, uint32_t addr) {
+	// Configure RX PIPE
 
-#define __printf(...) iprintf(__VA_ARGS__)
+	nRF24_SetAddr(pipe, (const uint8_t*) &addr); // program address for pipe
+	nRF24_SetRXPipe(pipe, nRF24_AA_ON, NRF_PAYLOAD_LEN);
 
-// Print nRF24L01+ current configuration (for debug purposes)
-void nRF24_DumpConfig(void) {
-	uint8_t i, j;
-	uint8_t aw;
-	uint8_t buf[5];
+	// Set operational mode (PTX == transmitter)
+//	nRF24_SetOperationalMode(nRF24_MODE_RX);
 
-	// Dump nRF24L01+ configuration
+	nrf_disable_irq(nrf_irq_tx_ds);
+	nrf_enable_irq(nrf_irq_rx_dr);
 
-	// CONFIG
-	i = nRF24_ReadReg(nRF24_REG_CONFIG);
-	__printf("[0x%02X][0x%02X] MASK:%03b CRC:%02b PWR:%s MODE:P%s\r\n",
-			nRF24_REG_CONFIG,
-			i,
-			i >> 4,
-			(i & 0x0c) >> 2,
-			(i & 0x02) ? "ON" : "OFF",
-			(i & 0x01) ? "RX" : "TX"
-		);
+	// Clear any pending IRQ flags
+	nRF24_ClearIRQFlags();
 
-	// EN_AA
-	i = nRF24_ReadReg(nRF24_REG_EN_AA);
-	__printf("[0x%02X][0x%02X] ENAA: ", nRF24_REG_EN_AA, i);
-	for (j = 0; j < 6; j++) {
-		__printf("[P%1u%s]%s",
-				j,
-				(i & (1 << j)) ? "+" : "-",
-				(j == 5) ? "\r\n" : " "
-			);
-	}
+	// Wake the transceiver
+	nRF24_SetPowerMode(nRF24_PWR_UP);
 
-	// EN_RXADDR
-	i = nRF24_ReadReg(nRF24_REG_EN_RXADDR);
-	__printf("[0x%02X][0x%02X] EN_RXADDR: ", nRF24_REG_EN_RXADDR, i);
-	for (j = 0; j < 6; j++) {
-		__printf("[P%1u%s]%s", j,
-				(i & (1 << j)) ? "+" : "-",
-				(j == 5) ? "\r\n" : " "
-			);
-	}
+	flags.nrf_rx_window=1;
 
-	// SETUP_AW
-	i = nRF24_ReadReg(nRF24_REG_SETUP_AW);
-	aw = nRF24_GetAddrWidth();
-	__printf("[0x%02X][0x%02X] Address: %u Bytes\r\n",
-			nRF24_REG_SETUP_AW,
-			i,
-			aw
-		);
-
-	// SETUP_RETR
-	i = nRF24_ReadReg(nRF24_REG_SETUP_RETR);
-	__printf("[0x%02X][0x%02X] ARD=%04b ARC=%04b (retr.delay=%uus, count=%u)\r\n",
-			nRF24_REG_SETUP_RETR,
-			i,
-			i >> 4,
-			i & 0x0F,
-			((i >> 4) * 250) + 250,
-			i & 0x0F
-		);
-
-	// RF_CH
-	i = nRF24_ReadReg(nRF24_REG_RF_CH);
-	__printf("[0x%02X][0x%02X] RF channel:%u (%.3uGHz)\r\n",
-			nRF24_REG_RF_CH,
-			i,
-			i,
-			2400 + i
-		);
-
-	// RF_SETUP
-	i = nRF24_ReadReg(nRF24_REG_RF_SETUP);
-	__printf("[0x%02X][0x%02X] CONT_WAVE:%s PLL_LOCK:%s DataRate=",
-			nRF24_REG_RF_SETUP,
-			i,
-			(i & 0x80) ? "ON" : "OFF",
-			(i & 0x80) ? "ON" : "OFF"
-		);
-	switch ((i & 0x28) >> 3) {
-		case 0x00:
-			__printf("1M");
-			break;
-		case 0x01:
-			__printf("2M");
-			break;
-		case 0x04:
-			__printf("250k");
-			break;
-		default:
-			__printf("???");
-			break;
-	}
-	__printf("pbs RF_PWR=");
-	switch ((i & 0x06) >> 1) {
-		case 0x00:
-			__printf("-18");
-			break;
-		case 0x01:
-			__printf("-12");
-			break;
-		case 0x02:
-			__printf("-6");
-			break;
-		case 0x03:
-			__printf("0");
-			break;
-		default:
-			__printf("???");
-			break;
-	}
-	__printf("dBm\r\n");
-
-	// STATUS
-	i = nRF24_ReadReg(nRF24_REG_STATUS);
-	__printf("[0x%02X][0x%02X] IRQ:%03b RX_PIPE:%u TX_FULL:%s\r\n",
-			nRF24_REG_STATUS,
-			i,
-			(i & 0x70) >> 4,
-			(i & 0x0E) >> 1,
-			(i & 0x01) ? "YES" : "NO"
-		);
-	// OBSERVE_TX
-	i = nRF24_ReadReg(nRF24_REG_OBSERVE_TX);
-	__printf("[0x%02X][0x%02X] PLOS_CNT=%u ARC_CNT=%u\r\n",
-			nRF24_REG_OBSERVE_TX,
-			i,
-			i >> 4,
-			i & 0x0F
-		);
-	// RPD
-	i = nRF24_ReadReg(nRF24_REG_RPD);
-	__printf("[0x%02X][0x%02X] RPD=%s\r\n",
-			nRF24_REG_RPD,
-			i,
-			(i & 0x01) ? "YES" : "NO"
-		);
-
-	// TX_ADDR
-	nRF24_ReadMBReg(nRF24_REG_TX_ADDR, buf, aw);
-	__printf("[0x%02X] TX_ADDR:    ", nRF24_REG_TX_ADDR);
-	for (i = 0; i < aw; i++) { __printf("0x%02x ", buf[i]); }
-	__printf("[");
-	for (i = 0; i < aw; i++) { __printf("%c", buf[i]); }
-	__printf("]\r\n");
-
-	// RX_ADDR_P0
-	nRF24_ReadMBReg(nRF24_REG_RX_ADDR_P0, buf, aw);
-	__printf("[0x%02X] RX_ADDR_P0: ", nRF24_REG_RX_ADDR_P0);
-	for (i = 0; i < aw; i++) { __printf("0x%02x ", buf[i]); }
-	__printf("[");
-	for (i = 0; i < aw; i++) { __printf("%c", buf[i]); }
-	__printf("]\r\n");
-
-	// RX_ADDR_P1
-	nRF24_ReadMBReg(nRF24_REG_RX_ADDR_P1, buf, aw);
-	__printf("[0x%02X] RX_ADDR_P1: ", nRF24_REG_RX_ADDR_P1);
-	for (i = 0; i < aw; i++) { __printf("0x%02x ", buf[i]); }
-	__printf("[");
-	for (i = 0; i < aw; i++) { __printf("%c", buf[i]); }
-	__printf("]\r\n");
-
-	// RX_ADDR_P2
-	buf[aw - 1] = nRF24_ReadReg(nRF24_REG_RX_ADDR_P2);
-	__printf("[0x%02X] RX_ADDR_P2: ", nRF24_REG_RX_ADDR_P2);
-	for (i = 0; i < aw; i++) { __printf("0x%02x ", buf[i]); }
-	__printf("[");
-	for (i = 0; i < aw; i++) { __printf("%c", buf[i]); }
-	__printf("]\r\n");
-
-	// RX_ADDR_P3
-	buf[aw - 1] = nRF24_ReadReg(nRF24_REG_RX_ADDR_P3);
-	__printf("[0x%02X] RX_ADDR_P3: ", nRF24_REG_RX_ADDR_P3);
-	for (i = 0; i < aw; i++) { __printf("0x%02x ", buf[i]); }
-	__printf("[");
-	for (i = 0; i < aw; i++) { __printf("%c", buf[i]); }
-	__printf("]\r\n");
-
-	// RX_ADDR_P4
-	buf[aw - 1] = nRF24_ReadReg(nRF24_REG_RX_ADDR_P4);
-	__printf("[0x%02X] RX_ADDR_P4: ", nRF24_REG_RX_ADDR_P4);
-	for (i = 0; i < aw; i++) { __printf("0x%02x ", buf[i]); }
-	__printf("[");
-	for (i = 0; i < aw; i++) { __printf("%c", buf[i]); }
-	__printf("]\r\n");
-
-	// RX_ADDR_P5
-	buf[aw - 1] = nRF24_ReadReg(nRF24_REG_RX_ADDR_P5);
-	__printf("[0x%02X] RX_ADDR_P5: ", nRF24_REG_RX_ADDR_P5);
-	for (i = 0; i < aw; i++) { __printf("0x%02x ", buf[i]); }
-	__printf("[");
-	for (i = 0; i < aw; i++) { __printf("%c", buf[i]); }
-	__printf("]\r\n");
-
-	// RX_PW_P0
-	__printf("[0x%02X] RX_PW_P0=%u\r\n", nRF24_REG_RX_PW_P0, nRF24_ReadReg(nRF24_REG_RX_PW_P0));
-	// RX_PW_P1
-	__printf("[0x%02X] RX_PW_P1=%u\r\n", nRF24_REG_RX_PW_P1, nRF24_ReadReg(nRF24_REG_RX_PW_P1));
-	// RX_PW_P2
-	__printf("[0x%02X] RX_PW_P2=%u\r\n", nRF24_REG_RX_PW_P2, nRF24_ReadReg(nRF24_REG_RX_PW_P2));
-	// RX_PW_P3
-	__printf("[0x%02X] RX_PW_P3=%u\r\n", nRF24_REG_RX_PW_P3, nRF24_ReadReg(nRF24_REG_RX_PW_P3));
-	// RX_PW_P4
-	__printf("[0x%02X] RX_PW_P4=%u\r\n", nRF24_REG_RX_PW_P4, nRF24_ReadReg(nRF24_REG_RX_PW_P4));
-	// RX_PW_P5
-	__printf("[0x%02X] RX_PW_P5=%u\r\n", nRF24_REG_RX_PW_P5, nRF24_ReadReg(nRF24_REG_RX_PW_P5));
 }
 
-#endif // nRF24_DumpConfig()
+void nrf24_init_gen() {
+
+	nRF24_Check();
+	nRF24_Init();
+
+	// Set RF channel
+	nRF24_SetRFChannel(NRF_CHANNEL);
+
+	// Set data rate
+	nRF24_SetDataRate(NRF_DATARATE);
+
+	// Set CRC scheme
+	nRF24_SetCRCScheme(NRF_CRC_SCHEME);
+
+	// Set address width, its common for all pipes (RX and TX)
+	nRF24_SetAddrWidth(NRF_ADDR_LEN);
+
+	// Set TX power (maximum)
+	nRF24_SetTXPower(nRF24_TXPWR_0dBm);
+
+	// Configure auto retransmit: 10 retransmissions with pause of 2500s in between
+	nRF24_SetAutoRetr(nRF24_ARD_2500us, 15);
+
+
+
+}
+
+int8_t nrf_add_qeue(uint8_t cmd, data_union_t *ptr, uint32_t addr,nrf24_pipes_t pipe) {
+
+	if (cmd > NRF24_CMD_MAX_ENUM) {
+		return -1;
+	}
+
+	nrf24_frame_queue_t item;
+
+	item.addr = addr;
+	item.frame.cmd = cmd;
+	item.frame.size = 24;
+	if (ptr != NULL) {
+		memcpy(&item.frame.data[0], ptr, NRF24_TX_SIZE);
+	}
+	if (nrf_queue_enqueue(&item) == ENQUEUE_RESULT_FULL) {
+		return -1;
+	}
+
+	return 0;
+}
+
+static uint32_t nrf24_tx_ctr = 0;
+
+int8_t nrf_transmit_next_item() {
+
+	nrf24_frame_queue_t item;
+	enum dequeue_result res;
+	res = nrf_queue_dequeue(&item);
+	nrf24_init_tx();
+	delay_us(200);
+	nRF24_SetAddr(nRF24_PIPETX, (const uint8_t*) &item.addr);
+	nRF24_SetAddr(nRF24_PIPE0, (const uint8_t*) &item.addr);
+
+	if (res == DEQUEUE_RESULT_SUCCESS) {
+		if (item.frame.cmd < NRF24_CMD_MAX_ENUM) {
+			if (item.frame.size <= 32) {
+				item.frame.tx_ctr = nrf24_tx_ctr;
+				nRF24_TXResult nrf_res = nRF24_TransmitPacket(
+						(uint8_t*) &item.frame, 32);
+				uint8_t otx = nRF24_GetRetransmitCounters();
+				UNUSED(otx);
+
+				if (nrf_res != nRF24_TX_SUCCESS) {
+					nRF24_ResetPLOS();
+					if (item.addr == NRF_ADDR_WALLBOX) {
+						flags.wallbox_connected = 0;
+					} else {
+						flags.display_connected = 0;
+					}
+					return -1;
+				}
+//				nrf24_init_rx(item.pipe, item.addr);
+				flags.nrf_rx_window=1;
+				nrf24_tx_ctr++;
+				if (item.addr == NRF_ADDR_WALLBOX) {
+					flags.wallbox_connected = 1;
+				} else {
+					flags.display_connected = 1;
+				}
+				return 0;
+			}
+		}
+	}
+	return -1;
+}
+

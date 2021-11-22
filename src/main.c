@@ -6,7 +6,6 @@
 #include "eeprom.h"
 #include "string.h"
 #include "functions.h"
-#include <time.h>
 
 #include "FreeRTOS.h"
 #include "task.h"
@@ -20,9 +19,17 @@
 #include "dac.h"
 #include "rtc.h"
 #include "nrf24.h"
+<<<<<<< HEAD
 #include "lcd_menu.h"
 #include "i2clcd.h"
 #include "i2c.h"
+=======
+#include "nrf24_hal.h"
+#include "queue.h"
+#include "crc.h"
+#include "i2c.h"
+#include "timer.h"
+>>>>>>> origin/SMU-Main
 
 /* Priorities at which the tasks are created.  The event semaphore task is
  given the maximum priority of ( configMAX_PRIORITIES - 1 ) to ensure it runs as
@@ -61,6 +68,7 @@ uuid_t uuid = { { ((uint32_t*) UUID_BASE_ADDRESS),
 		(((uint32_t*) UUID_BASE_ADDRESS + 1)), ((uint32_t*) (UUID_BASE_ADDRESS
 				+ 2)) } };
 
+<<<<<<< HEAD
 uint32_t rtc_current_time_unix;
 uint32_t rtc_old_time_unix;
 
@@ -77,9 +85,15 @@ nRF24_TXResult tx_res;
 
 data_union_t nrf24_rx_data[5];
 static uint8_t nrf24_rx_size = NRF24_RX_SIZE;
+=======
+/*
+ * V0.0.1.1
+ */
+>>>>>>> origin/SMU-Main
 
 static uint32_t idx_mean_value = 0;
 
+<<<<<<< HEAD
 static uint32_t idx_oldest_value = 0;
 
 uint32_t startup_timestamp = 0;
@@ -244,6 +258,63 @@ int main(void) {
 
 				}
 			}
+=======
+
+	prvSetupHardware();
+	flags.new_main_sml_packet = 0;
+
+	flash_init();
+//	flash_bulkErase();
+	flash_address_get_main();
+	flash_address_get_plant();
+
+	nrf24_init_gen();
+	nrf24_init_tx();
+	nrf_queue_init();
+
+	uint32_t rtc_old_time=rtc_get_current_unix_time();
+	flags.nrf_rx_window=0;
+	flags.display_connected = 0;
+	flags.wallbox_connected = 0;
+	flags.nrf_tx_init = 0;
+
+	while (1) {
+
+		if(flags.oneHz_flags){
+			flags.oneHz_flags=0;
+			rtc_calc_new_time();
+
+
+
+
+		}
+
+		if (flags.new_plant_sml_packet) {
+			flags.new_plant_sml_packet = 0;
+			sm_plant_extract_data();
+		}
+
+		if (flags.new_main_sml_packet) {
+			flags.new_main_sml_packet = 0;
+			sm_main_extract_data();
+		}
+
+		if(nrf_queue_is_empty()==0 && flags.nrf_rx_window == 0){
+			nrf_transmit_next_item();
+		}
+
+		if ((rtc_get_current_unix_time() - rtc_old_time) >= FLASH_SAVE_INTERVALL) {
+			rtc_old_time = rtc_get_current_unix_time();
+			/*
+			 * save data every 2 seconds
+			 */
+			flash_main_store_data_in_cache(rtc_old_time);
+			flash_plant_store_data_in_cache(rtc_old_time);
+		}
+
+		if (flags.usart6_new_cmd) {
+			check_cmd_frame();
+>>>>>>> origin/SMU-Main
 		}
 	}
 }
@@ -267,10 +338,16 @@ void vApplicationTickHook() {
 static void prvSetupHardware(void) {
 
 	SystemClock_Config();
+<<<<<<< HEAD
 
 	timer16_init();
 
+=======
+//	dac_init();
+>>>>>>> origin/SMU-Main
 	gpio_init();
+
+	timer16_init();
 
 	/*
 	 * communication for DAC, EEPROM and Display
@@ -282,12 +359,35 @@ static void prvSetupHardware(void) {
 	 */
 	spi1_init();
 
+<<<<<<< HEAD
 	usart6_init();
+=======
+	/*
+	 * SML Input 1
+	 */
+	usart1_init();
+
+	/*
+	 * HOST PC Communication
+	 */
+	usart6_init();
+
+	/*
+	 * SML Input 2
+	 */
+	usart3_init();
+//	usart5_init();
+
+	adc_init();
+
+	comp_init();
+>>>>>>> origin/SMU-Main
 
 	crc_init();
 
 	rtc_init();
 
+<<<<<<< HEAD
 	TIM3_Init(); //timer for rotary encoder
 	TIM6_Init(); //1khz counter for millisecond count
 	TIM14_Init(); //used for resetting values and the system
@@ -395,6 +495,12 @@ void outlet_on_off(menu_t *instance) {
 		switch_outlet(outlet, 1);
 		strcpy(&outlet->ptr_to_string[12], (char*) " ein");
 	}
+=======
+	TIM15_Init();
+	TIM14_Init();
+
+	init_tx_data();
+>>>>>>> origin/SMU-Main
 
 }
 

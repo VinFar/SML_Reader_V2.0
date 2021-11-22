@@ -196,5 +196,6 @@ int8_t flash_check_status();
 
 int8_t flash_address_get_plant();
 int8_t flash_address_get_main();
+int8_t flash_write_data(uint32_t address, uint8_t *buf, uint32_t datalen);
 
 #endif /* FLASH_H_ */

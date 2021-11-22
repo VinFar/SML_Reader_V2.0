@@ -72,6 +72,7 @@ void _exit (int32_t status)
 int _write(int32_t file, uint8_t *ptr, int32_t len)
 {
   /* Implement your write code here, this is used by puts and printf for example */
+	usart6_send_data(ptr, len);
   return len;
 }
 

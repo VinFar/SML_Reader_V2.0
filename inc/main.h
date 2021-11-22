@@ -13,7 +13,6 @@
 #include "stm32f0xx_hal.h"
 #include "defines.h"
 
-#define delay_us(us)
 #define NOP asm("nop");
 #define STRUCT_PACKED __attribute__((packed))
 #define UUID_BASE_ADDRESS 0x1FFF7A10
@@ -84,12 +83,22 @@ void Error_Handler(void);
 #define I2C1_SDA_GPIO_Port GPIOB
 
 
+
+
+#define ADC_RJ1 ADC_CHSELR_CHSEL6
+#define ADC_RJ2 ADC_CHSELR_CHSEL8
+
+
 volatile typedef struct {
 	unsigned new_main_sml_packet:1;
 	unsigned new_plant_sml_packet:1;
 	unsigned usart6_new_cmd:1;
 	unsigned usart6_rx_busy:1;
-	unsigned gateway:1;
+	unsigned display_connected:1;
+	unsigned oneHz_flags:1;
+	unsigned wallbox_connected:1;
+	unsigned nrf_rx_window:1;
+	unsigned nrf_tx_init:1;
 }flags_t;
 
 flags_t flags;

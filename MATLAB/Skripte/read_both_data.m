@@ -9,6 +9,7 @@ end_address = addresses(1);
 pages = (end_address-start_address)/2048
 pages = uint32(pages);
 size = uint32(floor(2048/data_width))*data_width
+place_occupied_plant = ((addresses(1)-addresses(3))/(addresses(2)-addresses(3))*100)
 if(pages == 0)
     display('no pages to read. Flash IC is empty!');
     return;
@@ -20,7 +21,8 @@ a=1;
 for i=1:1:pages
     smu_data_plant(1,a:(a+size-1)) = smu_read_flash(stm32,start_address,size);
     start_address = start_address + 2048;
-    a=a+size
+    a=a+size;
+    (double(a)/(double(pages*size)))*100
 end
 
 
@@ -55,6 +57,7 @@ start_address = addresses(3);
 end_address = addresses(1);
 % pages = (end_address-start_address)/2048
 % pages = uint32(pages);
+place_occupied_main = ((addresses(1)-addresses(3))/(addresses(2)-addresses(3))*100)
 
 smu_data_main = zeros(1,pages*size);
 a=1;
@@ -83,7 +86,7 @@ time_main = datetime(time_main, 'convertfrom','posixtime');
 % time_main = time_main - time_main(1,1)-692;
 
 toc
-githsubplot(3,1,2)
+subplot(3,1,2)
 
 stairs(time_main(1,1:end-200),power_main(1,1:end-200))
 ylabel('Power in W');

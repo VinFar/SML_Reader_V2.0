@@ -5,6 +5,7 @@
 // Low level functions (hardware depended)
 #include "nrf24_hal.h"
 #include "usart.h"
+#include "shared_defines.h"
 
 
 #ifndef nRF24_ADDR_REVERSE
@@ -13,7 +14,6 @@
 //   1 - reverse - the last byte of the address transmitted first
 #define nRF24_ADDR_REVERSE         0
 #endif
-
 // Timeout counter (depends on the CPU speed)
 // Used for not stuck waiting for IRQ
 #define nRF24_WAIT_TIMEOUT         (uint32_t)0x000FFFFF
@@ -103,12 +103,6 @@ typedef enum {
 	nRF24_ARD_4000us = (uint8_t)0x0F
 }nrf24_ard_delays_t;
 
-// Data rate
-typedef enum {
-	nRF24_DR_250kbps = (uint8_t)0x20, // 250kbps data rate
-	nRF24_DR_1Mbps   = (uint8_t)0x00, // 1Mbps data rate
-	nRF24_DR_2Mbps   = (uint8_t)0x08  // 2Mbps data rate
-}nrf24_datarates_t;
 
 // RF output power in TX mode
 typedef enum {
@@ -118,12 +112,7 @@ typedef enum {
 	nRF24_TXPWR_0dBm  = (uint8_t)0x06  //   0dBm
 }nrf24_txpwr_t;
 
-// CRC encoding scheme
-typedef enum {
-	nRF24_CRC_off   = (uint8_t)0x00, // CRC disabled
-	nRF24_CRC_1byte = (uint8_t)0x08, // 1-byte CRC
-	nRF24_CRC_2byte = (uint8_t)0x0c  // 2-byte CRC
-}nrf24_crc_scheme_t;
+
 
 // nRF24L01 power control
 typedef enum {
@@ -137,16 +126,7 @@ typedef enum {
 	nRF24_MODE_TX = (uint8_t)0x00  // PTX
 }nrf24_mode_t;
 
-// Enumeration of RX pipe addresses and TX address
-typedef enum {
-	nRF24_PIPE0  = (uint8_t)0x00, // pipe0
-	nRF24_PIPE1  = (uint8_t)0x01, // pipe1
-	nRF24_PIPE2  = (uint8_t)0x02, // pipe2
-	nRF24_PIPE3  = (uint8_t)0x03, // pipe3
-	nRF24_PIPE4  = (uint8_t)0x04, // pipe4
-	nRF24_PIPE5  = (uint8_t)0x05, // pipe5
-	nRF24_PIPETX = (uint8_t)0x06  // TX address (not a pipe in fact)
-}nrf24_pipes_t;
+
 
 // State of auto acknowledgment for specified pipe
 typedef enum {
@@ -204,7 +184,13 @@ typedef enum{
 	nrf24_rx_pipe5,
 }nrf24_rx_pipes_t;
 
-#define NRF24_TX_SIZE 20
+typedef enum{
+	nrf_irq_rx_dr=1<<6,
+	nrf_irq_tx_ds=1<<5,
+	nrf_irq_max_rt=1<<4
+}nrf_irq_t;
+
+
 
 extern const uint8_t nrf24_tx_size;
 extern data_union_t nrf24_tx_buf[(NRF24_TX_SIZE/4)];
@@ -256,9 +242,15 @@ void nRF24_FlushRX(void);
 void nRF24_ClearIRQFlags(void);
 
 void nrf24_init_tx();
+void nrf24_init_rx(nrf24_pipes_t pipe, uint32_t addr);
+void nrf24_init_gen();
 
 void nRF24_WritePayload(uint8_t *pBuf, uint8_t length);
 nRF24_RXResult nRF24_ReadPayload(uint8_t *pBuf, uint8_t *length);
 nRF24_TXResult nRF24_TransmitPacket(uint8_t *pBuf, uint8_t length);
+int8_t nrf_add_qeue(uint8_t cmd, data_union_t *ptr, uint32_t addr,nrf24_pipes_t pipe);
+int8_t nrf_transmit_next_item();
+void nrf_enable_irq(nrf_irq_t irq);
+void nrf_disable_irq(nrf_irq_t irq);
 
 #endif // __NRF24_H
